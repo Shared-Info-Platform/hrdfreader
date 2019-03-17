@@ -1,0 +1,4 @@
+bitstring==3.1.5
+pip==10.0.1
+psycopg2==2.7.7
+setuptools==39.0.1

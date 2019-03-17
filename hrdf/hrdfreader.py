@@ -1,0 +1,264 @@
+import psycopg2
+import zipfile
+import fileinput
+from datetime import datetime, date, timedelta
+from io import StringIO
+from bitstring import Bits
+from hrdf.hrdfhelper import *
+
+
+class HrdfReader:
+	"""
+	Die Klasse liest die HRDF-Dateien und schreibt diese in die Datenbank
+
+	HrdfReader(hrdfzipfile, db, hrdffiles)
+
+	"""
+	def __init__(self, hrdfzipfile, db, hrdffiles, charset='utf-8'):
+		"""
+		hrdfzipfile	- HRDF-ZipFile
+		db - HRDF-DB
+		hrdffiles - Liste der zu lesenden HRDF-Files
+		charset - Charset der gezippten Dateien
+		"""
+		self.__hrdfzip = hrdfzipfile
+		self.__hrdfdb = db
+		self.__hrdffiles = hrdffiles
+		self.__charset = charset
+		self.__fkdict = dict(fk_eckdatenid="-1", fk_fplanfahrtid="-1")
+
+
+	def readfiles(self):
+		"""Liest die gewünschten HRDF-Dateien und schreibt sie in die Datenbank"""
+
+		for filename in self.__hrdffiles:
+			if filename == "ECKDATEN":
+				self.read_eckdaten(filename)
+			elif filename == "BITFELD":
+				self.read_bitfeld(filename)
+			elif filename == "RICHTUNG":
+				self.read_richtung(filename)
+			elif filename == "ZUGART":
+				self.read_zugart(filename)
+			elif filename == "ATTRIBUT":
+				self.read_attribut(filename, "DE")
+				self.read_attribut(filename, "EN")
+				self.read_attribut(filename, "FR")
+				self.read_attribut(filename, "IT")
+			elif filename == "INFOTEXT":
+				self.read_infotext(filename, "DE")
+				self.read_infotext(filename, "EN")
+				self.read_infotext(filename, "FR")
+				self.read_infotext(filename, "IT")
+			elif filename == "FPLAN":
+				self.read_fplan(filename)
+			else:
+				print("Das Lesen von [",filename,"] wird nicht unterstützt")
+
+
+	def read_eckdaten(self, filename):
+		"""Lesen der Datei ECKDATEN"""
+		print('lesen und verarbeiten der ECKDATEN')
+		lines = self.__hrdfzip.read(filename).decode(self.__charset).split('\r\n')[:-1]
+ 		# spezifisch für SBB-Version ist die Trenner in der Bezeichnung, die hier in separate Felder geschrieben werden
+		bezeichnung,exportdatum,hrdfversion,lieferant = lines[2].split('$')
+		cur = self.__hrdfdb.connection.cursor()
+		sql_string = "INSERT INTO HRDF_ECKDATEN_TAB (validFrom, validTo, descriptionhrdf, description, creationdatetime, hrdfversion, exportsystem) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id;" 
+		cur.execute(sql_string, (lines[0], lines[1], lines[2], bezeichnung, exportdatum, hrdfversion, lieferant))
+		self.__fkdict["fk_eckdatenid"] = str(cur.fetchone()[0])
+		self.__hrdfdb.connection.commit()
+		cur.close()
+		
+
+	def read_bitfeld(self, filename):
+		"""Lesen der Datei BITFELD"""
+		print('lesen und verarbeiten der BITFELD')
+		bitfeld_strIO = StringIO()
+		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
+			line = line.decode(self.__charset).replace('\r\n','')
+			bitfeld_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+										+line[:6]+';'
+										+line[7:]+';'
+										+str(Bits(hex=line[7:]).bin)[2:-2]
+										+'\n')
+		bitfeld_strIO.seek(0)
+		cur = self.__hrdfdb.connection.cursor()
+		cur.copy_expert("COPY HRDF_BITFELD_TAB (fk_eckdatenid,bitfieldno,bitfield,bitfieldextend) FROM STDIN USING DELIMITERS ';' NULL AS ''",bitfeld_strIO)
+		self.__hrdfdb.connection.commit()
+		cur.close()
+		bitfeld_strIO.close()
+
+
+	def read_richtung(self, filename):
+		"""Lesen der Datei RICHTUHNG"""
+		print('lesen und verarbeiten der RICHTUNG')
+		richtung_strIO = StringIO()
+		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
+			line = line.decode(self.__charset).replace('\r\n', '')
+			richtung_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+										 +line[:7]+';'
+										 +line[8:59]
+										+'\n')
+		richtung_strIO.seek(0)
+		cur = self.__hrdfdb.connection.cursor()
+		cur.copy_expert("COPY HRDF_RICHTUNG_TAB (fk_eckdatenid,directioncode, directiontext) FROM STDIN USING DELIMITERS ';' NULL AS ''", richtung_strIO)
+		self.__hrdfdb.connection.commit()
+		cur.close()
+		richtung_strIO.close()
+
+
+	def read_zugart(self, filename):
+		"""Lesen der Datei ZUGART"""
+		print('lesen und verarbeiten der ZUGART')
+		zugart_strIO = StringIO()
+		zugartcategory_strIO = StringIO()
+		zugartclass_strIO = StringIO()
+		zugartoption_strIO = StringIO()
+
+		languagecode = "--"
+		bTextblock = False
+		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
+			line = line.decode(self.__charset).replace('\r\n', '')
+			# Eine Zeile mit dem Inhalt "<text>" gibt an, dass nun nur noch die Textangaben in verschiedenen Sprachen folgen
+			if not bTextblock:
+				# solange das nicht der Fall ist, sollen die Daten als Zugarten weiter eingearbeitet werden
+				if line != '<text>':
+					# Der string setzt sich aus folgenden Elementen zusammen: code,produktklasse,tarifgruppe,ausgabesteuerung,gattungsbezeichnung,zuschlag,flag,gattungsbildernamen,kategorienummer
+					zugart_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+											+line[:3].strip()+';'
+											+line[4:6].strip()+';'
+											+line[7:8]+';'
+											+line[9:10]+';'
+											+line[11:19].strip()+';'
+											+line[20:21].strip()+';'
+											+line[22:23]+';'
+											+line[24:28].strip()+';'
+											+line[30:33]+
+											'\n')
+				# sobald die Textangaben beginnen, werden die Daten sprachspezifisch in das jeweilige dictionary geschrieben
+				else:
+					bTextblock = True
+			elif line[0] == '<':
+				languagecode = line[1:3].lower()
+			elif line[:8] == 'category':
+				zugartcategory_strIO.write(self.__fkdict['fk_eckdatenid']+';'+line[8:11]+';'+languagecode+';'+line[12:]+'\n')
+			elif line[:6] == 'option':
+				zugartoption_strIO.write(self.__fkdict['fk_eckdatenid']+';'+line[6:8]+';'+languagecode+';'+line[9:]+'\n')
+			elif line[:5] == 'class':
+				zugartclass_strIO.write(self.__fkdict['fk_eckdatenid']+';'+line[5:7]+';'+languagecode+';'+line[8:]+'\n')
+
+		zugart_strIO.seek(0)
+		zugartcategory_strIO.seek(0)
+		zugartclass_strIO.seek(0)
+		zugartoption_strIO.seek(0)
+
+		cur = self.__hrdfdb.connection.cursor()
+		cur.copy_expert("COPY HRDF_ZUGART_TAB (fk_eckdatenid,categorycode,classno,tariffgroup,outputcontrol,categorydesc,extracharge,flags,categoryimage,categoryno) FROM STDIN USING DELIMITERS ';' NULL AS ''", zugart_strIO)
+		cur.copy_expert("COPY HRDF_ZUGARTKategorie_TAB (fk_eckdatenid,categoryno,languagecode,categorytext) FROM STDIN USING DELIMITERS ';' NULL AS ''",zugartcategory_strIO)
+		cur.copy_expert("COPY HRDF_ZUGARTKlasse_TAB (fk_eckdatenid,classno,languagecode,classtext) FROM STDIN USING DELIMITERS ';' NULL AS ''",zugartclass_strIO)
+		cur.copy_expert("COPY HRDF_ZUGARTOption_TAB (fk_eckdatenid,optionno,languagecode,optiontext) FROM STDIN USING DELIMITERS ';' NULL AS ''",zugartoption_strIO)
+		self.__hrdfdb.connection.commit()
+		cur.close()
+		zugart_strIO.close()
+		zugartcategory_strIO.close()
+		zugartclass_strIO.close()
+		zugartoption_strIO.close()
+
+
+	def read_attribut(self, filename, sprache):
+		"""Lesen der Datei ATTRIBUT
+			ATTRIBUT aus INFO+ ist sprachabhängig in dem Format ATTRIBUT_XX
+		"""
+		print('lesen und verarbeiten der ATTRIBUT')
+		if sprache.strip():	# wird keine Sprache übergeben, dann bleibt der Dateiname unverändert
+			filename = filename + '_' + sprache
+		else:
+			sprache = '--'
+
+		# Erster Durchlauf um die Ausgabeattributscodes für Teil- und Vollstrecke zu ermitteln
+		targetcodes = {}
+		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
+			line = line.decode(self.__charset).replace('\r\n', '')
+			if line[:1] == '#':
+				targetcodes[line[2:4].strip()] = [line[5:7].strip(), line[8:10].strip()]
+
+		attribute_strIO = StringIO()
+		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
+			line = line.decode(self.__charset).replace('\r\n', '')
+			if line[:1] != '#':
+				attrcode = line[:2].strip()
+				if attrcode in targetcodes:
+					attrcode_section = targetcodes[attrcode][0]
+					attrcode_complete = targetcodes[attrcode][1]
+				else:
+					attrcode_section = ""
+					attrcode_complete = ""
+
+				attribute_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+											+attrcode+';'
+											+sprache.lower()+';'
+											+line[3:4]+';'
+											+line[5:8]+';'
+											+line[9:11]+';'
+											+line[12:-1].replace(';','\;')+';'
+											+attrcode_section+';'
+											+attrcode_complete
+											+'\n')
+		
+		attribute_strIO.seek(0)
+		cur = self.__hrdfdb.connection.cursor()
+		cur.copy_expert("COPY HRDF_ATTRIBUT_TAB (fk_eckdatenid,attributecode,languagecode,stopcontext,outputprio,outputpriosort,attributetext,outputforsection,outputforcomplete) FROM STDIN USING DELIMITERS ';' NULL AS ''", attribute_strIO)
+		self.__hrdfdb.connection.commit()
+		cur.close()
+		attribute_strIO.close()
+
+
+	def read_infotext(self, filename, sprache):
+		"""Lesen der Datei INFOTEXT
+			INFOTEXT aus INFO+ ist sprachabhängig in dem Format INFOTEXT_XX
+		"""
+		print('lesen und verarbeiten der INFOTEXT')
+		if sprache.strip():	# wird keine Sprache übergeben, dann bleibt der Dateiname unverändert
+			filename = filename + '_' + sprache
+		else:
+			sprache = '--'
+
+		infotext_strIO = StringIO()
+		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
+			line = line.decode(self.__charset).replace('\r\n', '')
+			infotext_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+										+line[:7]+';'
+										+sprache.lower()+';'
+										+line[8:].replace(';','\;')
+										+'\n')
+		
+		infotext_strIO.seek(0)
+		cur = self.__hrdfdb.connection.cursor()
+		cur.copy_expert("COPY HRDF_INFOTEXT_TAB (fk_eckdatenid,infotextno,infotextlanguage,infotext) FROM STDIN USING DELIMITERS ';' NULL AS ''", infotext_strIO)
+		self.__hrdfdb.connection.commit()
+		cur.close()
+		infotext_strIO.close()
+
+
+	def read_fplan(self, filename):
+		"""Lesen der Datei FPLAN"""
+		print('lesen und verarbeiten der FPLAN')
+		curIns = self.__hrdfdb.connection.cursor()
+
+		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
+			line = line.decode(self.__charset).replace('\r\n','')
+			if line[:1] == '*':
+				# Attribut-Zeilen
+				if line[:2] == "*Z":
+					sql_string = "INSERT INTO HRDF_FPLANFahrt_TAB (fk_eckdatenid,triptype,tripno,operationalno,cyclecount,cycletime) VALUES (%s,%s,%s,%s,%s,%s) RETURNING id;"
+					cyclecount = line[22:25].strip()
+					cycletime = line[26:29].strip()
+					if not cyclecount:
+						cyclecount = None
+					if not cycletime:
+						cycletime = None
+					curIns.execute(sql_string, (self.__fkdict['fk_eckdatenid'], line[1:2], line[3:8], line[9:15], cyclecount, cycletime))
+					self.__fkdict["fk_fplanfahrtid"] = str(curIns.fetchone()[0])
+
+		self.__hrdfdb.connection.commit()
+		curIns.close()
