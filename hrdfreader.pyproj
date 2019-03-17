@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{446da5d1-a613-4ad9-ae30-5468f4b9fa7b}</ProjectGuid>
+    <ProjectHome />
+    <StartupFile>hrdfimport.py</StartupFile>
+    <SearchPath />
+    <WorkingDirectory>C:\Entwicklung\Source\BernMobil\hrdfreader</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <InterpreterId>Global|PythonCore|3.6</InterpreterId>
+    <EnableNativeCodeDebugging>True</EnableNativeCodeDebugging>
+    <IsWindowsApplication>False</IsWindowsApplication>
+    <CommandLineArguments>../data/hrdf-201920190304132320.zip hrdfdb</CommandLineArguments>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
+  <PropertyGroup>
+    <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="hrdf\hrdfdb.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="hrdf\hrdfhelper.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="hrdf\hrdfreader.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="hrdfread.py" />
+    <Compile Include="hrdf\__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="hrdfimport.py">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="Global|PythonCore|3.6" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="db\create\" />
+    <Folder Include="hrdf\" />
+    <Folder Include="db\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="db\create\create-database-hrdf.sql" />
+    <Content Include="db\create\create-hrdf.sh" />
+    <Content Include="db\create\hrdf-schema.sql" />
+    <Content Include="db\create\hrdf-tables.sql" />
+    <Content Include="requirements.txt" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+</Project>

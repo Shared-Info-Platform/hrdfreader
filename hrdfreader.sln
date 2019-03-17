@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.329
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "hrdfreader", "hrdfreader.pyproj", "{446DA5D1-A613-4AD9-AE30-5468F4B9FA7B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{446DA5D1-A613-4AD9-AE30-5468F4B9FA7B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{446DA5D1-A613-4AD9-AE30-5468F4B9FA7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CE46E30F-9410-4DD2-AAF1-5964721E0A80}
+	EndGlobalSection
+EndGlobal
