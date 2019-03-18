@@ -50,6 +50,7 @@ COMMENT ON TABLE HRDF_BITFELD_TAB IS 'Verkehrstagesdefinitionen der Fahrten (BIT
 COMMENT ON COLUMN HRDF_BITFELD_TAB.bitfieldno is 'Eindeutige Nr der Verkehrstagesdefinition';
 COMMENT ON COLUMN HRDF_BITFELD_TAB.bitfield is 'Verkehrstagesdefinition als Bitfeld (hrdf-hexdezimalcodiert)';
 COMMENT ON COLUMN HRDF_BITFELD_TAB.bitfieldextend is '+ Verkehrstagesdefinition als Bitfeld (bitcodiert bereinigt)';
+CREATE INDEX IDX01_HRDF_BITFELD_TAB ON HRDF_BITFELD_TAB (fk_eckdatenid, bitfieldno) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief	table for file ZUGART
@@ -81,6 +82,7 @@ COMMENT ON COLUMN HRDF_ZUGART_TAB.extracharge IS 'Zuschlag (0=Zuschlagfrei, 1=Zu
 COMMENT ON COLUMN HRDF_ZUGART_TAB.flags IS 'Flags (N=Nahverkehr, B=Schiff';
 COMMENT ON COLUMN HRDF_ZUGART_TAB.categoryimage IS 'Nr für Gattungsbildernamen (0-999)';
 COMMENT ON COLUMN HRDF_ZUGART_TAB.categoryno IS 'Nr für sprachabhängigen Gattungslangnamen (0-999). Auch Text möglich - gilt dann für alle Sprachen';
+CREATE INDEX IDX01_HRDF_ZUGART_TAB ON HRDF_ZUGART_TAB (fk_eckdatenid, categorycode) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief	table for file ZUGART - Produktklasse
@@ -100,6 +102,7 @@ COMMENT ON TABLE HRDF_ZUGARTKlasse_TAB IS 'Produktklassen für Gattungen';
 COMMENT ON COLUMN HRDF_ZUGARTKlasse_TAB.classno IS 'Nr der Produktklasse (0-13)';
 COMMENT ON COLUMN HRDF_ZUGARTKlasse_TAB.languagecode IS '+ Sprache des Produktklasse (Kürzel entsprechend der Dateiendung)';
 COMMENT ON COLUMN HRDF_ZUGARTKlasse_TAB.classtext IS 'Text zur Produktklasse';
+CREATE INDEX IDX01_HRDF_ZUGARTKlasse_TAB ON HRDF_ZUGARTKlasse_TAB (fk_eckdatenid, classno, languagecode) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief	table for file ZUGART - Kategorie
@@ -119,6 +122,7 @@ COMMENT ON TABLE HRDF_ZUGARTKategorie_TAB IS 'Bezeichnungen für Gattungen';
 COMMENT ON COLUMN HRDF_ZUGARTKategorie_TAB.categoryno IS 'Nr der Gattung/Kategorie';
 COMMENT ON COLUMN HRDF_ZUGARTKategorie_TAB.languagecode IS '+ Sprache der Gattungsbezeichnung (Kürzel entsprechend der Dateiendung)';
 COMMENT ON COLUMN HRDF_ZUGARTKategorie_TAB.categorytext IS 'Gattungsbeschreibung/namen';
+CREATE INDEX IDX01_HRDF_ZUGARTKategorie_TAB ON HRDF_ZUGARTKategorie_TAB (fk_eckdatenid, categoryno, languagecode) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief	table for file ZUGART - Option (Suche)
@@ -138,6 +142,8 @@ COMMENT ON TABLE HRDF_ZUGARTOption_TAB IS 'Optionen für die Suche';
 COMMENT ON COLUMN HRDF_ZUGARTOption_TAB.optionno IS 'Nr der Option (10-14)';
 COMMENT ON COLUMN HRDF_ZUGARTOption_TAB.languagecode IS '+ Sprache der Optionsbezeichnung (Kürzel entsprechend der Dateiendung)';
 COMMENT ON COLUMN HRDF_ZUGARTOption_TAB.optiontext IS 'Text der Option';
+CREATE INDEX IDX01_HRDF_ZUGARTOption_TAB ON HRDF_ZUGARTOption_TAB (fk_eckdatenid, optionno, languagecode) TABLESPACE :TBSINDEXNAME;
+
 
 
 /*
@@ -156,6 +162,8 @@ ALTER TABLE HRDF_RICHTUNG_TAB ADD CONSTRAINT PK_HRDF_RICHTUNG_TAB PRIMARY KEY (I
 COMMENT ON TABLE HRDF_RICHTUNG_TAB IS 'Verkehrsmittel bzw. Gattung';
 COMMENT ON COLUMN HRDF_RICHTUNG_TAB.directioncode IS 'Code der Richtung';
 COMMENT ON COLUMN HRDF_RICHTUNG_TAB.directiontext IS 'Ausgabetext der Richtung';
+CREATE INDEX IDX01_HRDF_HRDF_RICHTUNG_TAB ON HRDF_RICHTUNG_TAB (fk_eckdatenid, directioncode) TABLESPACE :TBSINDEXNAME;
+
 
 /*
 \brief	table for file ATTRIBUT
@@ -185,6 +193,8 @@ COMMENT ON COLUMN HRDF_ATTRIBUT_TAB.outputpriosort IS 'Ausgabepriosortierung, be
 COMMENT ON COLUMN HRDF_ATTRIBUT_TAB.attributetext IS 'Text des Attributs (Abschlusszeichen # entfällt)';
 COMMENT ON COLUMN HRDF_ATTRIBUT_TAB.outputforsection IS 'Attributcode für Ausgabe einer Teilstrecke)';
 COMMENT ON COLUMN HRDF_ATTRIBUT_TAB.outputforcomplete IS 'Attributcode für Ausgabe auf der Vollstrecke)';
+CREATE INDEX IDX01_HRDF_ATTRIBUT_TAB ON HRDF_ATTRIBUT_TAB (fk_eckdatenid, attributecode, languagecode) TABLESPACE :TBSINDEXNAME;
+
 
 /*
 \brief	table for file INFOTEXT
@@ -204,6 +214,7 @@ COMMENT ON TABLE HRDF_INFOTEXT_TAB IS 'Im Fahrplan verwendete Infotexte';
 COMMENT ON COLUMN HRDF_INFOTEXT_TAB.infotextno IS 'Nr. des Infotext';
 COMMENT ON COLUMN HRDF_INFOTEXT_TAB.infotextlanguage IS '+ Sprache des Infotext (Kürzel entsprechend der Dateiendung)';
 COMMENT ON COLUMN HRDF_INFOTEXT_TAB.infotext IS 'Infotext';
+CREATE INDEX IDX01_HRDF_INFOTEXT_TAB ON HRDF_INFOTEXT_TAB (fk_eckdatenid, infotextno, infotextlanguage) TABLESPACE :TBSINDEXNAME;
 
 
 
@@ -219,8 +230,11 @@ CREATE TABLE HRDF_FPLANFahrt_TAB
   triptype			varchar(2)	NOT NULL,
   tripno			integer		NOT NULL,
   operationalno		varchar(6)	NOT NULL,
+  tripversion		integer		NULL,
   cyclecount		integer		NULL,
-  cycletime			integer		NULL
+  cycletimemin 		integer		NULL,
+  triptimemin		integer		NULL,
+  cycletimesec		integer		NULL
 )
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
@@ -229,8 +243,12 @@ COMMENT ON TABLE HRDF_FPLANFahrt_TAB IS 'Fahrten der FPLAN-Datei beginnend mit *
 COMMENT ON COLUMN HRDF_FPLANFahrt_TAB.triptype is 'Art der Fahrt (Z, KW, T)';
 COMMENT ON COLUMN HRDF_FPLANFahrt_TAB.tripno is 'Fahrtnummer';
 COMMENT ON COLUMN HRDF_FPLANFahrt_TAB.operationalno is 'Verwaltungsnummer zur unterscheidung von Fahrten mit gleicher Nr';
-COMMENT ON COLUMN HRDF_FPLANFahrt_TAB.cyclecount is 'Taktanzahl der noch folgenden Takte';
-COMMENT ON COLUMN HRDF_FPLANFahrt_TAB.cycletime is 'Taktzeit in Minuten (Abstand zwiscehn zwei Fahrten)';
+COMMENT ON COLUMN HRDF_FPLANFahrt_TAB.tripversion is '+ Nummer der Variante des Verkehrsmittel (Info+)';
+COMMENT ON COLUMN HRDF_FPLANFahrt_TAB.cyclecount is 'Taktanzahl der noch folgenden Takte; triptype=Z';
+COMMENT ON COLUMN HRDF_FPLANFahrt_TAB.cycletimemin is 'Taktzeit in Minuten (Abstand zwischen zwei Fahrten); triptype=Z';
+COMMENT ON COLUMN HRDF_FPLANFahrt_TAB.triptimemin is 'Fahrtzeitraum; triptype=T';
+COMMENT ON COLUMN HRDF_FPLANFahrt_TAB.cycletimesec is 'Taktzeit in Sekunden(Abstand zwischen zwei Fahrten); triptype=T';
+CREATE INDEX IDX01_HRDF_FPLANFahrt_TAB ON HRDF_FPLANFahrt_TAB (fk_eckdatenid, tripno, operationalno) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief	table for file FPLAN lines beginning with *A VE
@@ -255,6 +273,8 @@ COMMENT ON COLUMN HRDF_FPLANFahrtVE_TAB.toStop is 'HaltestellenNr bis zu die Ver
 COMMENT ON COLUMN HRDF_FPLANFahrtVE_TAB.bitfieldno is 'Eindeutige Nr der Verkehrstagesdefinition';
 COMMENT ON COLUMN HRDF_FPLANFahrtVE_TAB.deptimeFrom is 'Abfahrtszeitpunkt der Ab-Haltestelle';
 COMMENT ON COLUMN HRDF_FPLANFahrtVE_TAB.arrtimeFrom is 'Ankunftszeitpunkt der Bis-Haltestelle';
+CREATE INDEX IDX01_HRDF_FPLANFahrtVE_TAB ON HRDF_FPLANFahrtVE_TAB (fk_fplanfahrtid) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX02_HRDF_FPLANFahrtVE_TAB ON HRDF_FPLANFahrtVE_TAB (fk_eckdatenid, bitfieldno) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief	table for file FPLAN lines beginning with *G
@@ -264,6 +284,7 @@ CREATE TABLE HRDF_FPLANFahrtG_TAB
   id				SERIAL		NOT NULL,
   fk_eckdatenid		integer		NOT NULL,
   fk_fplanfahrtid   integer		NOT NULL,
+  categorycode		varchar(3)	NOT NULL,
   fromStop			integer		NOT NULL,
   toStop			integer		NOT NULL,
   deptimeFrom		integer		NULL,
@@ -273,10 +294,12 @@ WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_FPLANFahrtG_TAB ADD CONSTRAINT PK_HRDF_FPLANFahrtG_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
 COMMENT ON TABLE HRDF_FPLANFahrtG_TAB IS 'Fahrten der FPLAN-Datei beginnend mit *A VE';
+COMMENT ON COLUMN HRDF_FPLANFahrtG_TAB.categorycode is 'Code der Gattung';
 COMMENT ON COLUMN HRDF_FPLANFahrtG_TAB.fromStop is 'HaltestellenNr ab der die Verkehrstage gelten';
 COMMENT ON COLUMN HRDF_FPLANFahrtG_TAB.toStop is 'HaltestellenNr bis zu die Verkehrstage gelten';
 COMMENT ON COLUMN HRDF_FPLANFahrtG_TAB.deptimeFrom is 'Abfahrtszeitpunkt der Ab-Haltestelle';
 COMMENT ON COLUMN HRDF_FPLANFahrtG_TAB.arrtimeFrom is 'Ankunftszeitpunkt der Bis-Haltestelle';
+CREATE INDEX IDX01_HRDF_FPLANFahrtG_TAB ON HRDF_FPLANFahrtG_TAB (fk_fplanfahrtid) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief	table for file FPLAN lines beginning with *A
@@ -303,6 +326,7 @@ COMMENT ON COLUMN HRDF_FPLANFahrtA_TAB.toStop is 'HaltestellenNr bis zu die Verk
 COMMENT ON COLUMN HRDF_FPLANFahrtA_TAB.bitfieldno is 'Eindeutige Nr der Verkehrstagesdefinition';
 COMMENT ON COLUMN HRDF_FPLANFahrtA_TAB.deptimeFrom is 'Abfahrtszeitpunkt der Ab-Haltestelle';
 COMMENT ON COLUMN HRDF_FPLANFahrtA_TAB.arrtimeFrom is 'Ankunftszeitpunkt der Bis-Haltestelle';
+CREATE INDEX IDX01_HRDF_FPLANFahrtA_TAB ON HRDF_FPLANFahrtA_TAB (fk_fplanfahrtid) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief	table for file FPLAN lines beginning with *R
@@ -329,6 +353,7 @@ COMMENT ON COLUMN HRDF_FPLANFahrtR_TAB.fromStop is 'HaltestellenNr ab der die Ve
 COMMENT ON COLUMN HRDF_FPLANFahrtR_TAB.toStop is 'HaltestellenNr bis zu die Verkehrstage gelten';
 COMMENT ON COLUMN HRDF_FPLANFahrtR_TAB.deptimeFrom is 'Abfahrtszeitpunkt der Ab-Haltestelle';
 COMMENT ON COLUMN HRDF_FPLANFahrtR_TAB.arrtimeFrom is 'Ankunftszeitpunkt der Bis-Haltestelle';
+CREATE INDEX IDX01_HRDF_FPLANFahrtR_TAB ON HRDF_FPLANFahrtR_TAB (fk_fplanfahrtid) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief	table for file FPLAN lines beginning with *I
@@ -357,6 +382,7 @@ COMMENT ON COLUMN HRDF_FPLANFahrtI_TAB.toStop is 'HaltestellenNr bis zu die Verk
 COMMENT ON COLUMN HRDF_FPLANFahrtI_TAB.bitfieldno is 'Eindeutige Nr der Verkehrstagesdefinition';
 COMMENT ON COLUMN HRDF_FPLANFahrtI_TAB.deptimeFrom is 'Abfahrtszeitpunkt der Ab-Haltestelle';
 COMMENT ON COLUMN HRDF_FPLANFahrtI_TAB.arrtimeFrom is 'Ankunftszeitpunkt der Bis-Haltestelle';
+CREATE INDEX IDX01_HRDF_FPLANFahrtI_TAB ON HRDF_FPLANFahrtI_TAB (fk_fplanfahrtid) TABLESPACE :TBSINDEXNAME;
 
 
 /*
@@ -368,10 +394,10 @@ CREATE TABLE HRDF_FPLANFahrtLaufweg_TAB
   fk_eckdatenid		integer		NOT NULL,
   fk_fplanfahrtid   integer		NOT NULL,
   stopno			integer		NOT NULL,
-  stopname			varchar(21)	NOT NULL,
+  stopname			varchar(21)	NULL,
   sequenceno		integer		NOT NULL,
-  arrtime			integer		NOT NULL,
-  deptime			integer		NOT NULL,
+  arrtime			integer		NULL,
+  deptime			integer		NULL,
   tripno			integer		NULL,
   operationalno		varchar(6)	NULL,
   ontripsign		varchar(1)	NULL
@@ -388,3 +414,4 @@ COMMENT ON COLUMN HRDF_FPLANFahrtLaufweg_TAB.deptime IS 'Abfahrtszeit an der Hal
 COMMENT ON COLUMN HRDF_FPLANFahrtLaufweg_TAB.tripno IS 'FahrtNr ab der Haltestelle';
 COMMENT ON COLUMN HRDF_FPLANFahrtLaufweg_TAB.operationalno IS 'VerwaltungsNr. ab der Haltestelle';
 COMMENT ON COLUMN HRDF_FPLANFahrtLaufweg_TAB.ontripsign IS 'Anzeige der Haltestelle auf dem Laufschild';
+CREATE INDEX IDX01_HRDF_FPLANFahrtLaufweg_TAB ON HRDF_FPLANFahrtLaufweg_TAB (fk_fplanfahrtid, sequenceno) TABLESPACE :TBSINDEXNAME;
