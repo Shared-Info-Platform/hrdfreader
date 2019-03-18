@@ -245,20 +245,125 @@ class HrdfReader:
 		print('lesen und verarbeiten der FPLAN')
 		curIns = self.__hrdfdb.connection.cursor()
 
+
+		fplanFahrtG_strIO = StringIO()
+		fplanFahrtAVE_strIO = StringIO()
+		fplanFahrtLauf_strIO = StringIO()
+
+		bDataLinesRead = False
+		iSequenceCnt = 0
 		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
 			line = line.decode(self.__charset).replace('\r\n','')
+
 			if line[:1] == '*':
+				if bDataLinesRead:
+					# Datenzeilen wurden gelesen, wir sind jetzt wieder beim nächsten Zug und schreiben den Vorgänger erstmal in die DB
+					fplanFahrtG_strIO.seek(0)
+					fplanFahrtAVE_strIO.seek(0)
+					fplanFahrtLauf_strIO.seek(0)
+					cur = self.__hrdfdb.connection.cursor()
+					cur.copy_expert("COPY HRDF_FPLANFahrtG_TAB (fk_eckdatenid,fk_fplanfahrtid,categorycode,fromStop,toStop,deptimeFrom,arrtimeFrom) FROM STDIN USING DELIMITERS ';' NULL AS ''", fplanFahrtG_strIO)
+					cur.copy_expert("COPY HRDF_FPLANFahrtVE_TAB (fk_eckdatenid,fk_fplanfahrtid,fromStop,toStop,bitfieldno,deptimeFrom,arrtimeFrom) FROM STDIN USING DELIMITERS ';' NULL AS ''", fplanFahrtAVE_strIO)
+					cur.copy_expert("COPY HRDF_FPLANFahrtLaufweg_TAB (fk_eckdatenid,fk_fplanfahrtid,stopno,stopname,sequenceno,arrtime,deptime,tripno,operationalno,ontripsign) FROM STDIN USING DELIMITERS ';' NULL AS ''", fplanFahrtLauf_strIO)
+		
+					self.__hrdfdb.connection.commit()
+
+					fplanFahrtG_strIO.close()
+					fplanFahrtAVE_strIO.close()
+					fplanFahrtLauf_strIO.close()
+
+					fplanFahrtG_strIO = StringIO()
+					fplanFahrtAVE_strIO = StringIO()
+					fplanFahrtLauf_strIO = StringIO()
+
+					self.__fkdict["fk_fplanfahrtid"] = -1
+					bDataLinesRead = False
+					iSequenceCnt = 0
+
+
+
 				# Attribut-Zeilen
 				if line[:2] == "*Z":
-					sql_string = "INSERT INTO HRDF_FPLANFahrt_TAB (fk_eckdatenid,triptype,tripno,operationalno,cyclecount,cycletime) VALUES (%s,%s,%s,%s,%s,%s) RETURNING id;"
+					sql_string = "INSERT INTO HRDF_FPLANFahrt_TAB (fk_eckdatenid,triptype,tripno,operationalno,tripversion,cyclecount,cycletimemin) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id;"
 					cyclecount = line[22:25].strip()
-					cycletime = line[26:29].strip()
+					cycletimemin = line[26:29].strip()
 					if not cyclecount:
 						cyclecount = None
-					if not cycletime:
-						cycletime = None
-					curIns.execute(sql_string, (self.__fkdict['fk_eckdatenid'], line[1:2], line[3:8], line[9:15], cyclecount, cycletime))
+					if not cycletimemin:
+						cycletimemin = None
+					curIns.execute(sql_string, (self.__fkdict['fk_eckdatenid'], line[1:2], line[3:8], line[9:15], line[18:21], cyclecount, cycletimemin))
 					self.__fkdict["fk_fplanfahrtid"] = str(curIns.fetchone()[0])
 
-		self.__hrdfdb.connection.commit()
+				elif line[:2] == "*T":
+					sql_string = "INSERT INTO HRDF_FPLANFahrt_TAB (fk_eckdatenid,triptype,tripno,operationalno,triptimemin,cycletimesec) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id;"
+					triptimemin = line[16:20].strip()
+					cycletimesec = line[21:25].strip()
+					if not triptimemin:
+						triptimemin = None
+					if not cycletimesec:
+						cycletimesec = None
+					curIns.execute(sql_string, (self.__fkdict['fk_eckdatenid'], line[1:2], line[3:8], line[9:15], triptimemin, cycletimesec))
+					self.__fkdict["fk_fplanfahrtid"] = str(curIns.fetchone()[0])
+
+				elif line[:2] == "*G":
+					fplanFahrtG_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
+													+self.__fkdict["fk_fplanfahrtid"]+';'
+													+line[3:6].strip()+';'
+													+line[7:14].strip()+';'
+													+line[15:22].strip()+';'
+													+line[23:29].strip()+';'
+													+line[30:36].strip()+
+													'\n')
+
+				elif line[:5] == "*A VE":
+					fplanFahrtAVE_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
+													  +self.__fkdict["fk_fplanfahrtid"]+';'
+													  +line[6:13].strip()+';'
+													  +line[14:21].strip()+';'
+													  +line[22:28].strip()+';'
+													  +line[29:35].strip()+';'
+													  +line[36:42].strip()+
+													  '\n')
+			else:
+				# Datenzeilen
+				bDataLinesRead = True
+				fplanFahrtLauf_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
+													+self.__fkdict["fk_fplanfahrtid"]+';'
+													+line[:7].strip()+';'
+													+line[8:29].strip()+';'
+													+str(iSequenceCnt)+';'
+													+line[29:35].strip()+';'
+													+line[36:42].strip()+';'
+													+line[43:48].strip()+';'
+													+line[49:55].strip()+';'
+													+line[56:57].strip()+
+													'\n')
+				iSequenceCnt += 1
+
+
+		# Nach dem Durchlauf der Schleife ist noch ein Zug nicht gespeichert
+		if bDataLinesRead:
+			# Datenzeilen wurden gelesen, wir sind jetzt wieder beim nächsten Zug und schreiben den Vorgänger erstmal in die DB
+			fplanFahrtG_strIO.seek(0)
+			fplanFahrtAVE_strIO.seek(0)
+			fplanFahrtLauf_strIO.seek(0)
+			cur = self.__hrdfdb.connection.cursor()
+			cur.copy_expert("COPY HRDF_FPLANFahrtG_TAB (fk_eckdatenid,fk_fplanfahrtid,categorycode,fromStop,toStop,deptimeFrom,arrtimeFrom) FROM STDIN USING DELIMITERS ';' NULL AS ''", fplanFahrtG_strIO)
+			cur.copy_expert("COPY HRDF_FPLANFahrtVE_TAB (fk_eckdatenid,fk_fplanfahrtid,fromStop,toStop,bitfieldno,deptimeFrom,arrtimeFrom) FROM STDIN USING DELIMITERS ';' NULL AS ''", fplanFahrtAVE_strIO)
+			cur.copy_expert("COPY HRDF_FPLANFahrtLaufweg_TAB (fk_eckdatenid,fk_fplanfahrtid,stopno,stopname,sequenceno,arrtime,deptime,tripno,operationalno,ontripsign) FROM STDIN USING DELIMITERS ';' NULL AS ''", fplanFahrtLauf_strIO)
+		
+			self.__hrdfdb.connection.commit()
+
+			fplanFahrtG_strIO.close()
+			fplanFahrtAVE_strIO.close()
+			fplanFahrtLauf_strIO.close()
+
+			fplanFahrtG_strIO = StringIO()
+			fplanFahrtAVE_strIO = StringIO()
+			fplanFahrtLauf_strIO = StringIO()
+
+			self.__fkdict["fk_fplanfahrtid"] = -1
+			bDataLinesRead = False
+			iSequenceCnt = 0
+
 		curIns.close()
