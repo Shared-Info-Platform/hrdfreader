@@ -26,6 +26,8 @@ class HrdfReader:
 		self.__hrdffiles = hrdffiles
 		self.__charset = charset
 		self.__fkdict = dict(fk_eckdatenid="-1", fk_fplanfahrtid="-1")
+		self.__eckdaten_validFrom = date.today()
+		self.__eckdaten_validTo = date.today()
 
 
 	def readfiles(self):
@@ -67,6 +69,8 @@ class HrdfReader:
 		cur.execute(sql_string, (lines[0], lines[1], lines[2], bezeichnung, exportdatum, hrdfversion, lieferant))
 		self.__fkdict["fk_eckdatenid"] = str(cur.fetchone()[0])
 		self.__hrdfdb.connection.commit()
+		self.__eckdaten_validFrom = datetime.strptime(lines[0], '%d.%m.%Y').date()
+		self.__eckdaten_validTo = datetime.strptime(lines[1], '%d.%m.%Y').date()
 		cur.close()
 		
 
@@ -76,14 +80,26 @@ class HrdfReader:
 		bitfeld_strIO = StringIO()
 		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
 			line = line.decode(self.__charset).replace('\r\n','')
+			bitfield = str(Bits(hex=line[7:]).bin)[2:-2]
+			daycnt = (self.__eckdaten_validTo - self.__eckdaten_validFrom).days
+			# Aufbauen des Datums-Array auf Grund der gesetzen Bits
+			validDays = []
+			i = 0
+			while i <= daycnt:
+				if bitfield[i] == "1":
+					validDays.append(str(self.__eckdaten_validFrom + timedelta(days=i)))
+				i += 1
+
+			validDaysString = "{'" + "','".join(map(str,validDays)) + "'}"
 			bitfeld_strIO.write(self.__fkdict['fk_eckdatenid']+';'
 										+line[:6]+';'
 										+line[7:]+';'
-										+str(Bits(hex=line[7:]).bin)[2:-2]
+										+bitfield+';'
+										+validDaysString
 										+'\n')
 		bitfeld_strIO.seek(0)
 		cur = self.__hrdfdb.connection.cursor()
-		cur.copy_expert("COPY HRDF_BITFELD_TAB (fk_eckdatenid,bitfieldno,bitfield,bitfieldextend) FROM STDIN USING DELIMITERS ';' NULL AS ''",bitfeld_strIO)
+		cur.copy_expert("COPY HRDF_BITFELD_TAB (fk_eckdatenid,bitfieldno,bitfield,bitfieldextend,bitfieldarray) FROM STDIN USING DELIMITERS ';' NULL AS ''",bitfeld_strIO)
 		self.__hrdfdb.connection.commit()
 		cur.close()
 		bitfeld_strIO.close()
@@ -249,6 +265,10 @@ class HrdfReader:
 		fplanFahrtG_strIO = StringIO()
 		fplanFahrtAVE_strIO = StringIO()
 		fplanFahrtLauf_strIO = StringIO()
+		fplanFahrtA_strIO = StringIO()
+		fplanFahrtR_strIO = StringIO()
+		fplanFahrtI_strIO = StringIO()
+		fplanFahrtL_strIO = StringIO()
 
 		bDataLinesRead = False
 		iSequenceCnt = 0
@@ -265,16 +285,37 @@ class HrdfReader:
 					cur.copy_expert("COPY HRDF_FPLANFahrtG_TAB (fk_eckdatenid,fk_fplanfahrtid,categorycode,fromStop,toStop,deptimeFrom,arrtimeFrom) FROM STDIN USING DELIMITERS ';' NULL AS ''", fplanFahrtG_strIO)
 					cur.copy_expert("COPY HRDF_FPLANFahrtVE_TAB (fk_eckdatenid,fk_fplanfahrtid,fromStop,toStop,bitfieldno,deptimeFrom,arrtimeFrom) FROM STDIN USING DELIMITERS ';' NULL AS ''", fplanFahrtAVE_strIO)
 					cur.copy_expert("COPY HRDF_FPLANFahrtLaufweg_TAB (fk_eckdatenid,fk_fplanfahrtid,stopno,stopname,sequenceno,arrtime,deptime,tripno,operationalno,ontripsign) FROM STDIN USING DELIMITERS ';' NULL AS ''", fplanFahrtLauf_strIO)
+					if fplanFahrtA_strIO.tell() > 0:
+						fplanFahrtA_strIO.seek(0)
+						cur.copy_expert("COPY HRDF_FPLANFahrtA_TAB (fk_eckdatenid,fk_fplanfahrtid,attributecode,fromStop,toStop,bitfieldno,deptimeFrom,arrtimeFrom) FROM STDIN USING DELIMITERS ';' NULL AS ''", fplanFahrtA_strIO)
+					if fplanFahrtR_strIO.tell() > 0:
+						fplanFahrtR_strIO.seek(0)
+						cur.copy_expert("COPY HRDF_FPLANFahrtR_TAB (fk_eckdatenid,fk_fplanfahrtid,directionshort,directioncode,fromStop,toStop,deptimeFrom,arrtimeFrom) FROM STDIN USING DELIMITERS ';' NULL AS ''", fplanFahrtR_strIO)
+					if fplanFahrtI_strIO.tell() > 0:
+						fplanFahrtI_strIO.seek(0)
+						cur.copy_expert("COPY HRDF_FPLANFahrtI_TAB (fk_eckdatenid,fk_fplanfahrtid,infotextcode,infotextno,fromStop,toStop,bitfieldno,deptimeFrom,arrtimeFrom) FROM STDIN USING DELIMITERS ';' NULL AS ''", fplanFahrtI_strIO)
+					if fplanFahrtL_strIO.tell() > 0:
+						fplanFahrtL_strIO.seek(0)
+						cur.copy_expert("COPY HRDF_FPLANFahrtL_TAB (fk_eckdatenid,fk_fplanfahrtid,lineno,fromStop,toStop,deptimeFrom,arrtimeFrom) FROM STDIN USING DELIMITERS ';' NULL AS ''", fplanFahrtL_strIO)
 		
 					self.__hrdfdb.connection.commit()
 
 					fplanFahrtG_strIO.close()
 					fplanFahrtAVE_strIO.close()
 					fplanFahrtLauf_strIO.close()
+					fplanFahrtA_strIO.close()
+					fplanFahrtR_strIO.close()
+					fplanFahrtI_strIO.close()
+					fplanFahrtL_strIO.close()
+
 
 					fplanFahrtG_strIO = StringIO()
 					fplanFahrtAVE_strIO = StringIO()
 					fplanFahrtLauf_strIO = StringIO()
+					fplanFahrtA_strIO = StringIO()
+					fplanFahrtR_strIO = StringIO()
+					fplanFahrtI_strIO = StringIO()
+					fplanFahrtL_strIO = StringIO()
 
 					self.__fkdict["fk_fplanfahrtid"] = -1
 					bDataLinesRead = False
@@ -324,6 +365,49 @@ class HrdfReader:
 													  +line[29:35].strip()+';'
 													  +line[36:42].strip()+
 													  '\n')
+
+				elif line[:2] == "*A":
+					fplanFahrtA_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
+													+self.__fkdict["fk_fplanfahrtid"]+';'
+													+line[3:5].strip()+';'
+													+line[6:13].strip()+';'
+													+line[14:21].strip()+';'
+													+line[22:28].strip()+';'
+													+line[29:35].strip()+';'
+													+line[36:42].strip()+
+													'\n')
+
+				elif line[:2] == "*R":
+					fplanFahrtR_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
+													+self.__fkdict["fk_fplanfahrtid"]+';'
+													+line[3:4].strip()+';'
+													+line[5:12].strip()+';'
+													+line[13:20].strip()+';'
+													+line[21:28].strip()+';'
+													+line[29:35].strip()+';'
+													+line[36:42].strip()+
+													'\n')
+				elif line[:2] == "*I":
+					fplanFahrtI_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
+													+self.__fkdict["fk_fplanfahrtid"]+';'
+													+line[3:5].strip()+';'
+													+line[29:36].strip()+';'
+													+line[6:13].strip()+';'
+													+line[14:21].strip()+';'
+													+line[22:28].strip()+';'
+													+line[37:43].strip()+';'
+													+line[44:50].strip()+
+													'\n')
+
+				elif line[:2] == "*L":
+					fplanFahrtL_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
+													+self.__fkdict["fk_fplanfahrtid"]+';'
+													+line[3:11].strip()+';'
+													+line[12:19].strip()+';'
+													+line[20:27].strip()+';'
+													+line[28:34].strip()+';'
+													+line[35:41].strip()+
+													'\n')
 			else:
 				# Datenzeilen
 				bDataLinesRead = True
@@ -351,19 +435,41 @@ class HrdfReader:
 			cur.copy_expert("COPY HRDF_FPLANFahrtG_TAB (fk_eckdatenid,fk_fplanfahrtid,categorycode,fromStop,toStop,deptimeFrom,arrtimeFrom) FROM STDIN USING DELIMITERS ';' NULL AS ''", fplanFahrtG_strIO)
 			cur.copy_expert("COPY HRDF_FPLANFahrtVE_TAB (fk_eckdatenid,fk_fplanfahrtid,fromStop,toStop,bitfieldno,deptimeFrom,arrtimeFrom) FROM STDIN USING DELIMITERS ';' NULL AS ''", fplanFahrtAVE_strIO)
 			cur.copy_expert("COPY HRDF_FPLANFahrtLaufweg_TAB (fk_eckdatenid,fk_fplanfahrtid,stopno,stopname,sequenceno,arrtime,deptime,tripno,operationalno,ontripsign) FROM STDIN USING DELIMITERS ';' NULL AS ''", fplanFahrtLauf_strIO)
+			if fplanFahrtA_strIO.tell() > 0:
+				fplanFahrtA_strIO.seek(0)
+				cur.copy_expert("COPY HRDF_FPLANFahrtA_TAB (fk_eckdatenid,fk_fplanfahrtid,attributecode,fromStop,toStop,bitfieldno,deptimeFrom,arrtimeFrom) FROM STDIN USING DELIMITERS ';' NULL AS ''", fplanFahrtA_strIO)
+			if fplanFahrtR_strIO.tell() > 0:
+				fplanFahrtR_strIO.seek(0)
+				cur.copy_expert("COPY HRDF_FPLANFahrtR_TAB (fk_eckdatenid,fk_fplanfahrtid,directionshort,directioncode,fromStop,toStop,deptimeFrom,arrtimeFrom) FROM STDIN USING DELIMITERS ';' NULL AS ''", fplanFahrtR_strIO)
+			if fplanFahrtI_strIO.tell() > 0:
+				fplanFahrtI_strIO.seek(0)
+				cur.copy_expert("COPY HRDF_FPLANFahrtI_TAB (fk_eckdatenid,fk_fplanfahrtid,infotextcode,infotextno,fromStop,toStop,bitfieldno,deptimeFrom,arrtimeFrom) FROM STDIN USING DELIMITERS ';' NULL AS ''", fplanFahrtI_strIO)
+			if fplanFahrtL_strIO.tell() > 0:
+				fplanFahrtL_strIO.seek(0)
+				cur.copy_expert("COPY HRDF_FPLANFahrtL_TAB (fk_eckdatenid,fk_fplanfahrtid,lineno,fromStop,toStop,deptimeFrom,arrtimeFrom) FROM STDIN USING DELIMITERS ';' NULL AS ''", fplanFahrtL_strIO)
 		
 			self.__hrdfdb.connection.commit()
 
 			fplanFahrtG_strIO.close()
 			fplanFahrtAVE_strIO.close()
 			fplanFahrtLauf_strIO.close()
+			fplanFahrtA_strIO.close()
+			fplanFahrtR_strIO.close()
+			fplanFahrtI_strIO.close()
+			fplanFahrtL_strIO.close()
+
 
 			fplanFahrtG_strIO = StringIO()
 			fplanFahrtAVE_strIO = StringIO()
 			fplanFahrtLauf_strIO = StringIO()
+			fplanFahrtA_strIO = StringIO()
+			fplanFahrtR_strIO = StringIO()
+			fplanFahrtI_strIO = StringIO()
+			fplanFahrtL_strIO = StringIO()
 
 			self.__fkdict["fk_fplanfahrtid"] = -1
 			bDataLinesRead = False
 			iSequenceCnt = 0
+
 
 		curIns.close()
