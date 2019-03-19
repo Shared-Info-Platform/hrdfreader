@@ -20,7 +20,7 @@ def load_hrdfzipfile(filename, dbname):
 		INFOTEXT_XX (sprachabhängig)
 		FPLAN
 	"""
-	hrdf_db = HrdfDB("hrdfdb", "127.0.0.1", "hrdf", "bmHRDF")
+	hrdf_db = HrdfDB(dbname, "127.0.0.1", "hrdf", "bmHRDF")
 	if hrdf_db.connect():
 
 		# ZipFile öffnen und zu lesende Dateien bestimmen
@@ -32,7 +32,7 @@ def load_hrdfzipfile(filename, dbname):
 		reader.readfiles()
 
 	else:
-		print("was ist das denn")
+		print("Es konnte keine Verbindung zur Datenbank aufgebaut werden")
 
 
 if __name__ == '__main__':
