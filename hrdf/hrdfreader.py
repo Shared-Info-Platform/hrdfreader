@@ -80,6 +80,7 @@ class HrdfReader:
 		sql_string = "INSERT INTO HRDF_ECKDATEN_TAB (validFrom, validTo, descriptionhrdf, description, creationdatetime, hrdfversion, exportsystem) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id;" 
 		validFrom = str(datetime.strptime(lines[0], '%d.%m.%Y').date())
 		validTo = str(datetime.strptime(lines[1], '%d.%m.%Y').date())
+		exportdatum = str(datetime.strptime(exportdatum, '%d.%m.%Y %H:%M:%S'))
 		cur.execute(sql_string, (validFrom, validTo, lines[2], bezeichnung, exportdatum, hrdfversion, lieferant))
 		self.__fkdict["fk_eckdatenid"] = str(cur.fetchone()[0])
 		self.__hrdfdb.connection.commit()
