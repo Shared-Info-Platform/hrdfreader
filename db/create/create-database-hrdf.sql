@@ -10,7 +10,7 @@
 \set TBSINDEXNAME tbs_ :DB _index
 
 -- create db-superuser with own schema
-CREATE USER hrdf WITH PASSWORD 'bmHRDF' CREATEDB CREATEUSER;
+CREATE USER hrdf WITH PASSWORD 'bmHRDF' CREATEDB CREATEROLE;
 CREATE SCHEMA IF NOT EXISTS hrdf AUTHORIZATION hrdf;
 
 -- create tablespaces
