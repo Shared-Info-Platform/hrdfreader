@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{446da5d1-a613-4ad9-ae30-5468f4b9fa7b}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>hrdfimport.py</StartupFile>
+    <StartupFile>hrdfgenerate.py</StartupFile>
     <SearchPath />
     <WorkingDirectory>C:\Entwicklung\Source\BernMobil\hrdfreader</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -14,7 +14,7 @@
     <InterpreterId>Global|PythonCore|3.6</InterpreterId>
     <EnableNativeCodeDebugging>True</EnableNativeCodeDebugging>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <CommandLineArguments>../data/hrdf-201920190304132320.zip hrdfdb</CommandLineArguments>
+    <CommandLineArguments>1 "29.03.2019" "29.03.2019" hrdfdb</CommandLineArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
@@ -22,6 +22,12 @@
     <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="hrdf\hrdflog.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="hrdf\hrdfTTG.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="hrdf\hrdfdb.py">
       <SubType>Code</SubType>
     </Compile>
@@ -36,6 +42,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="hrdfimport.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="hrdfgenerate.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
