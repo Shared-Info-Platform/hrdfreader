@@ -1,10 +1,12 @@
+import os
 import psycopg2
 import zipfile
 import fileinput
 from datetime import datetime, date, timedelta
 from io import StringIO
 from bitstring import Bits
-from hrdf.hrdfhelper import *
+from hrdf.hrdflog import logger
+
 
 
 class HrdfReader:
@@ -67,21 +69,25 @@ class HrdfReader:
 			elif filename == "FPLAN":
 				self.read_fplan(filename)
 			else:
-				print("Das Lesen der Datei ["+filename+"] wird nicht unterstützt")
+				logger.error("Das Lesen der Datei ["+filename+"] wird nicht unterstützt")
+
+		logger.info("Der HRDF-Import <{}> wurde eingearbeitet".format(self.__hrdfzip.filename))
 
 
 	def read_eckdaten(self, filename):
 		"""Lesen der Datei ECKDATEN"""
-		print('lesen und verarbeiten der Datei ECKDATEN')
+		logger.info('lesen und verarbeiten der Datei ECKDATEN')
 		lines = self.__hrdfzip.read(filename).decode(self.__charset).split('\r\n')[:-1]
  		# spezifisch für SBB-Version ist die Trenner in der Bezeichnung, die hier in separate Felder geschrieben werden
 		bezeichnung,exportdatum,hrdfversion,lieferant = lines[2].split('$')
 		cur = self.__hrdfdb.connection.cursor()
-		sql_string = "INSERT INTO HRDF_ECKDATEN_TAB (validFrom, validTo, descriptionhrdf, description, creationdatetime, hrdfversion, exportsystem) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id;" 
+		sql_string = "INSERT INTO HRDF_ECKDATEN_TAB (importFileName, importDateTime, validFrom, validTo, descriptionhrdf, description, creationdatetime, hrdfversion, exportsystem) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id;" 
+		importFileName = os.path.basename(self.__hrdfzip.filename)
+		importDateTime = str(datetime.now())
 		validFrom = str(datetime.strptime(lines[0], '%d.%m.%Y').date())
 		validTo = str(datetime.strptime(lines[1], '%d.%m.%Y').date())
 		exportdatum = str(datetime.strptime(exportdatum, '%d.%m.%Y %H:%M:%S'))
-		cur.execute(sql_string, (validFrom, validTo, lines[2], bezeichnung, exportdatum, hrdfversion, lieferant))
+		cur.execute(sql_string, (importFileName, importDateTime, validFrom, validTo, lines[2], bezeichnung, exportdatum, hrdfversion, lieferant))
 		self.__fkdict["fk_eckdatenid"] = str(cur.fetchone()[0])
 		self.__hrdfdb.connection.commit()
 		self.__eckdaten_validFrom = datetime.strptime(lines[0], '%d.%m.%Y').date()
@@ -91,7 +97,7 @@ class HrdfReader:
 
 	def read_bitfeld(self, filename):
 		"""Lesen der Datei BITFELD"""
-		print('lesen und verarbeiten der Datei BITFELD')
+		logger.info('lesen und verarbeiten der Datei BITFELD')
 		bitfeld_strIO = StringIO()
 		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
 			line = line.decode(self.__charset).replace('\r\n','')
@@ -122,7 +128,7 @@ class HrdfReader:
 
 	def read_richtung(self, filename):
 		"""Lesen der Datei RICHTUNG"""
-		print('lesen und verarbeiten der Datei RICHTUNG')
+		logger.info('lesen und verarbeiten der Datei RICHTUNG')
 		richtung_strIO = StringIO()
 		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
 			line = line.decode(self.__charset).replace('\r\n', '')
@@ -140,7 +146,7 @@ class HrdfReader:
 
 	def read_zugart(self, filename):
 		"""Lesen der Datei ZUGART"""
-		print('lesen und verarbeiten der Datei ZUGART')
+		logger.info('lesen und verarbeiten der Datei ZUGART')
 		zugart_strIO = StringIO()
 		zugartcategory_strIO = StringIO()
 		zugartclass_strIO = StringIO()
@@ -204,7 +210,7 @@ class HrdfReader:
 			filename = filename + '_' + sprache
 		else:
 			sprache = '--'
-		print('lesen und verarbeiten der Datei '+filename)
+		logger.info('lesen und verarbeiten der Datei '+filename)
 
 		# Erster Durchlauf um die Ausgabeattributscodes für Teil- und Vollstrecke zu ermitteln
 		targetcodes = {}
@@ -252,7 +258,7 @@ class HrdfReader:
 			filename = filename + '_' + sprache
 		else:
 			sprache = '--'
-		print('lesen und verarbeiten der Datei '+filename)
+		logger.info('lesen und verarbeiten der Datei '+filename)
 
 		infotext_strIO = StringIO()
 		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
@@ -330,7 +336,7 @@ class HrdfReader:
 
 	def read_fplan(self, filename):
 		"""Lesen der Datei FPLAN"""
-		print('lesen und verarbeiten der Datei FPLAN')
+		logger.info('lesen und verarbeiten der Datei FPLAN')
 		curIns = self.__hrdfdb.connection.cursor()
 
 		bDataLinesRead = False
@@ -356,10 +362,10 @@ class HrdfReader:
 													  +line[36:42].strip()+
 													  '\n')
 				elif line[:4] == "*KWZ":
-					print("Zeile"+line[:4]+"wird derzeit nicht unterstützt")
+					logger.warning("Zeile"+line[:4]+"wird derzeit nicht unterstützt")
 
 				elif line[:3] == "*KW" or line[:3] == "*TT":
-					print("Zeile"+line[:3]+"wird derzeit nicht unterstützt")
+					logger.warning("Zeile"+line[:3]+"wird derzeit nicht unterstützt")
 
 				elif line[:3] == "*SH":
 					self.__fplanFahrtSH_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
@@ -381,7 +387,7 @@ class HrdfReader:
 
 
 				elif line[:2] == "*B" or line[:2] == "*E":
-					print("Zeile"+line[:2]+"wird derzeit nicht unterstützt")
+					logger.warning("Zeile"+line[:2]+"wird derzeit nicht unterstützt")
 
 				elif line[:2] == "*Z":
 					sql_string = "INSERT INTO HRDF_FPLANFahrt_TAB (fk_eckdatenid,triptype,tripno,operationalno,tripversion,cyclecount,cycletimemin) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id;"
@@ -478,7 +484,7 @@ class HrdfReader:
 				# Laufwegszeilen
 				bDataLinesRead = True
 				if (line[:1] == "+"):
-					print("Laufwegsdaten mit Regionen werden nicht unterstützt")
+					logger.warning("Laufwegsdaten mit Regionen werden nicht unterstützt")
 				else:
 					self.__fplanFahrtLauf_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
 														+self.__fkdict["fk_fplanfahrtid"]+';'
