@@ -10,19 +10,23 @@
 */
 CREATE TABLE HRDF_ECKDATEN_TAB
 (
-  id				SERIAL		NOT NULL,
-  validFrom			date		NOT NULL,
-  validTo			date		NOT NULL,
-  descriptionhrdf	varchar		NULL,
-  description		varchar		NULL,
+  id				SERIAL			NOT NULL,
+  importFileName	varchar(100)	NOT NULL,
+  importDateTime	timestamp with time zone NOT NULL,
+  validFrom			date			NOT NULL,
+  validTo			date			NOT NULL,
+  descriptionhrdf	varchar			NULL,
+  description		varchar			NULL,
   creationdatetime	timestamp with time zone NULL,
-  hrdfversion		varchar(10)	NULL,
-  exportsystem		varchar(20)	NULL
+  hrdfversion		varchar(10)		NULL,
+  exportsystem		varchar(20)		NULL
 )
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_ECKDATEN_TAB ADD CONSTRAINT PK_HRDF_ECKDATEN_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
 COMMENT ON TABLE HRDF_ECKDATEN_TAB IS 'Eckdaten der Fahrplanperiode';
+COMMENT ON COLUMN HRDF_ECKDATEN_TAB.importFileName is '+ Dateiname der Importdatei';
+COMMENT ON COLUMN HRDF_ECKDATEN_TAB.importDateTime is '+ Startzeitpunkt des Imports';
 COMMENT ON COLUMN HRDF_ECKDATEN_TAB.validFrom is 'erster Gueltigkeitstag des Fahrplans';
 COMMENT ON COLUMN HRDF_ECKDATEN_TAB.validTo is 'letzter Gueltigkeitstag des Fahrplans';
 COMMENT ON COLUMN HRDF_ECKDATEN_TAB.descriptionhrdf is 'Fahrplanbezeichnung in HRDF';
