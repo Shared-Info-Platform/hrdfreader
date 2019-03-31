@@ -2,6 +2,8 @@
 import sys
 from hrdf.hrdfdb import HrdfDB
 from hrdf.hrdfreader import HrdfReader
+from hrdf.hrdflog import logger
+
 import zipfile
 
 
@@ -32,10 +34,12 @@ def load_hrdfzipfile(filename, dbname):
 		reader.readfiles()
 
 	else:
-		print("Es konnte keine Verbindung zur Datenbank aufgebaut werden")
+		logger.error("Es konnte keine Verbindung zur Datenbank aufgebaut werden")
 
 
 if __name__ == '__main__':
+	# Auswertung der übergebenen Parameter
 	zipfilename = sys.argv[1]
-	dbname = sys.argv[2]	
+	dbname = sys.argv[2]
+
 	load_hrdfzipfile(zipfilename, dbname)
