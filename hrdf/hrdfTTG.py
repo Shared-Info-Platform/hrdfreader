@@ -1,5 +1,6 @@
 import psycopg2
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, time
+from io import StringIO
 from hrdf.hrdflog import logger
 
 class HrdfTTG:
@@ -17,6 +18,9 @@ class HrdfTTG:
 		self.__eckdatenid = -1
 		self.__generateFrom = datetime.now().date()
 		self.__generateTo = datetime.now().date()
+		# Listen, Strukturen für schnellen Zugriff auf Daten während der Generierung
+		self.__bitfieldnumbersOfDay = set()
+		self.__zugartLookup = dict()
 
 	def setup(self, eckdatenId, generateFrom, generateTo):
 		""" Die Funktion richtet den Tagesfahrplan-Generator für die anstehende
@@ -47,14 +51,26 @@ class HrdfTTG:
 			self.__eckdatenid = eckdatenId
 		else:
 			logger.error("Der zu generierende Zeitbereich liegt außerhalb der Fahrplangrenzen")
-			
 
 		cur.close()
 		return bReturn
 	
+	def infohelp(self, text):
+		return str(text).replace(";", ",").replace('"',"'")
+
 	def generateTT(self):
 		""" Die Funktion generiert den gewünschten Tagesfahrplan bzgl. der Daten, die über setup() bestimmt wurden"""
-		bReturn = False
+		iErrorCnt = 0
+
+		# Aufbau von LookUp-Tabellen für die entsprechenden Ergänzungen des Tagesfahrplan
+		sql_zugartLookup = "SELECT categorycode, classno, categoryno FROM HRDF_ZUGART_TAB WHERE fk_eckdatenid = %s"
+		curZugart = self.__hrdfdb.connection.cursor()
+		curZugart.execute(sql_zugartLookup, (self.__eckdatenid,))
+		zugarten = curZugart.fetchall()
+		for zugart in zugarten:
+			self.__zugartLookup[zugart[0]] = zugart
+		curZugart.close()
+
 
 		sql_selDayTrips = "SELECT b.id, b.tripno, b.operationalno, b.tripversion, array_agg(a.bitfieldno) as bitfieldnos "\
 						  "FROM HRDF_FPlanFahrtVE_TAB a, "\
@@ -71,38 +87,533 @@ class HrdfTTG:
 			generationDay = self.__generateFrom + timedelta(days=i)
 			logger.info("Generierung des Tages {:%d.%m.%Y}".format(generationDay))
 
-			cur = self.__hrdfdb.connection.cursor("cursor_selDayTrip")
-			cur.execute(sql_selDayTrips, (str(generationDay), self.__eckdatenid, self.__eckdatenid))
-			# Schleife über den selDayTrip-Cursor, der in 10000er Blöcken abgearbeitet wird
+			# Laden der Verkehrstagesdefinitionen für den Generierungstag als set() für schnellen Zugriff
+			self.__bitfieldnumbersOfDay.clear()
+			sql_selBitfieldNos = "SELECT bitfieldno FROM HRDF_Bitfeld_TAB where bitfieldarray @> ARRAY[%s::date] AND fk_eckdatenid = %s"
+			curBits = self.__hrdfdb.connection.cursor()
+			curBits.execute(sql_selBitfieldNos, (str(generationDay), self.__eckdatenid))
+			bitfieldNos = curBits.fetchall()
+			for bitfield in bitfieldNos:
+				self.__bitfieldnumbersOfDay.add(bitfield[0])
+			curBits.close()
+
+			# Laden der Tagesfahrten und Generierung jeder Fahrt
+			# mit einer Schleife über den selDayTrip-Cursor, der in 10000er Blöcken abgearbeitet wird
+			curDayTrip = self.__hrdfdb.connection.cursor("cursor_selDayTrip")
+			curDayTrip.execute(sql_selDayTrips, (str(generationDay), self.__eckdatenid, self.__eckdatenid))
 			currentRowCnt = 0
 			while True:				
-				trips = cur.fetchmany(10000)
+				trips = curDayTrip.fetchmany(10000)
 				if not trips:
 					break
 				rowCnt = len(trips)
 				logger.info("generiere die nächsten {} Fahrten (bis jetzt {})".format(rowCnt, currentRowCnt))
+
+				dailytimetable_strIO = StringIO()
+				tripStops = dict()
+				numberOfGeneratedTrips = 0;
 				for trip in trips:
-					self.generateTrip(trip)
+					tripStops.clear()					
+					tripident = "{}-{}-{}".format(trip[1],trip[2],trip[3])
+					try:
+						self.generateTrip(trip, tripStops)
+						#Schreibe Fahrtinformation in Tabellenformat
+						for tripStop in tripStops.values():
+							arrival = tripStop["stop"][3]
+							departure = tripStop["stop"][4]
+							noentry = False
+							noexit = False
+
+							arrdatetime = ""
+							if (arrival is not None):
+								if (arrival < 0): noexit = True
+								arrival = abs(arrival)
+								arrMins = (int(arrival/100)*60)+(arrival%100)
+								arrdatetime = str(datetime.combine(generationDay, time(0,0)) + timedelta(minutes=arrMins))
+
+							depdatetime = ""
+							if (departure is not None):
+								if(departure < 0): noenty = True
+								departure = abs(departure)
+								depMins = (int(departure/100)*60)+(departure%100)
+								depdatetime = str(datetime.combine(generationDay, time(0,0)) + timedelta(minutes=depMins))
+
+							# Attribute
+							strAttributecode = ""
+							strAttributetextDE = ""
+							strAttributetextFR = ""
+							strAttributetextEN = ""
+							strAttributetextIT = ""
+							if (tripStop["attributecode"] is not None):
+								strAttributecode = "{'" + "','".join(map(str,tripStop["attributecode"])) + "'}"
+							if (tripStop["attributetext_de"] is not None):
+								strAttributetextDE = "{'" + "','".join(map(str,tripStop["attributetext_de"])) + "'}"
+							if (tripStop["attributetext_fr"] is not None):
+								strAttributetextFR = "{'" + "','".join(map(str,tripStop["attributetext_fr"])) + "'}"
+							if (tripStop["attributetext_en"] is not None):
+								strAttributetextEN = "{'" + "','".join(map(str,tripStop["attributetext_en"])) + "'}"
+							if (tripStop["attributetext_it"] is not None):
+								strAttributetextIT = "{'" + "','".join(map(str,tripStop["attributetext_it"])) + "'}"
+
+							# Infotexte
+							strInfotextcode = ""
+							strInfotextDE = ""
+							strInfotextFR = ""
+							strInfotextEN = ""
+							strInfotextIT = ""
+							if (tripStop["infotextcode"] is not None):
+								strInfotextcode = '{"' + '","'.join(map(self.infohelp,tripStop["infotextcode"])) + '"}'
+							if (tripStop["infotext_de"] is not None):
+								strInfotextDE = '{"' + '","'.join(map(self.infohelp,tripStop["infotext_de"])) + '"}'
+							if (tripStop["infotext_fr"] is not None):
+								strInfotextFR = '{"' + '","'.join(map(self.infohelp,tripStop["infotext_fr"])) + '"}'
+							if (tripStop["infotext_en"] is not None):
+								strInfotextEN = '{"' + '","'.join(map(self.infohelp,tripStop["infotext_en"])) + '"}'
+							if (tripStop["infotext_it"] is not None):
+								strInfotextIT = '{"' + '","'.join(map(self.infohelp,tripStop["infotext_it"])) + '"}'
+							
+
+							# Schreiben des Datensatzes
+							dataline = (self.__eckdatenid+';'
+							+tripident+';'
+							+str(trip[1])+';'
+							+trip[2]+';'
+							+str(trip[3])+';'
+							+str(generationDay)+';'
+							+str(tripStop["stop"][2])+';'
+							+str(tripStop["stop"][0])+';'
+							+tripStop["stop"][1]+';'
+							+str(tripStop["stop"][0])+';'
+							+tripStop["stop"][1]+';'
+							+arrdatetime+';'
+							+depdatetime+';'
+							+str(noentry)+';'
+							+str(noexit)+';'
+							+tripStop["categorycode"]+';'
+							+str(tripStop["classno"])+';'
+							+str(tripStop["categoryno"])+';'
+							+tripStop["lineno"]+';'
+							+tripStop["directionshort"]+';'
+							+tripStop["directiontext"]+';'
+							+strAttributecode+';'
+							+strAttributetextDE+';'
+							+strAttributetextFR+';'
+							+strAttributetextEN+';'
+							+strAttributetextIT+';'
+							+strInfotextcode+';'
+							+strInfotextDE+';'
+							+strInfotextFR+';'
+							+strInfotextEN+';'
+							+strInfotextIT)
+							#+'\n'
+							#print(dataline)
+							dailytimetable_strIO.write(dataline+'\n')
+							numberOfGeneratedTrips += 1
+
+					except Exception as err:
+						iErrorCnt += 1
+						logger.error("Die Fahrt {} konnte nicht generiert werden. Error:\n{}".format(tripident,err))
+
+					
+				# Alle Fahrten des Sets im IO abgelegt => speichern in DB
+				tripStops.clear()
+				if (numberOfGeneratedTrips > 0):
+					curSaveTrip = self.__hrdfdb.connection.cursor()
+					strCopy = "COPY HRDF_DailyTimeTable_TAB (fk_eckdatenid,tripident,tripno,operationalno,tripversion,"\
+								"operatingday,stopsequenceno,stopident,stopname,stoppointident,stoppointname,arrdatetime,depdatetime,noentry,noexit,"\
+								"categorycode,classno,categoryno,lineno,directionshort,directiontext,"\
+								"attributecode,attributetext_de,attributetext_fr,attributetext_en,attributetext_it,"\
+								"infotextcode,infotext_de,infotext_fr,infotext_en,infotext_it)"\
+								" FROM STDIN USING DELIMITERS ';' NULL AS ''"
+					dailytimetable_strIO.seek(0)
+					curSaveTrip.copy_expert(strCopy, dailytimetable_strIO)
+					# ein Commit an dieser Stelle macht den Server-Cursor invalid
+					curSaveTrip.close()
+					logger.info("\t{} Tagesfahrplaneinträge wurden in der DB abgelegt".format(numberOfGeneratedTrips))
+				dailytimetable_strIO.close()
 				currentRowCnt += rowCnt
-
-			cur.close()
-
+			
+			curDayTrip.close()
+			self.__hrdfdb.connection.commit()
+			# Tageszähler hochzählen und nächsten gewünschten Tag generieren
 			i += 1
 
-		return bReturn
+		return iErrorCnt
 
-	def generateTrip(self, trip):
+
+	def generateTrip(self, trip, newTripStops):
 		""" Die Funktion generiert die Angaben zur übergebenen Fahrt
 
 		trip - Datenzeile der Tabelle HRDF_FPlanFahrt_TAB mit einem Array der gültigen BitfieldNos (Verkehrstagesschlüssel)
+		newTripStops - Dictonary, welches den Laufweg mit Zusatzinformationen enthält (=> sollte leer sein?!)
 		"""
 		bReturn = False
 		#logger.info("generiere Zug {}".format(trip))
+		fplanfahrtid = trip[0]
 
-		sql_selStops = "SELECT * FROM HRDF_FPlanFahrtLaufweg_TAB WHERE fk_fplanfahrtid = %s ORDER BY sequenceno"
-		cur = self.__hrdfdb.connection.cursor()
-		cur.execute(sql_selStops, (str(trip[0]),))
-		allTripStops = cur.fetchall()
-		cur.close()
+		sql_selStops = "SELECT stopno, stopname, sequenceno, arrtime, deptime, tripno, operationalno, ontripsign FROM HRDF_FPlanFahrtLaufweg_TAB WHERE fk_fplanfahrtid = %s ORDER BY sequenceno"
+		curStop = self.__hrdfdb.connection.cursor()
+		curStop.execute(sql_selStops, (fplanfahrtid,))
+		allTripStops = curStop.fetchall()
+		curStop.close()
+
+		# allTripStops enthält den kompletten Laufweg der Fahrt. Dieser wird über die AVE-Zeilen angepasst.
+		sql_selVEData = "SELECT bitfieldno, fromstop, tostop, deptimefrom, arrtimeto FROM HRDF_FPlanFahrtVE_TAB WHERE fk_fplanfahrtid = %s ORDER BY id"
+		curVE = self.__hrdfdb.connection.cursor()
+		curVE.execute(sql_selVEData, (fplanfahrtid,))
+		allVEs = curVE.fetchall()
+		curVE.close()
+
+		# Erstellen des definitiven Laufwegs für diesen Tag alls dictonary um den Laufweg mit zusätzlichen Informationen ergänzen zu können
+		for ve in allVEs:
+			if (ve[0] is None or (ve[0] in self.__bitfieldnumbersOfDay)):
+				bTakeStop = False
+				for tripStop in allTripStops:
+					tripStopNo = tripStop[0]
+					# ist deptimefrom belegt muss auch die deptime des Stops passen
+					if (ve[3] is None):
+						if (tripStopNo == ve[1]):
+							bTakeStop = True
+					else:
+						if (tripStopNo == ve[1] and tripStop[4] == ve[3]):
+							bTakeStop = True
+					# ist arrtimeto belegt muss auch die arrtime des Stops passen
+					if (ve[4] is None):
+						if (tripStopNo == ve[2]):
+							if (tripStopNo not in newTripStops):
+								newTripStops[tripStopNo] = dict(stop=tripStop) # letzter stop muss mit in die Liste
+							bTakeStop = False
+					else:
+						if (tripStopNo == ve[2] and tripStop[3] == ve[4]):
+							if (tripStopNo not in newTripStops):
+								newTripStops[tripStopNo] = dict(stop=tripStop) # letzter stop muss mit in die Liste
+							bTakeStop = False
+					# alle stops übernehmen solange bTakeStop gesetzt ist
+					if (bTakeStop):
+						if (tripStopNo not in newTripStops):
+							newTripStops[tripStopNo] = dict(stop=tripStop)
+
+					if (tripStopNo in newTripStops):
+						# Initialisieren der zusätzlichen Felder des TripStops
+						newTripStops[tripStopNo]["categorycode"] = ""
+						newTripStops[tripStopNo]["classno"] = ""
+						newTripStops[tripStopNo]["categoryno"] = ""
+						newTripStops[tripStopNo]["lineno"] = "";
+						# Initialisierung der Richtungsangaben erfolgt in der entsprechenden Funktion
+						newTripStops[tripStopNo]["attributecode"] = None
+						newTripStops[tripStopNo]["attributetext_de"] = None
+						newTripStops[tripStopNo]["attributetext_fr"] = None
+						newTripStops[tripStopNo]["attributetext_en"] = None
+						newTripStops[tripStopNo]["attributetext_it"] = None
+						newTripStops[tripStopNo]["infotextcode"] = None
+						newTripStops[tripStopNo]["infotext_de"] = None
+						newTripStops[tripStopNo]["infotext_fr"] = None
+						newTripStops[tripStopNo]["infotext_en"] = None
+						newTripStops[tripStopNo]["infotext_it"] = None
+
+				# neue Stopliste ist erweitert um die Angaben des VEs
+
+		# alle VEs sind bearbeitet
+		# newTripStops enthält nun den tätsächlichen Laufweg, der jetzt mit zusätzlichen Informationen an den Halten gefüllt wird
+		# G-Zeilen Information hinzufügen
+		self.add_GInfoToTrip(fplanfahrtid, newTripStops)
+		# L-Zeilen Information hinzufügen
+		self.add_LInfoToTrip(fplanfahrtid, newTripStops)
+		# A-Zeilen Information hinzufügen
+		self.add_AInfoToTrip(fplanfahrtid, newTripStops)
+		# I-Zeilen Information hinzufügen
+		self.add_IInfoToTrip(fplanfahrtid, newTripStops)
+		# R-Zeilen Information hinzufügen
+		self.add_RInfoToTrip(fplanfahrtid, newTripStops)
 
 		return bReturn
+
+
+	def add_GInfoToTrip(self, fplanfahrtid, newTripStops):
+		"""Die Funktion fügt zum Laufweg die notwendige G-Information hinzu
+
+		fplanfahrtid - Id der Fahrplanfahrt
+		newTripStops - angepasster Laufweg für diese Fahrt
+		"""
+		#sql_selGData = "SELECT categorycode, fromstop, tostop, deptimefrom, arrtimeto FROM HRDF_FPlanFahrtG_TAB WHERE fk_fplanfahrtid = %s ORDER BY id"
+		sql_selGData = "SELECT a.categorycode, fromstop, tostop, deptimefrom, arrtimeto, b.classno, b.categoryno "\
+					   "  FROM HRDF_FPlanFahrtG_TAB a, "\
+					   "       HRDF_ZUGART_TAB b "\
+					   " WHERE a.fk_fplanfahrtid = %s "\
+					   "   and a.fk_eckdatenid = b.fk_eckdatenid "\
+					   "   and a.categorycode = b.categorycode "\
+					   " ORDER BY a.id"
+		curG = self.__hrdfdb.connection.cursor()
+		curG.execute(sql_selGData, (fplanfahrtid,))
+		allGs = curG.fetchall()
+		curG.close()
+
+		if (len(allGs) == 1):
+			for tripStop in newTripStops.values():
+				tripStop["categorycode"] = allGs[0][0]
+				tripStop["classno"] = allGs[0][5]
+				tripStop["categoryno"] = allGs[0][6]
+		else:
+			for g in allGs:
+				bTakeStop = False
+				for tripStopNo in newTripStops:
+					# ist deptimefrom belegt muss auch die deptime des Stops passen
+					if (g[3] is None):
+						if (tripStopNo == g[1]):
+							bTakeStop = True
+					else:
+						if (tripStopNo == g[1] and newTripStops[tripStopNo]["stop"][4] == g[3]):
+							bTakeStop = True
+					# ist arrtimeto belegt muss auch die arrtime des Stops passen
+					if (g[4] is None):
+						if (tripStopNo == g[2]):
+							newTripStops[tripStopNo]["categorycode"] = g[0]
+							newTripStops[tripStopNo]["classno"] = g[5]
+							newTripStops[tripStopNo]["categoryno"] = g[6]
+							bTakeStop = False
+					else:
+						if (tripStopNo == g[2] and newTripStops[tripStopNo]["stop"][3] == g[4]):
+							newTripStops[tripStopNo]["categorycode"] = g[0]
+							newTripStops[tripStopNo]["classno"] = g[5]
+							newTripStops[tripStopNo]["categoryno"] = g[6]
+							bTakeStop = False
+					# für alle stop die G-Info übernehmen
+					if (bTakeStop):
+						newTripStops[tripStopNo]["categorycode"] = g[0]
+						newTripStops[tripStopNo]["classno"] = g[5]
+						newTripStops[tripStopNo]["categoryno"] = g[6]
+
+
+
+	def add_LInfoToTrip(self, fplanfahrtid, newTripStops):
+		"""Die Funktion fügt zum Laufweg die notwendige L-Information hinzu
+
+		fplanfahrtid - Id der Fahrplanfahrt
+		newTripStops - angepasster Laufweg für diese Fahrt
+		"""
+		sql_selLData = "SELECT lineno, fromstop, tostop, deptimefrom, arrtimeto FROM HRDF_FPlanFahrtL_TAB WHERE fk_fplanfahrtid = %s ORDER BY id"
+		curL = self.__hrdfdb.connection.cursor()
+		curL.execute(sql_selLData, (fplanfahrtid,))
+		allLs = curL.fetchall()
+		curL.close()
+
+		if (len(allLs) == 1):
+			for tripStop in newTripStops.values():
+				tripStop["lineno"] = allLs[0][0]
+		else:
+			for l in allLs:
+				bTakeStop = False
+				for tripStopNo in newTripStops:
+					# ist deptimefrom belegt muss auch die deptime des Stops passen
+					if (l[3] is None):
+						if (tripStopNo == l[1]):
+							bTakeStop = True
+					else:
+						if (tripStopNo == l[1] and newTripStops[tripStopNo]["stop"][4] == l[3]):
+							bTakeStop = True
+					# ist arrtimeto belegt muss auch die arrtime des Stops passen
+					if (l[4] is None):
+						if (tripStopNo == l[2]):
+							newTripStops[tripStopNo]["lineno"] = l[0]
+							bTakeStop = False
+					else:
+						if (tripStopNo == l[2] and newTripStops[tripStopNo]["stop"][3] == l[4]):
+							newTripStops[tripStopNo]["lineno"] = l[0]
+							bTakeStop = False
+					# für alle stop die L-Info übernehmen
+					if (bTakeStop):
+						newTripStops[tripStopNo]["lineno"] = l[0]
+
+	def add_RInfoToTrip(self, fplanfahrtid, newTripStops):
+		"""Die Funktion fügt zum Laufweg die notwendige R-Information hinzu
+
+		fplanfahrtid - Id der Fahrplanfahrt
+		newTripStops - angepasster Laufweg für diese Fahrt
+		"""
+		sql_selRData = "SELECT a.directionshort, fromstop, tostop, deptimefrom, arrtimeto, b.directiontext "\
+					   "  FROM HRDF_FPlanFahrtR_TAB a "\
+					   "       LEFT OUTER JOIN HRDF_Richtung_TAB b ON b.directioncode = a.directioncode and a.fk_eckdatenid = b.fk_eckdatenid "\
+					   " WHERE a.fk_fplanfahrtid = %s "\
+					   " ORDER BY a.id"
+		curR = self.__hrdfdb.connection.cursor()
+		curR.execute(sql_selRData, (fplanfahrtid,))
+		allRs = curR.fetchall()
+		curR.close()
+
+		# Initialisieren mit Defaultwerten
+		defaultDirectionShort = ""
+		lastEntry = list(newTripStops.items())[-1][1]
+		defaultDirectionText = lastEntry["stop"][1]
+		for tripStop in newTripStops.values():
+			tripStop["directionshort"] = defaultDirectionShort
+			tripStop["directiontext"] = defaultDirectionText
+
+		# Auch wenn nur ein Datensatz vorhanden ist muss die "kompliziertere" Variante der Findung des richtigen Stops erfolgen
+		for r in allRs:
+			bTakeStop = False
+			# Default Werte beachten
+			directionShort = r[0]
+			if (r[0] is None):
+				directionShort = defaultDirectionShort
+			directionText = r[5]
+			if (r[5] is None):
+				directionText = defaultDirectionText
+
+			for tripStopNo in newTripStops:
+				# ist deptimefrom belegt muss auch die deptime des Stops passen
+				if (r[3] is None):
+					if (tripStopNo == r[1]):
+						bTakeStop = True
+				else:
+					if (tripStopNo == r[1] and newTripStops[tripStopNo]["stop"][4] == r[3]):
+						bTakeStop = True
+				# ist arrtimeto belegt muss auch die arrtime des Stops passen
+				if (r[4] is None):
+					if (tripStopNo == r[2]):
+						newTripStops[tripStopNo]["directionshort"] = directionShort
+						newTripStops[tripStopNo]["directiontext"] = directionText
+						bTakeStop = False
+				else:
+					if (tripStopNo == r[2] and newTripStops[tripStopNo]["stop"][3] == r[4]):
+						newTripStops[tripStopNo]["directionshort"] = directionShort
+						newTripStops[tripStopNo]["directiontext"] = directionText
+						bTakeStop = False
+				# für alle stop die L-Info übernehmen
+				if (bTakeStop):
+					newTripStops[tripStopNo]["directionshort"] = directionShort
+					newTripStops[tripStopNo]["directiontext"] = directionText
+
+
+	def add_AInfoToTrip(self, fplanfahrtid, newTripStops):
+		"""Die Funktion fügt zum Laufweg die notwendige A-Information hinzu
+
+		fplanfahrtid - Id der Fahrplanfahrt
+		newTripStops - angepasster Laufweg für diese Fahrt
+		"""
+		sql_selAData = "SELECT array_agg(a.attributecode ORDER BY b.outputprio, b.outputpriosort) as attributecodeArray, fromstop, tostop, deptimefrom, arrtimeto, bitfieldno, "\
+						"       array_agg(b.attributetext ORDER BY b.outputprio, b.outputpriosort) as text_de, "\
+						"       array_agg(c.attributetext ORDER BY c.outputprio, c.outputpriosort) as text_fr, "\
+						"       array_agg(d.attributetext ORDER BY d.outputprio, d.outputpriosort) as text_en, "\
+						"       array_agg(e.attributetext ORDER BY e.outputprio, e.outputpriosort) as text_it, "\
+						"       array_agg(b.stopcontext ORDER BY b.outputprio, b.outputpriosort) as stopcontext, "\
+						"       array_agg(b.outputforsection ORDER BY b.outputprio, b.outputpriosort) as outputforsection, "\
+						"       array_agg(b.outputforcomplete ORDER BY b.outputprio, b.outputpriosort) as outputforcomplete "\
+						"  FROM HRDF_FPlanFahrtA_TAB a "\
+						"       LEFT OUTER JOIN HRDF_Attribut_TAB b ON b.attributecode = a.attributecode and a.fk_eckdatenid = b.fk_eckdatenid and b.languagecode = 'de' "\
+						"  LEFT OUTER JOIN HRDF_Attribut_TAB c ON c.attributecode = a.attributecode and a.fk_eckdatenid = c.fk_eckdatenid and c.languagecode = 'fr' "\
+						"	  LEFT OUTER JOIN HRDF_Attribut_TAB d ON d.attributecode = a.attributecode and a.fk_eckdatenid = d.fk_eckdatenid and d.languagecode = 'en' "\
+						"	  LEFT OUTER JOIN HRDF_Attribut_TAB e ON e.attributecode = a.attributecode and a.fk_eckdatenid = e.fk_eckdatenid and e.languagecode = 'it' "\
+						"  WHERE a.fk_fplanfahrtid = %s "\
+						"  GROUP by fromstop, tostop, deptimefrom, arrtimeto, b.languagecode, bitfieldno, fk_fplanfahrtid "
+		curA = self.__hrdfdb.connection.cursor()
+		curA.execute(sql_selAData, (fplanfahrtid,))
+		allAs = curA.fetchall()
+		curA.close()
+
+		if (len(allAs) > 0):			
+			for a in allAs:
+				# ist die bitfieldno eine gueltige bitfieldno für heute 
+				if (a[5] is None or (a[5] in self.__bitfieldnumbersOfDay)):
+					bTakeStop = False
+					for tripStopNo in newTripStops:
+						if (a[1] is None):
+							bTakeStop = True
+						else:
+							# ist deptimefrom belegt muss auch die deptime des Stops passen
+							if (a[3] is None):
+								if (tripStopNo == a[1]):
+									bTakeStop = True
+							else:
+								if (tripStopNo == a[1] and newTripStops[tripStopNo]["stop"][4] == a[3]):
+									bTakeStop = True
+							# ist arrtimeto belegt muss auch die arrtime des Stops passen
+							if (a[4] is None):
+								if (tripStopNo == a[2]):
+									newTripStops[tripStopNo]["attributecode"] = a[0]
+									newTripStops[tripStopNo]["attributetext_de"] = a[6]
+									newTripStops[tripStopNo]["attributetext_fr"] = a[7]
+									newTripStops[tripStopNo]["attributetext_en"] = a[8]
+									newTripStops[tripStopNo]["attributetext_it"] = a[9]
+									bTakeStop = False
+							else:
+								if (tripStopNo == a[2] and newTripStops[tripStopNo]["stop"][3] == a[4]):
+									newTripStops[tripStopNo]["attributecode"] = a[0]
+									newTripStops[tripStopNo]["attributetext_de"] = a[6]
+									newTripStops[tripStopNo]["attributetext_fr"] = a[7]
+									newTripStops[tripStopNo]["attributetext_en"] = a[8]
+									newTripStops[tripStopNo]["attributetext_it"] = a[9]
+									bTakeStop = False
+						# für alle stop die G-Info übernehmen
+						if (bTakeStop):
+							newTripStops[tripStopNo]["attributecode"] = a[0]
+							newTripStops[tripStopNo]["attributetext_de"] = a[6]
+							newTripStops[tripStopNo]["attributetext_fr"] = a[7]
+							newTripStops[tripStopNo]["attributetext_en"] = a[8]
+							newTripStops[tripStopNo]["attributetext_it"] = a[9]
+
+
+
+
+	def add_IInfoToTrip(self, fplanfahrtid, newTripStops):
+		"""Die Funktion fügt zum Laufweg die notwendige I-Information hinzu
+
+		fplanfahrtid - Id der Fahrplanfahrt
+		newTripStops - angepasster Laufweg für diese Fahrt
+		"""
+		sql_selIData = "SELECT array_agg(a.infotextcode) as infotextArray, fromstop, tostop, deptimefrom, arrtimeto, bitfieldno, "\
+						"       array_agg(b.infotext) as text_de, "\
+						"       array_agg(c.infotext) as text_fr, "\
+						"       array_agg(d.infotext) as text_en, "\
+						"       array_agg(e.infotext) as text_it "\
+						"  FROM HRDF_FPlanFahrtI_TAB a "\
+						"       LEFT OUTER JOIN HRDF_Infotext_TAB b ON b.infotextno = a.infotextno and a.fk_eckdatenid = b.fk_eckdatenid and b.languagecode = 'de' "\
+						"   	LEFT OUTER JOIN HRDF_Infotext_TAB c ON c.infotextno = a.infotextno and a.fk_eckdatenid = c.fk_eckdatenid and c.languagecode = 'fr' "\
+						"	   LEFT OUTER JOIN HRDF_Infotext_TAB d ON d.infotextno = a.infotextno and a.fk_eckdatenid = d.fk_eckdatenid and d.languagecode = 'en' "\
+						"	   LEFT OUTER JOIN HRDF_Infotext_TAB e ON e.infotextno = a.infotextno and a.fk_eckdatenid = e.fk_eckdatenid and e.languagecode = 'it' "\
+						"  WHERE a.fk_fplanfahrtid = %s "\
+						"  GROUP by fromstop, tostop, deptimefrom, arrtimeto, bitfieldno"
+		curI = self.__hrdfdb.connection.cursor()
+		curI.execute(sql_selIData, (fplanfahrtid,))
+		allIs = curI.fetchall()
+		curI.close()
+
+		if (len(allIs) > 0):
+			for i in allIs:
+				# ist die bitfieldno eine gueltige bitfieldno für heute
+				if (i[5] is None or (i[5] in self.__bitfieldnumbersOfDay)):
+					bTakeStop = False
+					for tripStopNo in newTripStops:
+						if (i[1] is None):
+							bTakeStop = True
+						else:
+							# ist deptimefrom belegt muss auch die deptime des Stops passen
+							if (i[3] is None):
+								if (tripStopNo == i[1]):
+									bTakeStop = True
+							else:
+								if (tripStopNo == i[1] and newTripStops[tripStopNo]["stop"][4] == i[3]):
+									bTakeStop = True
+							# ist arrtimeto belegt muss auch die arrtime des Stops passen
+							if (i[4] is None):
+								if (tripStopNo == i[2]):
+									newTripStops[tripStopNo]["infotextcode"] = i[0]
+									newTripStops[tripStopNo]["infotext_de"] = i[6]
+									newTripStops[tripStopNo]["infotext_fr"] = i[7]
+									newTripStops[tripStopNo]["infotext_en"] = i[8]
+									newTripStops[tripStopNo]["infotext_it"] = i[9]
+									bTakeStop = False
+							else:
+								if (tripStopNo == i[2] and newTripStops[tripStopNo]["stop"][3] == i[4]):
+									newTripStops[tripStopNo]["infotextcode"] = i[0]
+									newTripStops[tripStopNo]["infotext_de"] = i[6]
+									newTripStops[tripStopNo]["infotext_fr"] = i[7]
+									newTripStops[tripStopNo]["infotext_en"] = i[8]
+									newTripStops[tripStopNo]["infotext_it"] = i[9]
+									bTakeStop = False
+						# für alle stop die G-Info übernehmen
+						if (bTakeStop):
+							newTripStops[tripStopNo]["infotextcode"] = i[0]
+							newTripStops[tripStopNo]["infotext_de"] = i[6]
+							newTripStops[tripStopNo]["infotext_fr"] = i[7]
+							newTripStops[tripStopNo]["infotext_en"] = i[8]
+							newTripStops[tripStopNo]["infotext_it"] = i[9]
