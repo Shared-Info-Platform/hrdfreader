@@ -86,7 +86,7 @@ COMMENT ON COLUMN HRDF_ZUGART_TAB.tariffgroup IS 'Tarifgruppe der Gattung (A-H)'
 COMMENT ON COLUMN HRDF_ZUGART_TAB.outputcontrol IS 'Ausgabesteuerung (0=Gattung und Nummer, 1=Gattung, 2=Nummer, 3=keine Ausgabe, +4=Betreiber statt Gattung)';
 COMMENT ON COLUMN HRDF_ZUGART_TAB.categorydesc IS 'Gattungsbezeichnung,di ausgegeben wird';
 COMMENT ON COLUMN HRDF_ZUGART_TAB.extracharge IS 'Zuschlag (0=Zuschlagfrei, 1=Zuschlagpflicht nach Kontext, 2=Zuschlagpflicht)';
-COMMENT ON COLUMN HRDF_ZUGART_TAB.flags IS 'Flags (N=Nahverkehr, B=Schiff';
+COMMENT ON COLUMN HRDF_ZUGART_TAB.flags IS 'Flags (N=Nahverkehr, B=Schiff)';
 COMMENT ON COLUMN HRDF_ZUGART_TAB.categoryimage IS 'Nr für Gattungsbildernamen (0-999)';
 COMMENT ON COLUMN HRDF_ZUGART_TAB.categoryno IS 'Nr für sprachabhängigen Gattungslangnamen (0-999). Auch Text möglich - gilt dann für alle Sprachen';
 CREATE INDEX IDX01_HRDF_ZUGART_TAB ON HRDF_ZUGART_TAB (fk_eckdatenid, categorycode) TABLESPACE :TBSINDEXNAME;
@@ -211,7 +211,7 @@ CREATE TABLE HRDF_INFOTEXT_TAB
   id				SERIAL			NOT NULL,
   fk_eckdatenid		integer			NOT NULL,
   infotextno		integer			NOT NULL,
-  infotextlanguage	varchar(2)		NOT NULL,
+  languagecode		varchar(2)		NOT NULL,
   infotext			varchar(1000)	NOT NULL
 )
 WITH ( OIDS=FALSE )
@@ -219,9 +219,9 @@ TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_INFOTEXT_TAB ADD CONSTRAINT PK_HRDF_INFOTEXT_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
 COMMENT ON TABLE HRDF_INFOTEXT_TAB IS 'Im Fahrplan verwendete Infotexte';
 COMMENT ON COLUMN HRDF_INFOTEXT_TAB.infotextno IS 'Nr. des Infotext';
-COMMENT ON COLUMN HRDF_INFOTEXT_TAB.infotextlanguage IS '+ Sprache des Infotext (Kürzel entsprechend der Dateiendung)';
+COMMENT ON COLUMN HRDF_INFOTEXT_TAB.languagecode IS '+ Sprache des Infotext (Kürzel entsprechend der Dateiendung)';
 COMMENT ON COLUMN HRDF_INFOTEXT_TAB.infotext IS 'Infotext';
-CREATE INDEX IDX01_HRDF_INFOTEXT_TAB ON HRDF_INFOTEXT_TAB (fk_eckdatenid, infotextno, infotextlanguage) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX01_HRDF_INFOTEXT_TAB ON HRDF_INFOTEXT_TAB (fk_eckdatenid, infotextno, languagecode) TABLESPACE :TBSINDEXNAME;
 
 
 
@@ -522,3 +522,78 @@ COMMENT ON COLUMN HRDF_FPLANFahrtLaufweg_TAB.tripno IS 'FahrtNr ab der Haltestel
 COMMENT ON COLUMN HRDF_FPLANFahrtLaufweg_TAB.operationalno IS 'VerwaltungsNr. ab der Haltestelle';
 COMMENT ON COLUMN HRDF_FPLANFahrtLaufweg_TAB.ontripsign IS 'Anzeige der Haltestelle auf dem Laufschild';
 CREATE INDEX IDX01_HRDF_FPLANFahrtLaufweg_TAB ON HRDF_FPLANFahrtLaufweg_TAB (fk_fplanfahrtid, sequenceno) TABLESPACE :TBSINDEXNAME;
+
+
+/*
+\brief	table for daily timetable
+*/
+CREATE TABLE HRDF_DailyTimeTable_TAB
+(
+  id				SERIAL			NOT NULL,
+  fk_eckdatenid		integer			NOT NULL,
+  tripident			varchar(100)	NOT NULL,
+  tripno			integer			NOT NULL,
+  operationalno		varchar(6)		NOT NULL,
+  tripversion		integer			NOT NULL,
+  operatingday		timestamp with time zone NOT NULL,
+  stopsequenceno	integer			NOT NULL,
+  stopident			varchar(100)	NOT NULL,
+  stopname			varchar(500)	NULL,
+  stoppointident	varchar(100)	NULL,
+  stoppointname		varchar(500)	NULL,
+  arrdatetime		timestamp with time zone NULL,
+  depdatetime		timestamp with time zone NULL,
+  noentry			bool			NULL,
+  noexit			bool			NULL,
+  categorycode		varchar(3)		NULL,
+  classno			integer			NULL,
+  categoryno		integer			NULL,
+  lineno			varchar(8)		NULL,
+  directionShort	varchar(1)		NULL,
+  directiontext		varchar(50)		NULL,
+  attributecode		varchar[]	NULL,
+  attributetext_de	varchar[]	NULL,
+  attributetext_fr	varchar[]	NULL,
+  attributetext_en	varchar[]	NULL,
+  attributetext_it	varchar[]	NULL,
+  infotextcode		varchar[]	NULL,
+  infotext_de		varchar[]	NULL,
+  infotext_fr		varchar[]	NULL,
+  infotext_en		varchar[]	NULL,
+  infotext_it		varchar[]	NULL
+)
+WITH ( OIDS=FALSE )
+TABLESPACE :TBSDATANAME;
+ALTER TABLE HRDF_DailyTimeTable_TAB ADD CONSTRAINT PK_HRDF_DailyTimeTable_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+COMMENT ON TABLE HRDF_DailyTimeTable_TAB IS 'Der Tagesfahrplan mit Fahrten ';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.tripident IS 'Eindeutige Kennung der Fahrt';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.tripno is 'Fahrtnummer';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.operationalno is 'Verwaltungsnummer zur Unterscheidung von Fahrten mit gleicher Nr';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.tripversion is 'Nummer der Variante des Verkehrsmittel (Info+)';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.operatingday is 'Betriebstag';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.stopsequenceno is 'ReihenfolgenNr des Halts einer Fahrt';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.stopident is 'Eindeutige Kennung des Halts';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.stopname is 'Name des Halts';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.stoppointident is 'Eindeutige Kennung des Haltepunkts am Halt';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.stoppointname is 'Name des Haltepunkts';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.arrdatetime is 'Ankunftszeit am Halt/Haltepunkt';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.depdatetime is 'Abfahrtszeit am Halt/Haltepunkt';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.noentry is 'Einsteigeverbot';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.noexit is 'Aussteigeverbot';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.categorycode IS 'Code der Gattung';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.classno IS 'ProduktklassenNr der Gattung (0-13)';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.categoryno IS 'Nr für sprachabhängigen Gattungslangnamen (0-999). Auch Text möglich - gilt dann für alle Sprachen';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.lineno is 'Liniennummer';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.directionShort is 'Kennung der Richtung (H,R)';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.directiontext IS 'Ausgabetext der Richtung';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.attributecode IS 'Code des Attributes (array)';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.attributetext_de IS 'Text des Attributs deutsch (array)';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.attributetext_fr IS 'Text des Attributs französisch (array)';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.attributetext_en IS 'Text des Attributs englisch (array)';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.attributetext_it IS 'Text des Attributs italienisch (array)';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.infotextcode IS 'Code/Nr des Infotext (array)';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.infotext_de IS 'Code/Text des Infotext deutsch (array)';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.infotext_fr IS 'Code/Text des Infotext französisch (array)';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.infotext_en IS 'Code/Text des Infotext englisch (array)';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.infotext_it IS 'Code/Text des Infotext italienisch (array)';
+CREATE INDEX IDX01_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, operatingday) TABLESPACE :TBSINDEXNAME;
