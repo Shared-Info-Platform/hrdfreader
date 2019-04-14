@@ -133,8 +133,8 @@ class HrdfReader:
 		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
 			line = line.decode(self.__charset).replace('\r\n', '')
 			richtung_strIO.write(self.__fkdict['fk_eckdatenid']+';'
-										 +line[:7]+';'
-										 +line[8:59]
+										 +line[:7].strip()+';'
+										 +line[8:59].strip()
 										+'\n')
 		richtung_strIO.seek(0)
 		cur = self.__hrdfdb.connection.cursor()
@@ -271,7 +271,7 @@ class HrdfReader:
 		
 		infotext_strIO.seek(0)
 		cur = self.__hrdfdb.connection.cursor()
-		cur.copy_expert("COPY HRDF_INFOTEXT_TAB (fk_eckdatenid,infotextno,infotextlanguage,infotext) FROM STDIN USING DELIMITERS ';' NULL AS ''", infotext_strIO)
+		cur.copy_expert("COPY HRDF_INFOTEXT_TAB (fk_eckdatenid,infotextno,languagecode,infotext) FROM STDIN USING DELIMITERS ';' NULL AS ''", infotext_strIO)
 		self.__hrdfdb.connection.commit()
 		cur.close()
 		infotext_strIO.close()
