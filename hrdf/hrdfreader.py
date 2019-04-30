@@ -1,4 +1,5 @@
 import os
+import re
 import psycopg2
 import zipfile
 import fileinput
@@ -68,6 +69,10 @@ class HrdfReader:
 				self.read_infotext(filename, "IT")
 			elif filename == "FPLAN":
 				self.read_fplan(filename)
+			elif filename == "BAHNHOF":
+				self.read_bahnhof(filename)
+			elif filename == "GLEIS":
+				self.read_gleis(filename)
 			else:
 				logger.error("Das Lesen der Datei ["+filename+"] wird nicht unterstützt")
 
@@ -125,6 +130,62 @@ class HrdfReader:
 		cur.close()
 		bitfeld_strIO.close()
 
+	def read_bahnhof(self, filename):
+		"""Lesen der Datei BAHNHOF"""
+		logger.info('lesen und verarbeiten der Datei BAHNHOF')
+		bahnhof_strIO = StringIO()
+		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
+			line = line.decode(self.__charset).replace('\r\n', '')
+			stopname = ''
+			stopnamelong = ''
+			stopnameshort = ''
+			stopnamealias = ''
+			# Die Analyse betrachtet noch keine Sprachangaben
+			for tmpName in re.split(">", line[12:62].strip()):
+				pos = tmpName.find("<");
+				typeinfo = tmpName[pos:]
+				name = tmpName[:pos].replace("$", "")
+				for c in typeinfo[1:]:
+					if c == "1": stopname = name
+					if c == "2": stopnamelong = name
+					if c == "3": stopnameshort = name
+					if c == "4": stopnamealias = name
+
+			bahnhof_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+										 +line[:7].strip()+';'
+										 +line[8:11].strip()+';'
+										 +stopname+';'
+										 +stopnamelong+';'
+										 +stopnameshort+';'
+										 +stopnamealias
+										+'\n')
+		bahnhof_strIO.seek(0)
+		cur = self.__hrdfdb.connection.cursor()
+		cur.copy_expert("COPY HRDF_BAHNHOF_TAB (fk_eckdatenid,stopno,transportUnion,stopname,stopnamelong,stopnameshort,stopnamealias) FROM STDIN USING DELIMITERS ';' NULL AS ''", bahnhof_strIO)
+		self.__hrdfdb.connection.commit()
+		cur.close()
+		bahnhof_strIO.close()
+
+	def read_gleis(self, filename):
+		"""Lesen der Datei GLEIS"""
+		logger.info('lesen und verarbeiten der Datei GLEIS')
+		gleis_strIO = StringIO()
+		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
+			line = line.decode(self.__charset).replace('\r\n', '')
+			gleis_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+										 +line[:7].strip()+';'
+										 +line[8:13].strip()+';'
+										 +line[14:20].strip()+';'
+										 +line[21:29].strip()+';'
+										 +line[30:34].strip()+';'
+										 +line[35:41].strip()
+										+'\n')
+		gleis_strIO.seek(0)
+		cur = self.__hrdfdb.connection.cursor()
+		cur.copy_expert("COPY HRDF_GLEIS_TAB (fk_eckdatenid,stopno,tripno,operationalno,stoppointtext,stoppointtime,bitfieldno) FROM STDIN USING DELIMITERS ';' NULL AS ''", gleis_strIO)
+		self.__hrdfdb.connection.commit()
+		cur.close()
+		gleis_strIO.close()
 
 	def read_richtung(self, filename):
 		"""Lesen der Datei RICHTUNG"""

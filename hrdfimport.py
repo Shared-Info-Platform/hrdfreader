@@ -28,7 +28,7 @@ def load_hrdfzipfile(filename, dbname, host):
 
 		# ZipFile öffnen und zu lesende Dateien bestimmen
 		hrdfzip = zipfile.ZipFile(filename, 'r')
-		hrdffiles = ['ECKDATEN', 'BITFELD', 'RICHTUNG', 'ZUGART', 'ATTRIBUT', 'INFOTEXT', 'FPLAN']
+		hrdffiles = ['ECKDATEN', 'BITFELD', 'RICHTUNG', 'BAHNHOF', 'GLEIS', 'ZUGART', 'ATTRIBUT', 'INFOTEXT', 'FPLAN']
 		
 		# Initialisierung des HRDF-Readers und lesen der gewünschten HRDF-Dateien
 		reader = HrdfReader(hrdfzip, hrdf_db, hrdffiles)
