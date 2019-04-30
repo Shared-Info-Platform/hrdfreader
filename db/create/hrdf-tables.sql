@@ -82,6 +82,8 @@ COMMENT ON COLUMN HRDF_BAHNHOF_TAB.stopname is 'Name der Haltestelle';
 COMMENT ON COLUMN HRDF_BAHNHOF_TAB.stopnamelong is 'Name lang der Haltestelle';
 COMMENT ON COLUMN HRDF_BAHNHOF_TAB.stopnameshort is 'Abkürzung der Haltestelle';
 COMMENT ON COLUMN HRDF_BAHNHOF_TAB.stopnamealias is 'Synonym / Alias der Haltestelle';
+CREATE INDEX IDX01_HRDF_BAHNHOF_TAB ON HRDF_BAHNHOF_TAB (fk_eckdatenid) TABLESPACE :TBSINDEXNAME;
+
 
 /*
 \brief	table for file GLEIS
@@ -107,6 +109,7 @@ COMMENT ON COLUMN HRDF_GLEIS_TAB.operationalno is 'Verwaltungsnummer zur Untersc
 COMMENT ON COLUMN HRDF_GLEIS_TAB.stoppointtext is 'Haltepositionstext';
 COMMENT ON COLUMN HRDF_GLEIS_TAB.stoppointtime is 'Zeit zur Erkennung ob Gültig für Ankunft oder Abfahrt';
 COMMENT ON COLUMN HRDF_GLEIS_TAB.bitfieldno is 'Eindeutige Nr der Verkehrstagesdefinition';
+CREATE INDEX IDX01_HRDF_GLEIS_TAB ON HRDF_GLEIS_TAB (fk_eckdatenid, tripno, operationalno) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief	table for file ZUGART
