@@ -60,6 +60,55 @@ CREATE INDEX IDX01_HRDF_BITFELD_TAB ON HRDF_BITFELD_TAB (fk_eckdatenid, bitfield
 CREATE INDEX IDX02_HRDF_BITFELD_TAB ON HRDF_BITFELD_TAB USING GIN (bitfieldarray) TABLESPACE :TBSINDEXNAME;
 
 /*
+\brief	table for file BAHNHOF
+*/
+CREATE TABLE HRDF_BAHNHOF_TAB
+(
+  id				SERIAL		NOT NULL,
+  fk_eckdatenid		integer		NOT NULL,
+  stopno			integer		NOT NULL,
+  transportUnion	varchar(3)	NULL,
+  stopname			varchar(30) NOT NULL,
+  stopnamelong		varchar(50)	NULL,
+  stopnameshort		varchar(50) NULL,
+  stopnamealias		varchar(50) NULL
+)
+WITH ( OIDS=FALSE )
+TABLESPACE :TBSDATANAME;
+ALTER TABLE HRDF_BAHNHOF_TAB ADD CONSTRAINT PK_HRDF_BAHNHOF_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+COMMENT ON TABLE HRDF_BAHNHOF_TAB IS 'Namen für Bahnhöfe/Haltestellen (BAHNHOF)';
+COMMENT ON COLUMN HRDF_BAHNHOF_TAB.stopno is 'Nummer der Haltestelle';
+COMMENT ON COLUMN HRDF_BAHNHOF_TAB.stopname is 'Name der Haltestelle';
+COMMENT ON COLUMN HRDF_BAHNHOF_TAB.stopnamelong is 'Name lang der Haltestelle';
+COMMENT ON COLUMN HRDF_BAHNHOF_TAB.stopnameshort is 'Abkürzung der Haltestelle';
+COMMENT ON COLUMN HRDF_BAHNHOF_TAB.stopnamealias is 'Synonym / Alias der Haltestelle';
+
+/*
+\brief	table for file GLEIS
+*/
+CREATE TABLE HRDF_GLEIS_TAB
+(
+  id				SERIAL		NOT NULL,
+  fk_eckdatenid		integer		NOT NULL,
+  stopno			integer		NOT NULL,
+  tripno			integer		NOT NULL,
+  operationalno		varchar(6)	NOT NULL,
+  stoppointtext		varchar(8)  NOT NULL,
+  stoppointtime		integer		NULL,
+  bitfieldno		integer		NULL
+)
+WITH ( OIDS=FALSE )
+TABLESPACE :TBSDATANAME;
+ALTER TABLE HRDF_GLEIS_TAB ADD CONSTRAINT PK_HRDF_GLEIS_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+COMMENT ON TABLE HRDF_GLEIS_TAB IS 'Verkehrstagesdefinitionen der Fahrten (BITFELD)';
+COMMENT ON COLUMN HRDF_GLEIS_TAB.stopno is 'Nummer der Haltestelle';
+COMMENT ON COLUMN HRDF_GLEIS_TAB.tripno is 'Fahrtnummer';
+COMMENT ON COLUMN HRDF_GLEIS_TAB.operationalno is 'Verwaltungsnummer zur Unterscheidung von Fahrten mit gleicher Nr';
+COMMENT ON COLUMN HRDF_GLEIS_TAB.stoppointtext is 'Haltepositionstext';
+COMMENT ON COLUMN HRDF_GLEIS_TAB.stoppointtime is 'Zeit zur Erkennung ob Gültig für Ankunft oder Abfahrt';
+COMMENT ON COLUMN HRDF_GLEIS_TAB.bitfieldno is 'Eindeutige Nr der Verkehrstagesdefinition';
+
+/*
 \brief	table for file ZUGART
 */
 CREATE TABLE HRDF_ZUGART_TAB
@@ -249,7 +298,7 @@ ALTER TABLE HRDF_FPLANFahrt_TAB ADD CONSTRAINT PK_HRDF_FPLANFahrt_TAB PRIMARY KE
 COMMENT ON TABLE HRDF_FPLANFahrt_TAB IS 'Einträge der FPLAN-Datei beginnend mit *Z / *KW / *T';
 COMMENT ON COLUMN HRDF_FPLANFahrt_TAB.triptype is 'Art der Fahrt (Z, KW, T)';
 COMMENT ON COLUMN HRDF_FPLANFahrt_TAB.tripno is 'Fahrtnummer';
-COMMENT ON COLUMN HRDF_FPLANFahrt_TAB.operationalno is 'Verwaltungsnummer zur unterscheidung von Fahrten mit gleicher Nr';
+COMMENT ON COLUMN HRDF_FPLANFahrt_TAB.operationalno is 'Verwaltungsnummer zur Unterscheidung von Fahrten mit gleicher Nr';
 COMMENT ON COLUMN HRDF_FPLANFahrt_TAB.tripversion is '+ Nummer der Variante des Verkehrsmittel (Info+)';
 COMMENT ON COLUMN HRDF_FPLANFahrt_TAB.cyclecount is 'Taktanzahl der noch folgenden Takte; triptype=Z';
 COMMENT ON COLUMN HRDF_FPLANFahrt_TAB.cycletimemin is 'Taktzeit in Minuten (Abstand zwischen zwei Fahrten); triptype=Z';
@@ -541,6 +590,8 @@ CREATE TABLE HRDF_DailyTimeTable_TAB
   stopname			varchar(500)	NULL,
   stoppointident	varchar(100)	NULL,
   stoppointname		varchar(500)	NULL,
+  arrstoppointtext	varchar(8)		NULL,
+  depstoppointtext  varchar(8)		NULL,
   arrdatetime		timestamp with time zone NULL,
   depdatetime		timestamp with time zone NULL,
   noentry			bool			NULL,
@@ -576,6 +627,8 @@ COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.stopident is 'Eindeutige Kennung des H
 COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.stopname is 'Name des Halts';
 COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.stoppointident is 'Eindeutige Kennung des Haltepunkts am Halt';
 COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.stoppointname is 'Name des Haltepunkts';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.arrstoppointtext is 'Haltepositionstext (Reisendeninformation) Ankunft';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.depstoppointtext is 'Haltepositionstext (Reisendeninformation) Abfahrt';
 COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.arrdatetime is 'Ankunftszeit am Halt/Haltepunkt';
 COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.depdatetime is 'Abfahrtszeit am Halt/Haltepunkt';
 COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.noentry is 'Einsteigeverbot';
@@ -597,3 +650,7 @@ COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.infotext_fr IS 'Code/Text des Infotext
 COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.infotext_en IS 'Code/Text des Infotext englisch (array)';
 COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.infotext_it IS 'Code/Text des Infotext italienisch (array)';
 CREATE INDEX IDX01_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, operatingday) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX02_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, operationalno) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX03_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, lineno) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX04_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, stopident) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX05_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, directionshort) TABLESPACE :TBSINDEXNAME;
