@@ -290,9 +290,9 @@ class HrdfTTG:
 		# lookup für Haltepositionstexte aufbauen
 		sql_selGleisData = "SELECT distinct stopno, stoppointtext, stoppointtime, bitfieldno FROM HRDF_FPlanFahrt_TAB a, HRDF_GLEIS_TAB b WHERE a.id = %s AND b.tripno = a.tripno AND b.operationalno = a.operationalno ORDER BY stopno"
 		curGleis = self.__hrdfdb.connection.cursor()
-		curGleis.exec(sql_selGleisData, (fplanfahrtid,))
+		curGleis.execute(sql_selGleisData, (fplanfahrtid,))
 		allGleise = curGleis.fetchall()
-		allGleise.close()
+		curGleis.close()
 		gleisLookup = dict()
 		for gleis in allGleise:
 			lookupkey = str(gleis[0])
