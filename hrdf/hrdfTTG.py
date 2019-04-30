@@ -288,7 +288,7 @@ class HrdfTTG:
 		curVE.close()
 
 		# lookup für Haltepositionstexte aufbauen
-		sql_selGleisData = "SELECT distinct stopno, stoppointtext, stoppointtime, bitfieldno FROM HRDF_FPlanFahrt_TAB a, HRDF_GLEIS_TAB b WHERE a.id = %s AND b.tripno = a.tripno AND b.operationalno = a.operationalno ORDER BY stopno"
+		sql_selGleisData = "SELECT distinct stopno, stoppointtext, stoppointtime, bitfieldno FROM HRDF_FPlanFahrt_TAB a, HRDF_GLEIS_TAB b WHERE a.id = %s AND a.fk_eckdatenid = b.fk_eckdatenid AND b.tripno = a.tripno AND b.operationalno = a.operationalno ORDER BY stopno"
 		curGleis = self.__hrdfdb.connection.cursor()
 		curGleis.execute(sql_selGleisData, (fplanfahrtid,))
 		allGleise = curGleis.fetchall()
