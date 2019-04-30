@@ -21,6 +21,7 @@ class HrdfTTG:
 		# Listen, Strukturen für schnellen Zugriff auf Daten während der Generierung
 		self.__bitfieldnumbersOfDay = set()
 		self.__zugartLookup = dict()
+		self.__bahnhofLookup = dict()
 
 	def setup(self, eckdatenId, generateFrom, generateTo):
 		""" Die Funktion richtet den Tagesfahrplan-Generator für die anstehende
@@ -56,13 +57,15 @@ class HrdfTTG:
 		return bReturn
 	
 	def infohelp(self, text):
-		return str(text).replace(";", ",").replace('"',"'")
+		""" Die Funktion korrigiert den Text (Infotext) mit entsprechenden Escape-Sequencen """
+		return str(text).replace(";", "\;").replace("\"", "\\\\\"").replace("\n", "\\n")
 
 	def generateTT(self):
 		""" Die Funktion generiert den gewünschten Tagesfahrplan bzgl. der Daten, die über setup() bestimmt wurden"""
 		iErrorCnt = 0
 
 		# Aufbau von LookUp-Tabellen für die entsprechenden Ergänzungen des Tagesfahrplan
+		# Lookup für Zugarten
 		sql_zugartLookup = "SELECT categorycode, classno, categoryno FROM HRDF_ZUGART_TAB WHERE fk_eckdatenid = %s"
 		curZugart = self.__hrdfdb.connection.cursor()
 		curZugart.execute(sql_zugartLookup, (self.__eckdatenid,))
@@ -71,6 +74,14 @@ class HrdfTTG:
 			self.__zugartLookup[zugart[0]] = zugart
 		curZugart.close()
 
+		# Lookup für Bahnhofsnamen
+		sql_bahnhofLookup = "SELECT stopno, stopname, stopnamelong, stopnameshort, stopnamealias FROM HRDF_Bahnhof_TAB WHERE fk_eckdatenid = %s"
+		curBahnhof = self.__hrdfdb.connection.cursor()
+		curBahnhof.execute(sql_bahnhofLookup, (self.__eckdatenid,))
+		bahnhhoefe = curBahnhof.fetchall()
+		for bahnhof in bahnhhoefe:
+			self.__bahnhofLookup[bahnhof[0]] = bahnhof
+		curBahnhof.close()
 
 		sql_selDayTrips = "SELECT b.id, b.tripno, b.operationalno, b.tripversion, array_agg(a.bitfieldno) as bitfieldnos "\
 						  "FROM HRDF_FPlanFahrtVE_TAB a, "\
@@ -81,7 +92,9 @@ class HrdfTTG:
 						  "  and a.fk_eckdatenid = %s "\
 						  "GROUP BY b.id, b.tripno, b.operationalno, b.tripversion"
 
-		dayCnt = (self.__generateFrom - self.__generateTo).days
+						  # für debugging-zwecke "  and b.id = 69665 "\
+
+		dayCnt = (self.__generateTo - self.__generateFrom).days
 		i = 0
 		while (i<=dayCnt):
 			generationDay = self.__generateFrom + timedelta(days=i)
@@ -96,6 +109,14 @@ class HrdfTTG:
 			for bitfield in bitfieldNos:
 				self.__bitfieldnumbersOfDay.add(bitfield[0])
 			curBits.close()
+
+			# Löschen von bestehenden Tagesdaten"
+			curDeleteDay = self.__hrdfdb.connection.cursor()
+			sql_delDay = "DELETE FROM HRDF_DailyTimeTable_TAB WHERE fk_eckdatenid = %s AND operatingday = %s"
+			curDeleteDay.execute(sql_delDay, (self.__eckdatenid, str(generationDay)))
+			deletedRows = curDeleteDay.rowcount
+			logger.info("\t{} bestehende Einträge für diesen Tag wurden geloescht".format(deletedRows))
+			curDeleteDay.close()
 
 			# Laden der Tagesfahrten und Generierung jeder Fahrt
 			# mit einer Schleife über den selDayTrip-Cursor, der in 10000er Blöcken abgearbeitet wird
@@ -185,6 +206,8 @@ class HrdfTTG:
 							+tripStop["stop"][1]+';'
 							+str(tripStop["stop"][0])+';'
 							+tripStop["stop"][1]+';'
+							+tripStop["arrstoppointtext"]+';'
+							+tripStop["depstoppointtext"]+';'
 							+arrdatetime+';'
 							+depdatetime+';'
 							+str(noentry)+';'
@@ -220,7 +243,7 @@ class HrdfTTG:
 				if (numberOfGeneratedTrips > 0):
 					curSaveTrip = self.__hrdfdb.connection.cursor()
 					strCopy = "COPY HRDF_DailyTimeTable_TAB (fk_eckdatenid,tripident,tripno,operationalno,tripversion,"\
-								"operatingday,stopsequenceno,stopident,stopname,stoppointident,stoppointname,arrdatetime,depdatetime,noentry,noexit,"\
+								"operatingday,stopsequenceno,stopident,stopname,stoppointident,stoppointname,arrstoppointtext,depstoppointtext,arrdatetime,depdatetime,noentry,noexit,"\
 								"categorycode,classno,categoryno,lineno,directionshort,directiontext,"\
 								"attributecode,attributetext_de,attributetext_fr,attributetext_en,attributetext_it,"\
 								"infotextcode,infotext_de,infotext_fr,infotext_en,infotext_it)"\
@@ -264,12 +287,41 @@ class HrdfTTG:
 		allVEs = curVE.fetchall()
 		curVE.close()
 
+		# lookup für Haltepositionstexte aufbauen
+		sql_selGleisData = "SELECT distinct stopno, stoppointtext, stoppointtime, bitfieldno FROM HRDF_FPlanFahrt_TAB a, HRDF_GLEIS_TAB b WHERE a.id = %s AND b.tripno = a.tripno AND b.operationalno = a.operationalno ORDER BY stopno"
+		curGleis = self.__hrdfdb.connection.cursor()
+		curGleis.exec(sql_selGleisData, (fplanfahrtid,))
+		allGleise = curGleis.fetchall()
+		allGleise.close()
+		gleisLookup = dict()
+		for gleis in allGleise:
+			lookupkey = str(gleis[0])
+			if (gleis[2] is not None): lookupkey = str(gleis[0])+"-"+str(gleis[2])
+			if (gleis[3] is None or (gleis[3] in self.__bitfieldnumbersOfDay)):
+				gleisLookup[lookupkey] = gleis
+
 		# Erstellen des definitiven Laufwegs für diesen Tag alls dictonary um den Laufweg mit zusätzlichen Informationen ergänzen zu können
 		for ve in allVEs:
 			if (ve[0] is None or (ve[0] in self.__bitfieldnumbersOfDay)):
 				bTakeStop = False
 				for tripStop in allTripStops:
 					tripStopNo = tripStop[0]
+					sequenceNo = tripStop[2]  # hier wird die eindeutige SequenceNo verwendet (tripStopNo kann öfter vorkommen)
+					# stoppointtexte ermitteln
+					arrstoppointtext = ""
+					depstoppointtext = ""
+					lookupkey = str(tripStopNo)
+					if ( lookupkey in gleisLookup):
+						arrstoppointtext = gleisLookup[lookupkey][1]
+						depstoppointtext = gleisLookup[lookupkey][1]
+					else:
+						arrlookupkey = str(tripStopNo)+"-"+str(tripStop[3])
+						if (arrlookupkey in gleisLookup):
+							arrstoppointtext = gleisLookup[arrlookupkey][1]
+						deplookupkey = str(tripStopNo)+"-"+str(tripStop[4])
+						if (deplookupkey in gleisLookup):
+							depstoppointtext = gleisLookup[deplookupkey][1]
+
 					# ist deptimefrom belegt muss auch die deptime des Stops passen
 					if (ve[3] is None):
 						if (tripStopNo == ve[1]):
@@ -281,35 +333,42 @@ class HrdfTTG:
 					if (ve[4] is None):
 						if (tripStopNo == ve[2]):
 							if (tripStopNo not in newTripStops):
-								newTripStops[tripStopNo] = dict(stop=tripStop) # letzter stop muss mit in die Liste
+								newTripStops[sequenceNo] = dict(stop=tripStop) # letzter stop muss mit in die Liste
+								newTripStops[sequenceNo]["arrstoppointtext"] = arrstoppointtext
+								newTripStops[sequenceNo]["depstoppointtext"] = depstoppointtext
 							bTakeStop = False
 					else:
 						if (tripStopNo == ve[2] and tripStop[3] == ve[4]):
 							if (tripStopNo not in newTripStops):
-								newTripStops[tripStopNo] = dict(stop=tripStop) # letzter stop muss mit in die Liste
+								newTripStops[sequenceNo] = dict(stop=tripStop) # letzter stop muss mit in die Liste
+								newTripStops[sequenceNo]["arrstoppointtext"] = arrstoppointtext
+								newTripStops[sequenceNo]["depstoppointtext"] = depstoppointtext
 							bTakeStop = False
 					# alle stops übernehmen solange bTakeStop gesetzt ist
 					if (bTakeStop):
-						if (tripStopNo not in newTripStops):
-							newTripStops[tripStopNo] = dict(stop=tripStop)
+						if (sequenceNo not in newTripStops):
+							newTripStops[sequenceNo] = dict(stop=tripStop)
+							newTripStops[sequenceNo]["arrstoppointtext"] = arrstoppointtext
+							newTripStops[sequenceNo]["depstoppointtext"] = depstoppointtext
 
-					if (tripStopNo in newTripStops):
+
+					if (sequenceNo in newTripStops):
 						# Initialisieren der zusätzlichen Felder des TripStops
-						newTripStops[tripStopNo]["categorycode"] = ""
-						newTripStops[tripStopNo]["classno"] = ""
-						newTripStops[tripStopNo]["categoryno"] = ""
-						newTripStops[tripStopNo]["lineno"] = "";
+						newTripStops[sequenceNo]["categorycode"] = ""
+						newTripStops[sequenceNo]["classno"] = ""
+						newTripStops[sequenceNo]["categoryno"] = ""
+						newTripStops[sequenceNo]["lineno"] = ""
 						# Initialisierung der Richtungsangaben erfolgt in der entsprechenden Funktion
-						newTripStops[tripStopNo]["attributecode"] = None
-						newTripStops[tripStopNo]["attributetext_de"] = None
-						newTripStops[tripStopNo]["attributetext_fr"] = None
-						newTripStops[tripStopNo]["attributetext_en"] = None
-						newTripStops[tripStopNo]["attributetext_it"] = None
-						newTripStops[tripStopNo]["infotextcode"] = None
-						newTripStops[tripStopNo]["infotext_de"] = None
-						newTripStops[tripStopNo]["infotext_fr"] = None
-						newTripStops[tripStopNo]["infotext_en"] = None
-						newTripStops[tripStopNo]["infotext_it"] = None
+						newTripStops[sequenceNo]["attributecode"] = None
+						newTripStops[sequenceNo]["attributetext_de"] = None
+						newTripStops[sequenceNo]["attributetext_fr"] = None
+						newTripStops[sequenceNo]["attributetext_en"] = None
+						newTripStops[sequenceNo]["attributetext_it"] = None
+						newTripStops[sequenceNo]["infotextcode"] = None
+						newTripStops[sequenceNo]["infotext_de"] = None
+						newTripStops[sequenceNo]["infotext_fr"] = None
+						newTripStops[sequenceNo]["infotext_en"] = None
+						newTripStops[sequenceNo]["infotext_it"] = None
 
 				# neue Stopliste ist erweitert um die Angaben des VEs
 
@@ -328,6 +387,43 @@ class HrdfTTG:
 
 		return bReturn
 
+	def getAffectedStops(self, fromStop, toStop, deptimeFrom, arrtimeTo, newTripStops):
+		"""Die Funktion liefert eine Liste mit StopSequenceNos der Halte, die von den Angaben betroffen sind
+
+		Die Halteliste wird von vorne nach hinten durchsucht.
+		Kommen Halte mehrfach vor (Rundkurse...) sind diese eindeutig über Ankunft- bzw. Abfahrtszeiten definiert
+		Sind keine Ankunft-/Abfahrtszeiten angegeben, dann kommt der Halt nur einmal in der Liste vor
+
+		fromStop - Halt mit der die Liste beginnt
+		toStop - Halt mit der die List aufhört
+		deptimeFrom - Abfahrtszeit am "fromStop"
+		arrtimeTo - Ankunftszeit am "toStop"
+		newTripStops - Liste der Fahrthalte
+		"""
+		stopSequenceList = list()
+		bTakeStop = False
+		for sequenceNo in newTripStops:
+			# ist deptimefrom belegt muss auch die deptime des Stops passen
+			if (deptimeFrom is None):
+				if (newTripStops[sequenceNo]["stop"][0] == fromStop):
+					bTakeStop = True
+			else:
+				if (newTripStops[sequenceNo]["stop"][0] == fromStop and newTripStops[sequenceNo]["stop"][4] == deptimeFrom):
+					bTakeStop = True
+			# ist arrtimeto belegt muss auch die arrtime des Stops passen
+			if (arrtimeTo is None):
+				if (newTripStops[sequenceNo]["stop"][0] == toStop):
+					stopSequenceList.append(sequenceNo)
+					bTakeStop = False
+			else:
+				if (newTripStops[sequenceNo]["stop"][0] == toStop and newTripStops[sequenceNo]["stop"][3] == arrtimeTo):
+					stopSequenceList.append(sequenceNo)
+					bTakeStop = False
+			# Übernahme der SequenceNo solange bTakeStop = true
+			if (bTakeStop):
+				stopSequenceList.append(sequenceNo)
+
+		return stopSequenceList
 
 	def add_GInfoToTrip(self, fplanfahrtid, newTripStops):
 		"""Die Funktion fügt zum Laufweg die notwendige G-Information hinzu
@@ -355,34 +451,12 @@ class HrdfTTG:
 				tripStop["categoryno"] = allGs[0][6]
 		else:
 			for g in allGs:
-				bTakeStop = False
-				for tripStopNo in newTripStops:
-					# ist deptimefrom belegt muss auch die deptime des Stops passen
-					if (g[3] is None):
-						if (tripStopNo == g[1]):
-							bTakeStop = True
-					else:
-						if (tripStopNo == g[1] and newTripStops[tripStopNo]["stop"][4] == g[3]):
-							bTakeStop = True
-					# ist arrtimeto belegt muss auch die arrtime des Stops passen
-					if (g[4] is None):
-						if (tripStopNo == g[2]):
-							newTripStops[tripStopNo]["categorycode"] = g[0]
-							newTripStops[tripStopNo]["classno"] = g[5]
-							newTripStops[tripStopNo]["categoryno"] = g[6]
-							bTakeStop = False
-					else:
-						if (tripStopNo == g[2] and newTripStops[tripStopNo]["stop"][3] == g[4]):
-							newTripStops[tripStopNo]["categorycode"] = g[0]
-							newTripStops[tripStopNo]["classno"] = g[5]
-							newTripStops[tripStopNo]["categoryno"] = g[6]
-							bTakeStop = False
-					# für alle stop die G-Info übernehmen
-					if (bTakeStop):
-						newTripStops[tripStopNo]["categorycode"] = g[0]
-						newTripStops[tripStopNo]["classno"] = g[5]
-						newTripStops[tripStopNo]["categoryno"] = g[6]
-
+				sequenceNoList = self.getAffectedStops(g[1], g[2], g[3], g[4], newTripStops)
+				# Belegung der notwendigen Attribute
+				for sequenceNo in sequenceNoList:
+					newTripStops[sequenceNo]["categorycode"] = g[0]
+					newTripStops[sequenceNo]["classno"] = g[5]
+					newTripStops[sequenceNo]["categoryno"] = g[6]
 
 
 	def add_LInfoToTrip(self, fplanfahrtid, newTripStops):
@@ -402,27 +476,11 @@ class HrdfTTG:
 				tripStop["lineno"] = allLs[0][0]
 		else:
 			for l in allLs:
-				bTakeStop = False
-				for tripStopNo in newTripStops:
-					# ist deptimefrom belegt muss auch die deptime des Stops passen
-					if (l[3] is None):
-						if (tripStopNo == l[1]):
-							bTakeStop = True
-					else:
-						if (tripStopNo == l[1] and newTripStops[tripStopNo]["stop"][4] == l[3]):
-							bTakeStop = True
-					# ist arrtimeto belegt muss auch die arrtime des Stops passen
-					if (l[4] is None):
-						if (tripStopNo == l[2]):
-							newTripStops[tripStopNo]["lineno"] = l[0]
-							bTakeStop = False
-					else:
-						if (tripStopNo == l[2] and newTripStops[tripStopNo]["stop"][3] == l[4]):
-							newTripStops[tripStopNo]["lineno"] = l[0]
-							bTakeStop = False
-					# für alle stop die L-Info übernehmen
-					if (bTakeStop):
-						newTripStops[tripStopNo]["lineno"] = l[0]
+				sequenceNoList = self.getAffectedStops(l[1], l[2], l[3], l[4], newTripStops)
+				# Belegung der notwendigen Attribute
+				for sequenceNo in sequenceNoList:
+					newTripStops[sequenceNo]["lineno"] = l[0]
+
 
 	def add_RInfoToTrip(self, fplanfahrtid, newTripStops):
 		"""Die Funktion fügt zum Laufweg die notwendige R-Information hinzu
@@ -442,16 +500,23 @@ class HrdfTTG:
 
 		# Initialisieren mit Defaultwerten
 		defaultDirectionShort = ""
+		defaultDirectionText = ""
+		# Richtungstext bevorzugt über Lookup-Tabelle finden
 		lastEntry = list(newTripStops.items())[-1][1]
-		defaultDirectionText = lastEntry["stop"][1]
+		lastStopNo = lastEntry["stop"][0]
+		if (lastStopNo in self.__bahnhofLookup):
+			defaultDirectionText = self.__bahnhofLookup[lastStopNo][1]
+		else:
+			defaultDirectionText = lastEntry["stop"][1]
+
 		for tripStop in newTripStops.values():
 			tripStop["directionshort"] = defaultDirectionShort
 			tripStop["directiontext"] = defaultDirectionText
 
 		# Auch wenn nur ein Datensatz vorhanden ist muss die "kompliziertere" Variante der Findung des richtigen Stops erfolgen
 		for r in allRs:
-			bTakeStop = False
-			# Default Werte beachten
+			sequenceNoList = self.getAffectedStops(r[1], r[2], r[3], r[4], newTripStops)
+			# Belegung der notwendigen Attribute und Defaultwerte beachten
 			directionShort = r[0]
 			if (r[0] is None):
 				directionShort = defaultDirectionShort
@@ -459,29 +524,9 @@ class HrdfTTG:
 			if (r[5] is None):
 				directionText = defaultDirectionText
 
-			for tripStopNo in newTripStops:
-				# ist deptimefrom belegt muss auch die deptime des Stops passen
-				if (r[3] is None):
-					if (tripStopNo == r[1]):
-						bTakeStop = True
-				else:
-					if (tripStopNo == r[1] and newTripStops[tripStopNo]["stop"][4] == r[3]):
-						bTakeStop = True
-				# ist arrtimeto belegt muss auch die arrtime des Stops passen
-				if (r[4] is None):
-					if (tripStopNo == r[2]):
-						newTripStops[tripStopNo]["directionshort"] = directionShort
-						newTripStops[tripStopNo]["directiontext"] = directionText
-						bTakeStop = False
-				else:
-					if (tripStopNo == r[2] and newTripStops[tripStopNo]["stop"][3] == r[4]):
-						newTripStops[tripStopNo]["directionshort"] = directionShort
-						newTripStops[tripStopNo]["directiontext"] = directionText
-						bTakeStop = False
-				# für alle stop die L-Info übernehmen
-				if (bTakeStop):
-					newTripStops[tripStopNo]["directionshort"] = directionShort
-					newTripStops[tripStopNo]["directiontext"] = directionText
+			for sequenceNo in sequenceNoList:
+				newTripStops[sequenceNo]["directionshort"] = directionShort
+				newTripStops[sequenceNo]["directiontext"] = directionText
 
 
 	def add_AInfoToTrip(self, fplanfahrtid, newTripStops):
@@ -514,44 +559,14 @@ class HrdfTTG:
 			for a in allAs:
 				# ist die bitfieldno eine gueltige bitfieldno für heute 
 				if (a[5] is None or (a[5] in self.__bitfieldnumbersOfDay)):
-					bTakeStop = False
-					for tripStopNo in newTripStops:
-						if (a[1] is None):
-							bTakeStop = True
-						else:
-							# ist deptimefrom belegt muss auch die deptime des Stops passen
-							if (a[3] is None):
-								if (tripStopNo == a[1]):
-									bTakeStop = True
-							else:
-								if (tripStopNo == a[1] and newTripStops[tripStopNo]["stop"][4] == a[3]):
-									bTakeStop = True
-							# ist arrtimeto belegt muss auch die arrtime des Stops passen
-							if (a[4] is None):
-								if (tripStopNo == a[2]):
-									newTripStops[tripStopNo]["attributecode"] = a[0]
-									newTripStops[tripStopNo]["attributetext_de"] = a[6]
-									newTripStops[tripStopNo]["attributetext_fr"] = a[7]
-									newTripStops[tripStopNo]["attributetext_en"] = a[8]
-									newTripStops[tripStopNo]["attributetext_it"] = a[9]
-									bTakeStop = False
-							else:
-								if (tripStopNo == a[2] and newTripStops[tripStopNo]["stop"][3] == a[4]):
-									newTripStops[tripStopNo]["attributecode"] = a[0]
-									newTripStops[tripStopNo]["attributetext_de"] = a[6]
-									newTripStops[tripStopNo]["attributetext_fr"] = a[7]
-									newTripStops[tripStopNo]["attributetext_en"] = a[8]
-									newTripStops[tripStopNo]["attributetext_it"] = a[9]
-									bTakeStop = False
-						# für alle stop die G-Info übernehmen
-						if (bTakeStop):
-							newTripStops[tripStopNo]["attributecode"] = a[0]
-							newTripStops[tripStopNo]["attributetext_de"] = a[6]
-							newTripStops[tripStopNo]["attributetext_fr"] = a[7]
-							newTripStops[tripStopNo]["attributetext_en"] = a[8]
-							newTripStops[tripStopNo]["attributetext_it"] = a[9]
-
-
+					sequenceNoList = self.getAffectedStops(a[1], a[2], a[3], a[4], newTripStops)
+					# Belegung der notwendigen Attribute
+					for sequenceNo in sequenceNoList:
+						newTripStops[sequenceNo]["attributecode"] = a[0]
+						newTripStops[sequenceNo]["attributetext_de"] = a[6]
+						newTripStops[sequenceNo]["attributetext_fr"] = a[7]
+						newTripStops[sequenceNo]["attributetext_en"] = a[8]
+						newTripStops[sequenceNo]["attributetext_it"] = a[9]
 
 
 	def add_IInfoToTrip(self, fplanfahrtid, newTripStops):
@@ -581,39 +596,12 @@ class HrdfTTG:
 			for i in allIs:
 				# ist die bitfieldno eine gueltige bitfieldno für heute
 				if (i[5] is None or (i[5] in self.__bitfieldnumbersOfDay)):
-					bTakeStop = False
-					for tripStopNo in newTripStops:
-						if (i[1] is None):
-							bTakeStop = True
-						else:
-							# ist deptimefrom belegt muss auch die deptime des Stops passen
-							if (i[3] is None):
-								if (tripStopNo == i[1]):
-									bTakeStop = True
-							else:
-								if (tripStopNo == i[1] and newTripStops[tripStopNo]["stop"][4] == i[3]):
-									bTakeStop = True
-							# ist arrtimeto belegt muss auch die arrtime des Stops passen
-							if (i[4] is None):
-								if (tripStopNo == i[2]):
-									newTripStops[tripStopNo]["infotextcode"] = i[0]
-									newTripStops[tripStopNo]["infotext_de"] = i[6]
-									newTripStops[tripStopNo]["infotext_fr"] = i[7]
-									newTripStops[tripStopNo]["infotext_en"] = i[8]
-									newTripStops[tripStopNo]["infotext_it"] = i[9]
-									bTakeStop = False
-							else:
-								if (tripStopNo == i[2] and newTripStops[tripStopNo]["stop"][3] == i[4]):
-									newTripStops[tripStopNo]["infotextcode"] = i[0]
-									newTripStops[tripStopNo]["infotext_de"] = i[6]
-									newTripStops[tripStopNo]["infotext_fr"] = i[7]
-									newTripStops[tripStopNo]["infotext_en"] = i[8]
-									newTripStops[tripStopNo]["infotext_it"] = i[9]
-									bTakeStop = False
-						# für alle stop die G-Info übernehmen
-						if (bTakeStop):
-							newTripStops[tripStopNo]["infotextcode"] = i[0]
-							newTripStops[tripStopNo]["infotext_de"] = i[6]
-							newTripStops[tripStopNo]["infotext_fr"] = i[7]
-							newTripStops[tripStopNo]["infotext_en"] = i[8]
-							newTripStops[tripStopNo]["infotext_it"] = i[9]
+					sequenceNoList = self.getAffectedStops(i[1], i[2], i[3], i[4], newTripStops)
+					# Belegung der notwendigen Attribute
+					for sequenceNo in sequenceNoList:
+						newTripStops[sequenceNo]["infotextcode"] = i[0]
+						newTripStops[sequenceNo]["infotext_de"] = i[6]
+						newTripStops[sequenceNo]["infotext_fr"] = i[7]
+						newTripStops[sequenceNo]["infotext_en"] = i[8]
+						newTripStops[sequenceNo]["infotext_it"] = i[9]
+

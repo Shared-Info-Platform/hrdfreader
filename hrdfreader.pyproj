@@ -14,7 +14,7 @@
     <InterpreterId>Global|PythonCore|3.6</InterpreterId>
     <EnableNativeCodeDebugging>True</EnableNativeCodeDebugging>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <CommandLineArguments>1 "29.03.2019" "29.03.2019" hrdfdb</CommandLineArguments>
+    <CommandLineArguments>1</CommandLineArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
