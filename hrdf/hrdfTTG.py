@@ -86,7 +86,8 @@ class HrdfTTG:
 		sql_selDayTrips = "SELECT b.id, b.tripno, b.operationalno, b.tripversion, array_agg(a.bitfieldno) as bitfieldnos "\
 						  "FROM HRDF_FPlanFahrtVE_TAB a, "\
 						  "     HRDF_FPLanFahrt_TAB b "\
-						  "WHERE a.bitfieldno in (SELECT bitfieldno FROM HRDF_Bitfeld_TAB where bitfieldarray @> ARRAY[%s::date] AND fk_eckdatenid = %s) "\
+						  "WHERE (a.bitfieldno in (SELECT bitfieldno FROM HRDF_Bitfeld_TAB where bitfieldarray @> ARRAY[%s::date] AND fk_eckdatenid = %s) "\
+						  "       OR a.bitfieldno is NULL OR a.bitfieldno = 0) "\
 						  "  and a.fk_fplanfahrtid = b.id "\
 						  "  and b.fk_eckdatenid = a.fk_eckdatenid "\
 						  "  and a.fk_eckdatenid = %s "\
@@ -297,12 +298,12 @@ class HrdfTTG:
 		for gleis in allGleise:
 			lookupkey = str(gleis[0])
 			if (gleis[2] is not None): lookupkey = str(gleis[0])+"-"+str(gleis[2])
-			if (gleis[3] is None or (gleis[3] in self.__bitfieldnumbersOfDay)):
+			if (gleis[3] is None or (gleis[3] in self.__bitfieldnumbersOfDay) or gleis[3] == 0):
 				gleisLookup[lookupkey] = gleis
 
 		# Erstellen des definitiven Laufwegs für diesen Tag alls dictonary um den Laufweg mit zusätzlichen Informationen ergänzen zu können
 		for ve in allVEs:
-			if (ve[0] is None or (ve[0] in self.__bitfieldnumbersOfDay)):
+			if (ve[0] is None or (ve[0] in self.__bitfieldnumbersOfDay) or ve[0] == 0):
 				bTakeStop = False
 				for tripStop in allTripStops:
 					tripStopNo = tripStop[0]
@@ -558,7 +559,7 @@ class HrdfTTG:
 		if (len(allAs) > 0):			
 			for a in allAs:
 				# ist die bitfieldno eine gueltige bitfieldno für heute 
-				if (a[5] is None or (a[5] in self.__bitfieldnumbersOfDay)):
+				if (a[5] is None or (a[5] in self.__bitfieldnumbersOfDay) or a[5] == 0):
 					sequenceNoList = self.getAffectedStops(a[1], a[2], a[3], a[4], newTripStops)
 					# Belegung der notwendigen Attribute
 					for sequenceNo in sequenceNoList:
@@ -595,7 +596,7 @@ class HrdfTTG:
 		if (len(allIs) > 0):
 			for i in allIs:
 				# ist die bitfieldno eine gueltige bitfieldno für heute
-				if (i[5] is None or (i[5] in self.__bitfieldnumbersOfDay)):
+				if (i[5] is None or (i[5] in self.__bitfieldnumbersOfDay) or i[5] == 0):
 					sequenceNoList = self.getAffectedStops(i[1], i[2], i[3], i[4], newTripStops)
 					# Belegung der notwendigen Attribute
 					for sequenceNo in sequenceNoList:
