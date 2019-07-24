@@ -657,3 +657,35 @@ CREATE INDEX IDX02_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (
 CREATE INDEX IDX03_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, lineno) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX04_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, stopident) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX05_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, directionshort) TABLESPACE :TBSINDEXNAME;
+
+/*
+\brief  table for file FPLAN data-lines
+*/
+CREATE TABLE HRDF_tripcount_operator_TAB
+(
+  id SERIAL primary key,
+  eckdatenid integer NOT NULL,
+  operationalno varchar(32) NOT NULL,
+  tripcount integer NULL
+)
+WITH ( OIDS=FALSE )
+TABLESPACE :TBSDATANAME;
+COMMENT ON TABLE HRDF_tripcount_operator_TAB IS 'Anzahl Fahrten pro Operator und EckdatenID';
+CREATE INDEX IDX01_HRDF_tripcount_operator_TAB ON HRDF_tripcount_operator_TAB (eckdatenid,operationalno) TABLESPACE :TBSINDEXNAME;
+
+/*
+\brief  table for file FPLAN data-lines
+*/
+CREATE TABLE HRDF_tripcount_line_TAB
+(
+  id SERIAL primary key,
+  eckdatenid integer NOT NULL,
+  operationalno varchar(32) NOT NULL,
+  lineno varchar(8) NOT NULL,
+  tripcount integer NULL
+)
+WITH ( OIDS=FALSE )
+TABLESPACE :TBSDATANAME;
+COMMENT ON TABLE HRDF_tripcount_line_TAB IS 'Anzahl Fahrten pro Linie und EckdatenID';
+CREATE INDEX IDX01_HRDF_tripcount_line_TAB ON HRDF_tripcount_line_TAB (eckdatenid,operationalno) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX02_HRDF_tripcount_line_TAB ON HRDF_tripcount_line_TAB (eckdatenid,lineno) TABLESPACE :TBSINDEXNAME;
