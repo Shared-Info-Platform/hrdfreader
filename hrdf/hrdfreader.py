@@ -146,8 +146,8 @@ class HrdfReader:
 				typeinfo = tmpName[pos:]
 				name = tmpName[:pos].replace("$", "")
 				for c in typeinfo[1:]:
-					if c == "1": stopname = name
-					if c == "2": stopnamelong = name
+					if c == "1": stopname = name[:30]
+					if c == "2": stopnamelong = name[:50]
 					if c == "3": stopnameshort = name
 					if c == "4": stopnamealias = name
 
