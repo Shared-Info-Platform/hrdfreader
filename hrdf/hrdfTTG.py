@@ -74,10 +74,19 @@ class HrdfTTG:
 			self.__zugartLookup[zugart[0]] = zugart
 		curZugart.close()
 
-		# Lookup für Bahnhofsnamen
-		sql_bahnhofLookup = "SELECT stopno, stopname, stopnamelong, stopnameshort, stopnamealias FROM HRDF_Bahnhof_TAB WHERE fk_eckdatenid = %s"
+		# Lookup für Bahnhofsnamen, Übergangszeiten (mit Standardzeit aus erster Zeile stopno 9999999) und GEO-Koordinaten
+		sql_bahnhofLookup = "SELECT a.stopno, a.stopname, a.stopnamelong, a.stopnameshort, a.stopnamealias,"\
+						    "       coalesce(c.transfertime1,b.transfertime1) as transfertime1, coalesce(c.transfertime2,b.transfertime2) as transfertime2,"\
+						    "       d.transferprio,"\
+						    "       e.longitude_geo, e.latitude_geo, e.altitude_geo"\
+						    "  FROM HRDF_bahnhof_TAB a"\
+							"       INNER JOIN (SELECT transfertime1, transfertime2, fk_eckdatenid FROM HRDF_umsteigb_TAB WHERE stopno = 9999999) b ON b.fk_eckdatenid = a.fk_eckdatenid"\
+						    "       LEFT OUTER JOIN HRDF_umsteigb_TAB c ON c.stopno = a.stopno AND c.fk_eckdatenid = a.fk_eckdatenid"\
+						    "       LEFT OUTER JOIN HRDF_bfprios_TAB d ON d.stopno = a.stopno AND d.fk_eckdatenid = a.fk_eckdatenid"\
+						    "       LEFT OUTER JOIN HRDF_bfkoord_TAB e ON e.stopno = a.stopno AND e.fk_eckdatenid = a.fk_eckdatenid"\
+						    " WHERE a.fk_eckdatenid = %s"
 		curBahnhof = self.__hrdfdb.connection.cursor()
-		curBahnhof.execute(sql_bahnhofLookup, (self.__eckdatenid,))
+		curBahnhof.execute(sql_bahnhofLookup, (self.__eckdatenid,))		
 		bahnhhoefe = curBahnhof.fetchall()
 		for bahnhof in bahnhhoefe:
 			self.__bahnhofLookup[bahnhof[0]] = bahnhof
@@ -194,6 +203,23 @@ class HrdfTTG:
 							if (tripStop["infotext_it"] is not None):
 								strInfotextIT = '{"' + '","'.join(map(self.infohelp,tripStop["infotext_it"])) + '"}'
 							
+							# Angaben zur Haltestelle
+							strLongitudeGeo = ""
+							strLatitudeGeo = ""
+							strAltitudeGeo = ""
+							strTransferTime1 = ""
+							strTransferTime2 = ""
+							strTransferPrio = ""
+							strTripNoContinued = ""
+							strOperationalNoContinued = ""
+							if (tripStop["longitude_geo"] is not None): strLongitudeGeo = str(tripStop["longitude_geo"])
+							if (tripStop["latitude_geo"] is not None): strLatitudeGeo = str(tripStop["latitude_geo"])
+							if (tripStop["altitude_geo"] is not None): strAltitudeGeo = str(tripStop["altitude_geo"])
+							if (tripStop["transfertime1"] is not None): strTransferTime1 = str(tripStop["transfertime1"])
+							if (tripStop["transfertime2"] is not None): strTransferTime2 = str(tripStop["transfertime2"])
+							if (tripStop["transferprio"] is not None): strTransferPrio = str(tripStop["transferprio"])
+							if (tripStop["tripno_continued"] is not None): strTripNoContinued = str(tripStop["tripno_continued"])
+							if (tripStop["operationalno_continued"] is not None): strOperationalNoContinued = str(tripStop["operationalno_continued"])
 
 							# Schreiben des Datensatzes
 							dataline = (self.__eckdatenid+';'
@@ -228,7 +254,15 @@ class HrdfTTG:
 							+strInfotextDE+';'
 							+strInfotextFR+';'
 							+strInfotextEN+';'
-							+strInfotextIT)
+							+strInfotextIT+';'
+						    +strLongitudeGeo+';'
+						    +strLatitudeGeo+';'
+						    +strAltitudeGeo+';'
+						    +strTransferTime1+';'
+						    +strTransferTime2+';'
+						    +strTransferPrio+';'
+						    +strTripNoContinued+';'
+						    +strOperationalNoContinued)
 							#+'\n'
 							#print(dataline)
 							dailytimetable_strIO.write(dataline+'\n')
@@ -247,7 +281,8 @@ class HrdfTTG:
 								"operatingday,stopsequenceno,stopident,stopname,stoppointident,stoppointname,arrstoppointtext,depstoppointtext,arrdatetime,depdatetime,noentry,noexit,"\
 								"categorycode,classno,categoryno,lineno,directionshort,directiontext,"\
 								"attributecode,attributetext_de,attributetext_fr,attributetext_en,attributetext_it,"\
-								"infotextcode,infotext_de,infotext_fr,infotext_en,infotext_it)"\
+								"infotextcode,infotext_de,infotext_fr,infotext_en,infotext_it,"\
+								"longitude_geo,latitude_geo,altitude_geo,transfertime1,transfertime2,transferprio,tripno_continued,operationalno_continued)"\
 								" FROM STDIN USING DELIMITERS ';' NULL AS ''"
 					dailytimetable_strIO.seek(0)
 					curSaveTrip.copy_expert(strCopy, dailytimetable_strIO)
@@ -370,6 +405,16 @@ class HrdfTTG:
 						newTripStops[sequenceNo]["infotext_fr"] = None
 						newTripStops[sequenceNo]["infotext_en"] = None
 						newTripStops[sequenceNo]["infotext_it"] = None
+						# Initialisierung der zusätzlichen Heltestellenmerkmale
+						newTripStops[sequenceNo]["longitude_geo"] = self.__bahnhofLookup[tripStopNo][8]
+						newTripStops[sequenceNo]["latitude_geo"] = self.__bahnhofLookup[tripStopNo][9]
+						newTripStops[sequenceNo]["altitude_geo"] = self.__bahnhofLookup[tripStopNo][10]
+						newTripStops[sequenceNo]["transfertime1"] = self.__bahnhofLookup[tripStopNo][5]
+						newTripStops[sequenceNo]["transfertime2"] = self.__bahnhofLookup[tripStopNo][6]
+						newTripStops[sequenceNo]["transferprio"] = self.__bahnhofLookup[tripStopNo][7]
+						# Initialisierung der Durchbindungsmerkmale
+						newTripStops[sequenceNo]["tripno_continued"] = None
+						newTripStops[sequenceNo]["operationalno_continued"] = None
 
 				# neue Stopliste ist erweitert um die Angaben des VEs
 

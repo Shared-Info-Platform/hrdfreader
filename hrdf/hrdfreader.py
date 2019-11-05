@@ -73,6 +73,14 @@ class HrdfReader:
 				self.read_bahnhof(filename)
 			elif filename == "GLEIS":
 				self.read_gleis(filename)
+			elif filename == "DURCHBI":
+				self.read_durchbi(filename)
+			elif filename == "BFKOORD_GEO":
+				self.read_bfkoordgeo(filename)
+			elif filename == "UMSTEIGB":
+				self.read_umsteigb(filename)
+			elif filename == "BFPRIOS":
+				self.read_bfprios(filename)
 			else:
 				logger.error("Das Lesen der Datei ["+filename+"] wird nicht unterstützt")
 
@@ -337,7 +345,84 @@ class HrdfReader:
 		cur.close()
 		infotext_strIO.close()
 
+	def read_durchbi(self, filename):
+		"""Lesen der Datei DURCHBI"""
+		logger.info('lesen und verarbeiten der Datei DURCHBI')
+		durchbi_strIO = StringIO()
+		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
+			line = line.decode(self.__charset).replace('\r\n', '')
+			durchbi_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+										 +line[:5]+';'
+										 +line[6:12].strip()+';'
+										 +line[13:20]+';'
+										 +line[21:26]+';'
+										 +line[27:33].strip()+';'
+										 +line[34:40]+';'
+										 +line[41:48]+';'
+										 +line[49:51].strip()+';'
+										 +line[53:].strip()
+										+'\n')
+		durchbi_strIO.seek(0)
+		cur = self.__hrdfdb.connection.cursor()
+		cur.copy_expert("COPY HRDF_DURCHBI_TAB (fk_eckdatenid,tripno1,operationalno1,laststopno1,tripno2,operationalno2,bitfieldno,firststopno2,attribute,comment) FROM STDIN USING DELIMITERS ';' NULL AS ''", durchbi_strIO)
+		self.__hrdfdb.connection.commit()
+		cur.close()
+		durchbi_strIO.close()
 
+	def read_bfkoordgeo(self, filename):
+		"""Lesen der Datei BFKOORD_GEO"""
+		logger.info('lesen und verarbeiten der Datei BFKOORD_GEO')
+		bfkoordgeo_strIO = StringIO()
+		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
+			line = line.decode(self.__charset).replace('\r\n', '')
+			bfkoordgeo_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+										 +line[:7]+';'
+										 +line[8:18]+';'
+										 +line[19:29]+';'
+										 +line[30:36]
+										+'\n')
+		bfkoordgeo_strIO.seek(0)
+		cur = self.__hrdfdb.connection.cursor()
+		cur.copy_expert("COPY HRDF_BFKOORD_TAB (fk_eckdatenid,stopno,longitude_geo,latitude_geo,altitude_geo) FROM STDIN USING DELIMITERS ';' NULL AS ''", bfkoordgeo_strIO)
+		self.__hrdfdb.connection.commit()
+		cur.close()
+		bfkoordgeo_strIO.close()
+
+	def read_umsteigb(self, filename):
+		"""Lesen der Datei UMSTEIGB"""
+		logger.info('lesen und verarbeiten der Datei UMSTEIGB')
+		umsteigb_strIO = StringIO()
+		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
+			line = line.decode(self.__charset).replace('\r\n', '')
+			umsteigb_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+										 +line[:7]+';'
+										 +line[8:10]+';'
+										 +line[11:13]
+										+'\n')
+		umsteigb_strIO.seek(0)
+		cur = self.__hrdfdb.connection.cursor()
+		cur.copy_expert("COPY HRDF_UMSTEIGB_TAB (fk_eckdatenid,stopno,transfertime1,transfertime2) FROM STDIN USING DELIMITERS ';' NULL AS ''", umsteigb_strIO)
+		self.__hrdfdb.connection.commit()
+		cur.close()
+		umsteigb_strIO.close()
+
+	def read_bfprios(self, filename):
+		"""Lesen der Datei BFPRIOS"""
+		logger.info('lesen und verarbeiten der Datei BFPRIOS')
+		bfprios_strIO = StringIO()
+		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
+			line = line.decode(self.__charset).replace('\r\n', '')
+			bfprios_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+										 +line[:7]+';'
+										 +line[8:10]
+										+'\n')
+		bfprios_strIO.seek(0)
+		cur = self.__hrdfdb.connection.cursor()
+		cur.copy_expert("COPY HRDF_BFPRIOS_TAB (fk_eckdatenid,stopno,transferprio) FROM STDIN USING DELIMITERS ';' NULL AS ''", bfprios_strIO)
+		self.__hrdfdb.connection.commit()
+		cur.close()
+		bfprios_strIO.close()
+		
 	def save_currentFplanFahrt(self):
 		"""Funkion speichert die aktuellen Werte zu einer FPLAN-Fahrt"""
 		self.__fplanFahrtG_strIO.seek(0)

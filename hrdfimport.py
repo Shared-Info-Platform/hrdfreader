@@ -21,6 +21,10 @@ def load_hrdfzipfile(filename, dbname, host):
 		RICHTUNG
 		ATTRIBUT_XX (sprachabhängig)
 		INFOTEXT_XX (sprachabhängig)
+		DURCHBI
+		BFKOORD_GEO
+		UMSTEIGB
+		BFPRIOS
 		FPLAN
 	"""
 	hrdf_db = HrdfDB(dbname, host, "hrdf", "bmHRDF")
@@ -28,7 +32,7 @@ def load_hrdfzipfile(filename, dbname, host):
 
 		# ZipFile öffnen und zu lesende Dateien bestimmen
 		hrdfzip = zipfile.ZipFile(filename, 'r')
-		hrdffiles = ['ECKDATEN', 'BITFELD', 'RICHTUNG', 'BAHNHOF', 'GLEIS', 'ZUGART', 'ATTRIBUT', 'INFOTEXT', 'FPLAN']
+		hrdffiles = ['ECKDATEN','BITFELD','RICHTUNG','BAHNHOF','GLEIS','ZUGART','ATTRIBUT','INFOTEXT','DURCHBI','BFKOORD_GEO','UMSTEIGB','BFPRIOS','FPLAN']
 		
 		# Initialisierung des HRDF-Readers und lesen der gewünschten HRDF-Dateien
 		reader = HrdfReader(hrdfzip, hrdf_db, hrdffiles)

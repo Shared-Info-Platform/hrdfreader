@@ -14,7 +14,7 @@
     <InterpreterId>Global|PythonCore|3.6</InterpreterId>
     <EnableNativeCodeDebugging>True</EnableNativeCodeDebugging>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <CommandLineArguments>1</CommandLineArguments>
+    <CommandLineArguments>7</CommandLineArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
@@ -53,6 +53,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="db\create\" />
+    <Folder Include="db\update\" />
     <Folder Include="hrdf\" />
     <Folder Include="db\" />
   </ItemGroup>
@@ -61,6 +62,8 @@
     <Content Include="db\create\create-hrdf.sh" />
     <Content Include="db\create\hrdf-schema.sql" />
     <Content Include="db\create\hrdf-tables.sql" />
+    <Content Include="db\update\update-hrdf.sh" />
+    <Content Include="db\update\update_2.1-0.sql" />
     <Content Include="requirements.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
