@@ -447,27 +447,30 @@ class HrdfTTG:
 		newTripStops - Liste der Fahrthalte
 		"""
 		stopSequenceList = list()
-		bTakeStop = False
-		for sequenceNo in newTripStops:
-			# ist deptimefrom belegt muss auch die deptime des Stops passen
-			if (deptimeFrom is None):
-				if (newTripStops[sequenceNo]["stop"][0] == fromStop):
-					bTakeStop = True
-			else:
-				if (newTripStops[sequenceNo]["stop"][0] == fromStop and newTripStops[sequenceNo]["stop"][4] == deptimeFrom):
-					bTakeStop = True
-			# ist arrtimeto belegt muss auch die arrtime des Stops passen
-			if (arrtimeTo is None):
-				if (newTripStops[sequenceNo]["stop"][0] == toStop):
+		if (fromStop is None and toStop is None):
+			stopSequenceList = newTripStops.keys()
+		else:
+			bTakeStop = False
+			for sequenceNo in newTripStops:
+				# ist deptimefrom belegt muss auch die deptime des Stops passen
+				if (deptimeFrom is None):
+					if (newTripStops[sequenceNo]["stop"][0] == fromStop):
+						bTakeStop = True
+				else:
+					if (newTripStops[sequenceNo]["stop"][0] == fromStop and newTripStops[sequenceNo]["stop"][4] == deptimeFrom):
+						bTakeStop = True
+				# ist arrtimeto belegt muss auch die arrtime des Stops passen
+				if (arrtimeTo is None):
+					if (newTripStops[sequenceNo]["stop"][0] == toStop):
+						stopSequenceList.append(sequenceNo)
+						bTakeStop = False
+				else:
+					if (newTripStops[sequenceNo]["stop"][0] == toStop and newTripStops[sequenceNo]["stop"][3] == arrtimeTo):
+						stopSequenceList.append(sequenceNo)
+						bTakeStop = False
+				# Übernahme der SequenceNo solange bTakeStop = true
+				if (bTakeStop):
 					stopSequenceList.append(sequenceNo)
-					bTakeStop = False
-			else:
-				if (newTripStops[sequenceNo]["stop"][0] == toStop and newTripStops[sequenceNo]["stop"][3] == arrtimeTo):
-					stopSequenceList.append(sequenceNo)
-					bTakeStop = False
-			# Übernahme der SequenceNo solange bTakeStop = true
-			if (bTakeStop):
-				stopSequenceList.append(sequenceNo)
 
 		return stopSequenceList
 
@@ -477,7 +480,6 @@ class HrdfTTG:
 		fplanfahrtid - Id der Fahrplanfahrt
 		newTripStops - angepasster Laufweg für diese Fahrt
 		"""
-		#sql_selGData = "SELECT categorycode, fromstop, tostop, deptimefrom, arrtimeto FROM HRDF_FPlanFahrtG_TAB WHERE fk_fplanfahrtid = %s ORDER BY id"
 		sql_selGData = "SELECT a.categorycode, fromstop, tostop, deptimefrom, arrtimeto, b.classno, b.categoryno "\
 					   "  FROM HRDF_FPlanFahrtG_TAB a, "\
 					   "       HRDF_ZUGART_TAB b "\
