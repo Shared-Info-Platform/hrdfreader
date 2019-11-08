@@ -175,15 +175,15 @@ class HrdfTTG:
 							strAttributetextFR = ""
 							strAttributetextEN = ""
 							strAttributetextIT = ""
-							if (tripStop["attributecode"] is not None):
+							if (len(tripStop["attributecode"]) > 0):
 								strAttributecode = "{'" + "','".join(map(str,tripStop["attributecode"])) + "'}"
-							if (tripStop["attributetext_de"] is not None):
+							if (len(tripStop["attributetext_de"]) > 0):
 								strAttributetextDE = "{'" + "','".join(map(str,tripStop["attributetext_de"])) + "'}"
-							if (tripStop["attributetext_fr"] is not None):
+							if (len(tripStop["attributetext_fr"]) > 0):
 								strAttributetextFR = "{'" + "','".join(map(str,tripStop["attributetext_fr"])) + "'}"
-							if (tripStop["attributetext_en"] is not None):
+							if (len(tripStop["attributetext_en"]) > 0):
 								strAttributetextEN = "{'" + "','".join(map(str,tripStop["attributetext_en"])) + "'}"
-							if (tripStop["attributetext_it"] is not None):
+							if (len(tripStop["attributetext_it"]) > 0):
 								strAttributetextIT = "{'" + "','".join(map(str,tripStop["attributetext_it"])) + "'}"
 
 							# Infotexte
@@ -192,15 +192,15 @@ class HrdfTTG:
 							strInfotextFR = ""
 							strInfotextEN = ""
 							strInfotextIT = ""
-							if (tripStop["infotextcode"] is not None):
+							if (len(tripStop["infotextcode"]) > 0):
 								strInfotextcode = '{"' + '","'.join(map(self.infohelp,tripStop["infotextcode"])) + '"}'
-							if (tripStop["infotext_de"] is not None):
+							if (len(tripStop["infotext_de"]) > 0):
 								strInfotextDE = '{"' + '","'.join(map(self.infohelp,tripStop["infotext_de"])) + '"}'
-							if (tripStop["infotext_fr"] is not None):
+							if (len(tripStop["infotext_fr"]) > 0):
 								strInfotextFR = '{"' + '","'.join(map(self.infohelp,tripStop["infotext_fr"])) + '"}'
-							if (tripStop["infotext_en"] is not None):
+							if (len(tripStop["infotext_en"]) > 0):
 								strInfotextEN = '{"' + '","'.join(map(self.infohelp,tripStop["infotext_en"])) + '"}'
-							if (tripStop["infotext_it"] is not None):
+							if (len(tripStop["infotext_it"]) > 0):
 								strInfotextIT = '{"' + '","'.join(map(self.infohelp,tripStop["infotext_it"])) + '"}'
 							
 							# Angaben zur Haltestelle
@@ -395,16 +395,16 @@ class HrdfTTG:
 						newTripStops[sequenceNo]["categoryno"] = ""
 						newTripStops[sequenceNo]["lineno"] = ""
 						# Initialisierung der Richtungsangaben erfolgt in der entsprechenden Funktion
-						newTripStops[sequenceNo]["attributecode"] = None
-						newTripStops[sequenceNo]["attributetext_de"] = None
-						newTripStops[sequenceNo]["attributetext_fr"] = None
-						newTripStops[sequenceNo]["attributetext_en"] = None
-						newTripStops[sequenceNo]["attributetext_it"] = None
-						newTripStops[sequenceNo]["infotextcode"] = None
-						newTripStops[sequenceNo]["infotext_de"] = None
-						newTripStops[sequenceNo]["infotext_fr"] = None
-						newTripStops[sequenceNo]["infotext_en"] = None
-						newTripStops[sequenceNo]["infotext_it"] = None
+						newTripStops[sequenceNo]["attributecode"] = list()
+						newTripStops[sequenceNo]["attributetext_de"] = list()
+						newTripStops[sequenceNo]["attributetext_fr"] = list()
+						newTripStops[sequenceNo]["attributetext_en"] = list()
+						newTripStops[sequenceNo]["attributetext_it"] = list()
+						newTripStops[sequenceNo]["infotextcode"] = list()
+						newTripStops[sequenceNo]["infotext_de"] = list()
+						newTripStops[sequenceNo]["infotext_fr"] = list()
+						newTripStops[sequenceNo]["infotext_en"] = list()
+						newTripStops[sequenceNo]["infotext_it"] = list()
 						# Initialisierung der zusätzlichen Heltestellenmerkmale
 						newTripStops[sequenceNo]["longitude_geo"] = self.__bahnhofLookup[tripStopNo][8]
 						newTripStops[sequenceNo]["latitude_geo"] = self.__bahnhofLookup[tripStopNo][9]
@@ -583,21 +583,21 @@ class HrdfTTG:
 		fplanfahrtid - Id der Fahrplanfahrt
 		newTripStops - angepasster Laufweg für diese Fahrt
 		"""
-		sql_selAData = "SELECT array_agg(a.attributecode ORDER BY b.outputprio, b.outputpriosort) as attributecodeArray, fromstop, tostop, deptimefrom, arrtimeto, bitfieldno, "\
-						"       array_agg(b.attributetext ORDER BY b.outputprio, b.outputpriosort) as text_de, "\
-						"       array_agg(c.attributetext ORDER BY c.outputprio, c.outputpriosort) as text_fr, "\
-						"       array_agg(d.attributetext ORDER BY d.outputprio, d.outputpriosort) as text_en, "\
-						"       array_agg(e.attributetext ORDER BY e.outputprio, e.outputpriosort) as text_it, "\
-						"       array_agg(b.stopcontext ORDER BY b.outputprio, b.outputpriosort) as stopcontext, "\
-						"       array_agg(b.outputforsection ORDER BY b.outputprio, b.outputpriosort) as outputforsection, "\
-						"       array_agg(b.outputforcomplete ORDER BY b.outputprio, b.outputpriosort) as outputforcomplete "\
+		sql_selAData = "SELECT a.attributecode as attributecodeArray, fromstop, tostop, deptimefrom, arrtimeto, bitfieldno, "\
+						"       b.attributetext as text_de, "\
+						"       c.attributetext as text_fr, "\
+						"       d.attributetext as text_en, "\
+						"       e.attributetext as text_it, "\
+						"       b.stopcontext as stopcontext, "\
+						"       b.outputforsection as outputforsection, "\
+						"       b.outputforcomplete as outputforcomplete "\
 						"  FROM HRDF_FPlanFahrtA_TAB a "\
 						"       LEFT OUTER JOIN HRDF_Attribut_TAB b ON b.attributecode = a.attributecode and a.fk_eckdatenid = b.fk_eckdatenid and b.languagecode = 'de' "\
 						"  LEFT OUTER JOIN HRDF_Attribut_TAB c ON c.attributecode = a.attributecode and a.fk_eckdatenid = c.fk_eckdatenid and c.languagecode = 'fr' "\
 						"	  LEFT OUTER JOIN HRDF_Attribut_TAB d ON d.attributecode = a.attributecode and a.fk_eckdatenid = d.fk_eckdatenid and d.languagecode = 'en' "\
 						"	  LEFT OUTER JOIN HRDF_Attribut_TAB e ON e.attributecode = a.attributecode and a.fk_eckdatenid = e.fk_eckdatenid and e.languagecode = 'it' "\
 						"  WHERE a.fk_fplanfahrtid = %s "\
-						"  GROUP by fromstop, tostop, deptimefrom, arrtimeto, b.languagecode, bitfieldno, fk_fplanfahrtid "
+						#"  GROUP by fromstop, tostop, deptimefrom, arrtimeto, b.languagecode, bitfieldno, fk_fplanfahrtid "
 		curA = self.__hrdfdb.connection.cursor()
 		curA.execute(sql_selAData, (fplanfahrtid,))
 		allAs = curA.fetchall()
@@ -610,11 +610,11 @@ class HrdfTTG:
 					sequenceNoList = self.getAffectedStops(a[1], a[2], a[3], a[4], newTripStops)
 					# Belegung der notwendigen Attribute
 					for sequenceNo in sequenceNoList:
-						newTripStops[sequenceNo]["attributecode"] = a[0]
-						newTripStops[sequenceNo]["attributetext_de"] = a[6]
-						newTripStops[sequenceNo]["attributetext_fr"] = a[7]
-						newTripStops[sequenceNo]["attributetext_en"] = a[8]
-						newTripStops[sequenceNo]["attributetext_it"] = a[9]
+						newTripStops[sequenceNo]["attributecode"].append(a[0])
+						newTripStops[sequenceNo]["attributetext_de"].append(a[6])
+						newTripStops[sequenceNo]["attributetext_fr"].append(a[7])
+						newTripStops[sequenceNo]["attributetext_en"].append(a[8])
+						newTripStops[sequenceNo]["attributetext_it"].append(a[9])
 
 
 	def add_IInfoToTrip(self, fplanfahrtid, newTripStops):
@@ -623,18 +623,18 @@ class HrdfTTG:
 		fplanfahrtid - Id der Fahrplanfahrt
 		newTripStops - angepasster Laufweg für diese Fahrt
 		"""
-		sql_selIData = "SELECT array_agg(a.infotextcode) as infotextArray, fromstop, tostop, deptimefrom, arrtimeto, bitfieldno, "\
-						"       array_agg(b.infotext) as text_de, "\
-						"       array_agg(c.infotext) as text_fr, "\
-						"       array_agg(d.infotext) as text_en, "\
-						"       array_agg(e.infotext) as text_it "\
+		sql_selIData = "SELECT a.infotextcode, fromstop, tostop, deptimefrom, arrtimeto, bitfieldno, "\
+						"       b.infotext as text_de, "\
+						"       c.infotext as text_fr, "\
+						"       d.infotext as text_en, "\
+						"       e.infotext as text_it "\
 						"  FROM HRDF_FPlanFahrtI_TAB a "\
 						"       LEFT OUTER JOIN HRDF_Infotext_TAB b ON b.infotextno = a.infotextno and a.fk_eckdatenid = b.fk_eckdatenid and b.languagecode = 'de' "\
 						"   	LEFT OUTER JOIN HRDF_Infotext_TAB c ON c.infotextno = a.infotextno and a.fk_eckdatenid = c.fk_eckdatenid and c.languagecode = 'fr' "\
 						"	   LEFT OUTER JOIN HRDF_Infotext_TAB d ON d.infotextno = a.infotextno and a.fk_eckdatenid = d.fk_eckdatenid and d.languagecode = 'en' "\
 						"	   LEFT OUTER JOIN HRDF_Infotext_TAB e ON e.infotextno = a.infotextno and a.fk_eckdatenid = e.fk_eckdatenid and e.languagecode = 'it' "\
-						"  WHERE a.fk_fplanfahrtid = %s "\
-						"  GROUP by fromstop, tostop, deptimefrom, arrtimeto, bitfieldno"
+						"  WHERE a.fk_fplanfahrtid = %s "
+						#"  GROUP by fromstop, tostop, deptimefrom, arrtimeto, bitfieldno"
 		curI = self.__hrdfdb.connection.cursor()
 		curI.execute(sql_selIData, (fplanfahrtid,))
 		allIs = curI.fetchall()
@@ -647,9 +647,9 @@ class HrdfTTG:
 					sequenceNoList = self.getAffectedStops(i[1], i[2], i[3], i[4], newTripStops)
 					# Belegung der notwendigen Attribute
 					for sequenceNo in sequenceNoList:
-						newTripStops[sequenceNo]["infotextcode"] = i[0]
-						newTripStops[sequenceNo]["infotext_de"] = i[6]
-						newTripStops[sequenceNo]["infotext_fr"] = i[7]
-						newTripStops[sequenceNo]["infotext_en"] = i[8]
-						newTripStops[sequenceNo]["infotext_it"] = i[9]
+						newTripStops[sequenceNo]["infotextcode"].append(i[0])
+						newTripStops[sequenceNo]["infotext_de"].append(i[6])
+						newTripStops[sequenceNo]["infotext_fr"].append(i[7])
+						newTripStops[sequenceNo]["infotext_en"].append(i[8])
+						newTripStops[sequenceNo]["infotext_it"].append(i[9])
 
