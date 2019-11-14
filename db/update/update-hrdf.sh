@@ -20,5 +20,6 @@ else
 
 	echo "updating to version 2.1 ..."
 	psql -h $1 -d $2 -U $3 -f update_2.1-0.sql
+	psql -h $1 -d $2 -U $3 -f update_2.1-1.sql
 
 fi

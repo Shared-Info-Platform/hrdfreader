@@ -757,7 +757,8 @@ CREATE TABLE HRDF_DailyTimeTable_TAB
   transfertime2	integer		NULL,
   transferprio		integer		NULL,
   tripno_continued integer		NULL,
-  operationalno_continued	varchar(6)	NULL
+  operationalno_continued	varchar(6)	NULL,
+  stopno_continued	integer NULL
 )
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
@@ -803,6 +804,7 @@ COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.transfertime2 IS 'Umsteigezeit in Minu
 COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.transferprio IS 'Umsteigepriorität der Haltestelle (0-16 => 0 ist höchste Prio)';
 COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.tripno_continued IS 'FahrtNr für Durchbindung; fährt weiter als';
 COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.operationalno_continued	IS 'Verwaltungsnummer für Durchbindung; fährt weiter als';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.stopno_continued	IS 'HaltestellenNr für Durchbindung; kann unterschiedlich zum Halt sein';
 CREATE INDEX IDX01_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, operatingday) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX02_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, operationalno) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX03_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, lineno) TABLESPACE :TBSINDEXNAME;

@@ -1,10 +1,10 @@
 
--- f¸r's Anlegen von Tabellen/Indizes
+-- f√ºr's Anlegen von Tabellen/Indizes
 \set TBSDATANAME tbs_ :DBNAME _data
 \set TBSINDEXNAME tbs_ :DBNAME _index
 
 
-\echo '=> Neue Tabellen f¸r den HRDF-Importer'
+\echo '=> Neue Tabellen f√ºr den HRDF-Importer'
 \echo '=> Tabelle HRDF_BFKOORD_TAB'
 CREATE TABLE HRDF_BFKOORD_TAB
 (
@@ -20,9 +20,9 @@ TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_BFKOORD_TAB ADD CONSTRAINT PK_HRDF_BFKOORD_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
 COMMENT ON TABLE HRDF_BFKOORD_TAB IS 'Geo-Koordinaten einer Haltestelle (BFKOORD)';
 COMMENT ON COLUMN HRDF_BFKOORD_TAB.stopno is 'Eindeutige Nr der Haltestelle';
-COMMENT ON COLUMN HRDF_BFKOORD_TAB.longitude_geo is 'L‰ngengrad der Haltestelle (x-Koordinate)';
+COMMENT ON COLUMN HRDF_BFKOORD_TAB.longitude_geo is 'L√§ngengrad der Haltestelle (x-Koordinate)';
 COMMENT ON COLUMN HRDF_BFKOORD_TAB.latitude_geo is 'Breitengrad der Haltestelle (y-Koordinate)';
-COMMENT ON COLUMN HRDF_BFKOORD_TAB.altitude_geo is 'Geographische Hˆhe der Haltestelle (z-Koordinate, Meter ¸ber NN)';
+COMMENT ON COLUMN HRDF_BFKOORD_TAB.altitude_geo is 'Geographische H√∂he der Haltestelle (z-Koordinate, Meter √ºber NN)';
 CREATE INDEX IDX01_HRDF_BFKOORD_TAB ON HRDF_BFKOORD_TAB (fk_eckdatenid, stopno) TABLESPACE :TBSINDEXNAME;
 
 \echo '=> Tabelle HRDF_DURCHBI_TAB'
@@ -45,10 +45,10 @@ TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_DURCHBI_TAB ADD CONSTRAINT PK_HRDF_DURCHBI_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
 COMMENT ON TABLE HRDF_DURCHBI_TAB IS 'Durchbindung einer Fahrt (DURCHBI)';
 COMMENT ON COLUMN HRDF_DURCHBI_TAB.tripno1 IS 'Fahrtnummer 1';
-COMMENT ON COLUMN HRDF_DURCHBI_TAB.operationalno1 IS 'Verwaltung f¸r Fahrt 1';
+COMMENT ON COLUMN HRDF_DURCHBI_TAB.operationalno1 IS 'Verwaltung f√ºr Fahrt 1';
 COMMENT ON COLUMN HRDF_DURCHBI_TAB.laststopno1 IS 'letzter Halt der Fahrt 1';
 COMMENT ON COLUMN HRDF_DURCHBI_TAB.tripno2 IS 'Fahrtnummer 2';
-COMMENT ON COLUMN HRDF_DURCHBI_TAB.operationalno2 IS 'Verwaltung f¸r Fahrt 2';
+COMMENT ON COLUMN HRDF_DURCHBI_TAB.operationalno2 IS 'Verwaltung f√ºr Fahrt 2';
 COMMENT ON COLUMN HRDF_DURCHBI_TAB.bitfieldno IS 'Verkehrstagebitfeldnummer';
 COMMENT ON COLUMN HRDF_DURCHBI_TAB.firststopno2 IS 'erster Halt der Fahrt 2';
 COMMENT ON COLUMN HRDF_DURCHBI_TAB.attribute IS 'Attribut zur Markierung der Durchbindung';
@@ -84,9 +84,9 @@ CREATE TABLE HRDF_BFPRIOS_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_BFPRIOS_TAB ADD CONSTRAINT PK_HRDF_BFPRIOS_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
-COMMENT ON TABLE HRDF_BFPRIOS_TAB IS 'Bahnhofsumsteigepriorit‰ten (BFPRIOS)';
+COMMENT ON TABLE HRDF_BFPRIOS_TAB IS 'Bahnhofsumsteigepriorit√§ten (BFPRIOS)';
 COMMENT ON COLUMN HRDF_BFPRIOS_TAB.stopno IS 'Eindeutige Nr der Haltestelle';
-COMMENT ON COLUMN HRDF_BFPRIOS_TAB.transferprio IS 'Umsteigepriorit‰t der Haltestelle (0-16 => 0 ist hˆchste Prio)';
+COMMENT ON COLUMN HRDF_BFPRIOS_TAB.transferprio IS 'Umsteigepriorit√§t der Haltestelle (0-16 => 0 ist h√∂chste Prio)';
 CREATE INDEX IDX01_HRDF_BFPRIOS_TAB ON HRDF_BFPRIOS_TAB (fk_eckdatenid, stopno) TABLESPACE :TBSINDEXNAME;
 
 \echo '=> Tabelle HRDF_METABHF_TAB'
@@ -103,11 +103,11 @@ CREATE TABLE HRDF_METABHF_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_METABHF_TAB ADD CONSTRAINT PK_HRDF_METABHF_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
-COMMENT ON TABLE HRDF_METABHF_TAB IS '‹bergangsbeziehung zwischen Haltestellen (METABHF)';
+COMMENT ON TABLE HRDF_METABHF_TAB IS '√úbergangsbeziehung zwischen Haltestellen (METABHF)';
 COMMENT ON COLUMN HRDF_METABHF_TAB.stopnoFrom IS 'Eindeutige Nr der Haltestelle von';
 COMMENT ON COLUMN HRDF_METABHF_TAB.stopnoTo IS 'Eindeutige Nr der Haltestelle nach';
-COMMENT ON COLUMN HRDF_METABHF_TAB.transfertimeMin IS 'Dauer des ‹bergangs in Minuten';
-COMMENT ON COLUMN HRDF_METABHF_TAB.transfertimeSec IS 'Zus‰tzliche Dauer in Sekunden';
+COMMENT ON COLUMN HRDF_METABHF_TAB.transfertimeMin IS 'Dauer des √úbergangs in Minuten';
+COMMENT ON COLUMN HRDF_METABHF_TAB.transfertimeSec IS 'Zus√§tzliche Dauer in Sekunden';
 COMMENT ON COLUMN HRDF_METABHF_TAB.attributecode IS 'Beliebige Attributcodes';
 CREATE INDEX IDX01_HRDF_METABHF_TAB ON HRDF_METABHF_TAB (fk_eckdatenid, stopnoFrom) TABLESPACE :TBSINDEXNAME;
 
@@ -124,7 +124,7 @@ TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_METABHFGRUPPE_TAB ADD CONSTRAINT PK_HRDF_METABHFGRUPPE_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
 COMMENT ON TABLE HRDF_METABHFGRUPPE_TAB IS 'Haltestellengruppen (METABHF Gruppen)';
 COMMENT ON COLUMN HRDF_METABHFGRUPPE_TAB.stopgroupno IS 'Eindeutige Nr der Haltestellengruppe';
-COMMENT ON COLUMN HRDF_METABHFGRUPPE_TAB.stopmember IS 'Liste der zugehˆrigen Haltestellen';
+COMMENT ON COLUMN HRDF_METABHFGRUPPE_TAB.stopmember IS 'Liste der zugeh√∂rigen Haltestellen';
 CREATE INDEX IDX01_HRDF_METABHFGRUPPE_TAB ON HRDF_METABHFGRUPPE_TAB (fk_eckdatenid, stopgroupno) TABLESPACE :TBSINDEXNAME;
 
 \echo '=> Erweiterungen der Tagesfahrplantabelle'
@@ -136,12 +136,14 @@ ALTER TABLE HRDF_DailyTimeTable_TAB ADD COLUMN transfertime2 integer NULL;
 ALTER TABLE HRDF_DailyTimeTable_TAB ADD COLUMN transferprio integer NULL;
 ALTER TABLE HRDF_DailyTimeTable_TAB ADD COLUMN tripno_continued integer NULL;
 ALTER TABLE HRDF_DailyTimeTable_TAB ADD COLUMN operationalno_continued varchar(6) NULL;
-COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.longitude_geo is 'L‰ngengrad der Haltestelle (x-Koordinate)';
+ALTER TABLE HRDF_DailyTimeTable_TAB ADD COLUMN stopno_continued integer NULL;
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.longitude_geo is 'L√§ngengrad der Haltestelle (x-Koordinate)';
 COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.latitude_geo is 'Breitengrad der Haltestelle (y-Koordinate)';
-COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.altitude_geo is 'Geographische Hˆhe der Haltestelle (z-Koordinate, Meter ¸ber NN)';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.altitude_geo is 'Geographische H√∂he der Haltestelle (z-Koordinate, Meter √ºber NN)';
 COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.transfertime1 IS 'Umsteigezeit in Minuten zwischen IC und IC max 60 Min';
 COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.transfertime2 IS 'Umsteigezeit in Minuten zwischen allen anderen Gattungskombinationen';
-COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.transferprio IS 'Umsteigepriorit‰t der Haltestelle (0-16 => 0 ist hˆchste Prio)';
-COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.tripno_continued IS 'FahrtNr f¸r Durchbindung; f‰hrt weiter als';
-COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.operationalno_continued	IS 'Verwaltungsnummer f¸r Durchbindung; f‰hrt weiter als';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.transferprio IS 'Umsteigepriorit√§t der Haltestelle (0-16 => 0 ist h√∂chste Prio)';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.tripno_continued IS 'FahrtNr f√ºr Durchbindung; f√§hrt weiter als';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.operationalno_continued	IS 'Verwaltungsnummer f√ºr Durchbindung; f√§hrt weiter als';
+COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.stopno_continued	IS 'HaltestellenNr f√ºr Durchbindung; kann unterschiedlich zum Halt sein';
 

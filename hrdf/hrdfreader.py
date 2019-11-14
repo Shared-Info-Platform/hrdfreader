@@ -81,6 +81,8 @@ class HrdfReader:
 				self.read_umsteigb(filename)
 			elif filename == "BFPRIOS":
 				self.read_bfprios(filename)
+			elif filename == "METABHF":
+				self.read_metabhf(filename)
 			else:
 				logger.error("Das Lesen der Datei ["+filename+"] wird nicht unterstützt")
 
@@ -422,7 +424,98 @@ class HrdfReader:
 		self.__hrdfdb.connection.commit()
 		cur.close()
 		bfprios_strIO.close()
-		
+
+	def read_metabhf(self, filename):
+		"""Lesen der Datei METABHF"""
+		logger.info('lesen und verarbeiten der Datei METABHF')
+		metabhfUB_strIO = StringIO()
+		metabhfHG_strIO = StringIO()
+
+		previousUB = False
+		strStopNoFrom = None;
+		strStopNoTo = None;
+		strTransferTimeMin = None;
+		strTransferTimeSec = None;
+		strAttributeCodes = "";
+		attributeCodeList = list();
+		stopMemberList = list();
+		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
+			line = line.decode(self.__charset).replace('\r\n', '')
+			
+			if line[:1] == '*':
+				# Attributszeile der Übergangsbeziehung				
+				if line[1:2] == 'A':
+					# Uns interessieren momentan nur die A-Zeilen (Attributecode)
+					attributeCodeList.append(line[3:5].strip())
+
+			elif line[7:8] == ':':
+				# Haltestellengruppen-Zeile
+				# Ist noch eine offene Übergangsbeziehung vorhanden? Die muss noch gespeichert werden
+				if (previousUB):
+					if (len(attributeCodeList) > 0): strAttributeCodes = "{'" + "','".join(map(str,attributeCodeList)) + "'}"
+					metabhfUB_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+												 +strStopNoFrom+';'
+												 +strStopNoTo+';'
+												 +strTransferTimeMin+';'
+												 +strTransferTimeSec+';'
+												 +strAttributeCodes
+												+'\n')
+					# Zurücksetzen der Attributcodes-Liste
+					attributeCodeList.clear();
+					strAttributeCodes = "";
+					previousUB = False;
+
+				# Behandlung der Haltestellengruppen-Zeile
+				# Erster Stop beginnt bei Zeichen 10, danach beliebig viele Stop in der Länge von 7 Zeichen
+				stopMemberList.clear()
+				strStopMember = ""
+				nextMemberStart = 10
+				while (nextMemberStart < len(line)):
+					stopMemberList.append(line[nextMemberStart:nextMemberStart+7])
+					nextMemberStart = nextMemberStart+9
+				if (len(stopMemberList) > 0): strStopMember = "{" + ",".join(map(str,stopMemberList)) + "}"
+				metabhfHG_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+								+line[10:17]+';'
+								+strStopMember
+							+'\n')
+
+			else:
+				# 1. Zeile einer Übergangsbeziehung
+				if (previousUB):
+					# Sichern der Übergangsbeziehung
+					if (len(attributeCodeList) > 0): strAttributeCodes = "{'" + "','".join(map(str,attributeCodeList)) + "'}"
+					metabhfUB_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+												 +strStopNoFrom+';'
+												 +strStopNoTo+';'
+												 +strTransferTimeMin+';'
+												 +strTransferTimeSec+';'
+												 +strAttributeCodes
+												+'\n')
+
+				# Zurücksetzen der Attributcodes-Liste
+				attributeCodeList.clear();
+				strAttributeCodes = "";
+				strStopNoFrom = line[:7]
+				strStopNoTo = line[8:15]
+				strTransferTimeMin = line[16:19]
+				strTransferTimeSec = line[20:22]
+				previousUB = True
+
+		metabhfUB_strIO.seek(0)
+		curUB = self.__hrdfdb.connection.cursor()
+		curUB.copy_expert("COPY HRDF_METABHF_TAB (fk_eckdatenid,stopnofrom,stopnoto,transfertimemin,transfertimesec,attributecode) FROM STDIN USING DELIMITERS ';' NULL AS ''", metabhfUB_strIO)
+		self.__hrdfdb.connection.commit()
+		curUB.close()
+		metabhfUB_strIO.close()
+
+		metabhfHG_strIO.seek(0)
+		curHG = self.__hrdfdb.connection.cursor()
+		curHG.copy_expert("COPY HRDF_METABHFGRUPPE_TAB (fk_eckdatenid,stopgroupno,stopmember) FROM STDIN USING DELIMITERS ';' NULL AS ''", metabhfHG_strIO)
+		self.__hrdfdb.connection.commit()
+		curHG.close()
+		metabhfHG_strIO.close()
+
+
 	def save_currentFplanFahrt(self):
 		"""Funkion speichert die aktuellen Werte zu einer FPLAN-Fahrt"""
 		self.__fplanFahrtG_strIO.seek(0)

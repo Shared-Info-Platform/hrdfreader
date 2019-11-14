@@ -25,6 +25,7 @@ def load_hrdfzipfile(filename, dbname, host):
 		BFKOORD_GEO
 		UMSTEIGB
 		BFPRIOS
+		METABHF
 		FPLAN
 	"""
 	hrdf_db = HrdfDB(dbname, host, "hrdf", "bmHRDF")
@@ -32,7 +33,7 @@ def load_hrdfzipfile(filename, dbname, host):
 
 		# ZipFile öffnen und zu lesende Dateien bestimmen
 		hrdfzip = zipfile.ZipFile(filename, 'r')
-		hrdffiles = ['ECKDATEN','BITFELD','RICHTUNG','BAHNHOF','GLEIS','ZUGART','ATTRIBUT','INFOTEXT','DURCHBI','BFKOORD_GEO','UMSTEIGB','BFPRIOS','FPLAN']
+		hrdffiles = ['ECKDATEN','BITFELD','RICHTUNG','BAHNHOF','GLEIS','ZUGART','ATTRIBUT','INFOTEXT','DURCHBI','BFKOORD_GEO','UMSTEIGB','BFPRIOS','METABHF','FPLAN']
 		
 		# Initialisierung des HRDF-Readers und lesen der gewünschten HRDF-Dateien
 		reader = HrdfReader(hrdfzip, hrdf_db, hrdffiles)
