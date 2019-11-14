@@ -212,6 +212,7 @@ class HrdfTTG:
 							strTransferPrio = ""
 							strTripNoContinued = ""
 							strOperationalNoContinued = ""
+							strStopNoContinued = ""
 							if (tripStop["longitude_geo"] is not None): strLongitudeGeo = str(tripStop["longitude_geo"])
 							if (tripStop["latitude_geo"] is not None): strLatitudeGeo = str(tripStop["latitude_geo"])
 							if (tripStop["altitude_geo"] is not None): strAltitudeGeo = str(tripStop["altitude_geo"])
@@ -220,6 +221,7 @@ class HrdfTTG:
 							if (tripStop["transferprio"] is not None): strTransferPrio = str(tripStop["transferprio"])
 							if (tripStop["tripno_continued"] is not None): strTripNoContinued = str(tripStop["tripno_continued"])
 							if (tripStop["operationalno_continued"] is not None): strOperationalNoContinued = str(tripStop["operationalno_continued"])
+							if (tripStop["stopno_continued"] is not None): strStopNoContinued = str(tripStop["stopno_continued"])
 
 							# Schreiben des Datensatzes
 							dataline = (self.__eckdatenid+';'
@@ -262,7 +264,8 @@ class HrdfTTG:
 						    +strTransferTime2+';'
 						    +strTransferPrio+';'
 						    +strTripNoContinued+';'
-						    +strOperationalNoContinued)
+						    +strOperationalNoContinued+';'
+							+strStopNoContinued)
 							#+'\n'
 							#print(dataline)
 							dailytimetable_strIO.write(dataline+'\n')
@@ -282,7 +285,7 @@ class HrdfTTG:
 								"categorycode,classno,categoryno,lineno,directionshort,directiontext,"\
 								"attributecode,attributetext_de,attributetext_fr,attributetext_en,attributetext_it,"\
 								"infotextcode,infotext_de,infotext_fr,infotext_en,infotext_it,"\
-								"longitude_geo,latitude_geo,altitude_geo,transfertime1,transfertime2,transferprio,tripno_continued,operationalno_continued)"\
+								"longitude_geo,latitude_geo,altitude_geo,transfertime1,transfertime2,transferprio,tripno_continued,operationalno_continued,stopno_continued)"\
 								" FROM STDIN USING DELIMITERS ';' NULL AS ''"
 					dailytimetable_strIO.seek(0)
 					curSaveTrip.copy_expert(strCopy, dailytimetable_strIO)
@@ -415,6 +418,7 @@ class HrdfTTG:
 						# Initialisierung der Durchbindungsmerkmale
 						newTripStops[sequenceNo]["tripno_continued"] = None
 						newTripStops[sequenceNo]["operationalno_continued"] = None
+						newTripStops[sequenceNo]["stopno_continued"] = None
 
 				# neue Stopliste ist erweitert um die Angaben des VEs
 
@@ -430,6 +434,8 @@ class HrdfTTG:
 		self.add_IInfoToTrip(fplanfahrtid, newTripStops)
 		# R-Zeilen Information hinzufügen
 		self.add_RInfoToTrip(fplanfahrtid, newTripStops)
+		# Durchbindungs Information hinzufügen
+		self.add_DurchBIToTrip(fplanfahrtid, newTripStops)
 
 		return bReturn
 
@@ -474,6 +480,21 @@ class HrdfTTG:
 
 		return stopSequenceList
 
+	def getStopSequenceNo(self, stopno, newTripStops):
+		"""Die Funktion liefert dies SequenceNo für die angegebene HaltestellenNr.
+		Ist die gesuchte HaltestellenNr nicht in der Liste wird eine -1 geliefert.
+
+		stopno - Haltestellenummer
+		newTripStops - Laufweg (angepasst) einer Fahrt
+		"""
+		stopSequenceNo = -1
+		for sequenceNo in newTripStops:
+			if (newTripStops[sequenceNo]["stop"][0] == stopno):
+				stopSequenceNo = sequenceNo
+				break
+
+		return stopSequenceNo
+
 	def add_GInfoToTrip(self, fplanfahrtid, newTripStops):
 		"""Die Funktion fügt zum Laufweg die notwendige G-Information hinzu
 
@@ -506,7 +527,6 @@ class HrdfTTG:
 					newTripStops[sequenceNo]["classno"] = g[5]
 					newTripStops[sequenceNo]["categoryno"] = g[6]
 
-
 	def add_LInfoToTrip(self, fplanfahrtid, newTripStops):
 		"""Die Funktion fügt zum Laufweg die notwendige L-Information hinzu
 
@@ -528,7 +548,6 @@ class HrdfTTG:
 				# Belegung der notwendigen Attribute
 				for sequenceNo in sequenceNoList:
 					newTripStops[sequenceNo]["lineno"] = l[0]
-
 
 	def add_RInfoToTrip(self, fplanfahrtid, newTripStops):
 		"""Die Funktion fügt zum Laufweg die notwendige R-Information hinzu
@@ -576,7 +595,6 @@ class HrdfTTG:
 				newTripStops[sequenceNo]["directionshort"] = directionShort
 				newTripStops[sequenceNo]["directiontext"] = directionText
 
-
 	def add_AInfoToTrip(self, fplanfahrtid, newTripStops):
 		"""Die Funktion fügt zum Laufweg die notwendige A-Information hinzu
 
@@ -616,7 +634,6 @@ class HrdfTTG:
 						newTripStops[sequenceNo]["attributetext_en"].append(a[8])
 						newTripStops[sequenceNo]["attributetext_it"].append(a[9])
 
-
 	def add_IInfoToTrip(self, fplanfahrtid, newTripStops):
 		"""Die Funktion fügt zum Laufweg die notwendige I-Information hinzu
 
@@ -653,3 +670,34 @@ class HrdfTTG:
 						newTripStops[sequenceNo]["infotext_en"].append(i[8])
 						newTripStops[sequenceNo]["infotext_it"].append(i[9])
 
+	def add_DurchBIToTrip(self, fplanfahrtid, newTripStops):
+		"""Die Funktion fügt der Fahrt die Durchbindungsinformation hinzu
+		Es wird hier nur der letzte Halt erweitert, wenn eine gueltige Durchbindung gefunden wird
+
+		fplanfahrtid - Id der Fahrplanfahrt
+		newTripStops - angepasster Laufweg für diese Fahrt
+		"""
+		sql_selDurchBiData = "SELECT b.laststopno1, b.bitfieldno, b.tripno2, b.operationalno2, coalesce(b.firststopno2, b.laststopno1), b.comment "\
+						"  FROM HRDF_FPlanFahrt_TAB a, "\
+						"       HRDF_DURCHBI_TAB b "\
+						" WHERE b.tripno1 = a.tripno "\
+						"   AND b.operationalno1 = a.operationalno "\
+						"   AND b.fk_eckdatenid = a.fk_eckdatenid "\
+						"   AND a.id = %s "
+		curDurchBi = self.__hrdfdb.connection.cursor()
+		curDurchBi.execute(sql_selDurchBiData, (fplanfahrtid,))
+		allDurchBi = curDurchBi.fetchall()
+		curDurchBi.close()
+
+		if (len(allDurchBi) > 0):
+			for d in allDurchBi:
+				# ist die bitfieldno eine gueltige bitfieldno für heute
+				if (d[1] is None or (d[1] in self.__bitfieldnumbersOfDay) or d[1] == 0):
+					# Belegen des Halts mit den Informationen der Durchbindung
+					stopSequenceNo = self.getStopSequenceNo(d[0], newTripStops)
+					if (stopSequenceNo > -1):					
+						newTripStops[stopSequenceNo]["tripno_continued"] = d[2]
+						newTripStops[stopSequenceNo]["operationalno_continued"] = d[3]
+						newTripStops[stopSequenceNo]["stopno_continued"] = d[4]
+					else:
+						logger.info("\tDurchbindung: Halt {} im Lauf für fplanfahrtid {} nicht gefunden".format(d[0], fplanfahrtid))
