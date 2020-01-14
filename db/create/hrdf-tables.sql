@@ -143,6 +143,7 @@ COMMENT ON COLUMN HRDF_ZUGART_TAB.flags IS 'Flags (N=Nahverkehr, B=Schiff)';
 COMMENT ON COLUMN HRDF_ZUGART_TAB.categoryimage IS 'Nr für Gattungsbildernamen (0-999)';
 COMMENT ON COLUMN HRDF_ZUGART_TAB.categoryno IS 'Nr für sprachabhängigen Gattungslangnamen (0-999). Auch Text möglich - gilt dann für alle Sprachen';
 CREATE INDEX IDX01_HRDF_ZUGART_TAB ON HRDF_ZUGART_TAB (fk_eckdatenid, categorycode) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX02_HRDF_ZUGART_TAB ON HRDF_ZUGART_TAB (fk_eckdatenid) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief	table for file ZUGART - Produktklasse
@@ -253,7 +254,7 @@ COMMENT ON COLUMN HRDF_ATTRIBUT_TAB.outputpriosort IS 'Ausgabepriosortierung, be
 COMMENT ON COLUMN HRDF_ATTRIBUT_TAB.attributetext IS 'Text des Attributs (Abschlusszeichen # entfällt)';
 COMMENT ON COLUMN HRDF_ATTRIBUT_TAB.outputforsection IS 'Attributcode für Ausgabe einer Teilstrecke)';
 COMMENT ON COLUMN HRDF_ATTRIBUT_TAB.outputforcomplete IS 'Attributcode für Ausgabe auf der Vollstrecke)';
-CREATE INDEX IDX01_HRDF_ATTRIBUT_TAB ON HRDF_ATTRIBUT_TAB (fk_eckdatenid, attributecode, languagecode) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX01_HRDF_ATTRIBUT_TAB ON HRDF_ATTRIBUT_TAB (fk_eckdatenid, languagecode) TABLESPACE :TBSINDEXNAME;
 
 
 /*
@@ -444,6 +445,7 @@ COMMENT ON COLUMN HRDF_FPLANFahrt_TAB.triptimemin is 'Fahrtzeitraum; triptype=T'
 COMMENT ON COLUMN HRDF_FPLANFahrt_TAB.cycletimesec is 'Taktzeit in Sekunden(Abstand zwischen zwei Fahrten); triptype=T';
 CREATE INDEX IDX01_HRDF_FPLANFahrt_TAB ON HRDF_FPLANFahrt_TAB (fk_eckdatenid, tripno, operationalno) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX02_HRDF_FPLANFahrt_TAB ON HRDF_FPLANFahrt_TAB (fk_eckdatenid) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX03_HRDF_FPLANFahrt_TAB ON HRDF_FPLANFahrt_TAB (fk_eckdatenid, tripno, operationalno) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief	table for file FPLAN lines beginning with *A VE
@@ -470,6 +472,7 @@ COMMENT ON COLUMN HRDF_FPLANFahrtVE_TAB.deptimeFrom is 'Abfahrtszeitpunkt der Ab
 COMMENT ON COLUMN HRDF_FPLANFahrtVE_TAB.arrtimeTo is 'Ankunftszeitpunkt der Bis-Haltestelle';
 CREATE INDEX IDX01_HRDF_FPLANFahrtVE_TAB ON HRDF_FPLANFahrtVE_TAB (fk_fplanfahrtid) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX02_HRDF_FPLANFahrtVE_TAB ON HRDF_FPLANFahrtVE_TAB (fk_eckdatenid, bitfieldno) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX03_HRDF_FPLANFahrtVE_TAB ON HRDF_FPLANFahrtVE_TAB (fk_eckdatenid) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief	table for file FPLAN lines beginning with *G
@@ -495,6 +498,7 @@ COMMENT ON COLUMN HRDF_FPLANFahrtG_TAB.toStop is 'HaltestellenNr bis zu der die 
 COMMENT ON COLUMN HRDF_FPLANFahrtG_TAB.deptimeFrom is 'Abfahrtszeitpunkt der Ab-Haltestelle';
 COMMENT ON COLUMN HRDF_FPLANFahrtG_TAB.arrtimeTo is 'Ankunftszeitpunkt der Bis-Haltestelle';
 CREATE INDEX IDX01_HRDF_FPLANFahrtG_TAB ON HRDF_FPLANFahrtG_TAB (fk_fplanfahrtid) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX02_HRDF_FPLANFahrtG_TAB ON HRDF_FPLANFahrtG_TAB (fk_eckdatenid) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief	table for file FPLAN lines beginning with *A
@@ -522,6 +526,7 @@ COMMENT ON COLUMN HRDF_FPLANFahrtA_TAB.bitfieldno is 'Eindeutige Nr der Verkehrs
 COMMENT ON COLUMN HRDF_FPLANFahrtA_TAB.deptimeFrom is 'Abfahrtszeitpunkt der Ab-Haltestelle';
 COMMENT ON COLUMN HRDF_FPLANFahrtA_TAB.arrtimeTo is 'Ankunftszeitpunkt der Bis-Haltestelle';
 CREATE INDEX IDX01_HRDF_FPLANFahrtA_TAB ON HRDF_FPLANFahrtA_TAB (fk_fplanfahrtid) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX02_HRDF_FPLANFahrtA_TAB ON HRDF_FPLANFahrtA_TAB (fk_eckdatenid) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief	table for file FPLAN lines beginning with *R
@@ -549,6 +554,7 @@ COMMENT ON COLUMN HRDF_FPLANFahrtR_TAB.toStop is 'HaltestellenNr bis zu der die 
 COMMENT ON COLUMN HRDF_FPLANFahrtR_TAB.deptimeFrom is 'Abfahrtszeitpunkt der Ab-Haltestelle';
 COMMENT ON COLUMN HRDF_FPLANFahrtR_TAB.arrtimeTo is 'Ankunftszeitpunkt der Bis-Haltestelle';
 CREATE INDEX IDX01_HRDF_FPLANFahrtR_TAB ON HRDF_FPLANFahrtR_TAB (fk_fplanfahrtid) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX02_HRDF_FPLANFahrtR_TAB ON HRDF_FPLANFahrtR_TAB (fk_eckdatenid) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief	table for file FPLAN lines beginning with *I
@@ -578,6 +584,7 @@ COMMENT ON COLUMN HRDF_FPLANFahrtI_TAB.bitfieldno is 'Eindeutige Nr der Verkehrs
 COMMENT ON COLUMN HRDF_FPLANFahrtI_TAB.deptimeFrom is 'Abfahrtszeitpunkt der Ab-Haltestelle';
 COMMENT ON COLUMN HRDF_FPLANFahrtI_TAB.arrtimeTo is 'Ankunftszeitpunkt der Bis-Haltestelle';
 CREATE INDEX IDX01_HRDF_FPLANFahrtI_TAB ON HRDF_FPLANFahrtI_TAB (fk_fplanfahrtid) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX02_HRDF_FPLANFahrtI_TAB ON HRDF_FPLANFahrtI_TAB (fk_eckdatenid) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief	table for file FPLAN lines beginning with *L
@@ -603,6 +610,7 @@ COMMENT ON COLUMN HRDF_FPLANFahrtL_TAB.toStop is 'HaltestellenNr bis zu der die 
 COMMENT ON COLUMN HRDF_FPLANFahrtL_TAB.deptimeFrom is 'Abfahrtszeitpunkt der Ab-Haltestelle';
 COMMENT ON COLUMN HRDF_FPLANFahrtL_TAB.arrtimeTo is 'Ankunftszeitpunkt der Bis-Haltestelle';
 CREATE INDEX IDX01_HRDF_FPLANFahrtL_TAB ON HRDF_FPLANFahrtL_TAB (fk_fplanfahrtid) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX02_HRDF_FPLANFahrtL_TAB ON HRDF_FPLANFahrtL_TAB (fk_eckdatenid) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief	table for file FPLAN lines beginning with *SH
@@ -709,6 +717,7 @@ COMMENT ON COLUMN HRDF_FPLANFahrtLaufweg_TAB.tripno IS 'FahrtNr ab der Haltestel
 COMMENT ON COLUMN HRDF_FPLANFahrtLaufweg_TAB.operationalno IS 'VerwaltungsNr. ab der Haltestelle';
 COMMENT ON COLUMN HRDF_FPLANFahrtLaufweg_TAB.ontripsign IS 'Anzeige der Haltestelle auf dem Laufschild';
 CREATE INDEX IDX01_HRDF_FPLANFahrtLaufweg_TAB ON HRDF_FPLANFahrtLaufweg_TAB (fk_fplanfahrtid, sequenceno) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX02_HRDF_FPLANFahrtLaufweg_TAB ON HRDF_FPLANFahrtLaufweg_TAB (fk_eckdatenid, fk_fplanfahrtid, sequenceno) TABLESPACE :TBSINDEXNAME;
 
 
 /*
@@ -860,61 +869,3 @@ COMMENT ON TABLE HRDF_linesperstop_TAB IS 'Linien pro Haltestelle und EckdatenID
 CREATE INDEX IDX01_HRDF_linesperstop_TAB ON HRDF_linesperstop_TAB (fk_eckdatenid,operationalno) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX02_HRDF_linesperstop_TAB ON HRDF_linesperstop_TAB (fk_eckdatenid,lineno) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX03_HRDF_linesperstop_TAB ON HRDF_linesperstop_TAB (fk_eckdatenid,stopno) TABLESPACE :TBSINDEXNAME;
-
-/*
-\brief  departures view
-*/
-CREATE OR REPLACE VIEW hrdf.hrdf_dailytimetable_departures_view
-AS SELECT hrdf_dailytimetable_tab.id,
-    hrdf_dailytimetable_tab.tripno,
-    hrdf_dailytimetable_tab.fk_eckdatenid,
-    hrdf_dailytimetable_tab.tripident,
-    hrdf_dailytimetable_tab.operationalno,
-    hrdf_dailytimetable_tab.operatingday,
-    hrdf_dailytimetable_tab.stopident,
-    hrdf_dailytimetable_tab.lineno,
-    hrdf_dailytimetable_tab.directiontext,
-    hrdf_dailytimetable_tab.directionshort,
-    hrdf_dailytimetable_tab.depstoppointtext,
-    hrdf_dailytimetable_tab.depdatetime,
-    hrdf_dailytimetable_tab.noentry,
-    hrdf_dailytimetable_tab.noexit,
-    hrdf_dailytimetable_tab.categorycode,
-    hrdf_dailytimetable_tab.classno,
-    hrdf_dailytimetable_tab.categoryno,
-    hrdf_dailytimetable_tab.attributecode,
-    hrdf_dailytimetable_tab.attributetext_de,
-    hrdf_dailytimetable_tab.attributetext_fr,
-    hrdf_dailytimetable_tab.attributetext_en,
-    hrdf_dailytimetable_tab.attributetext_it,
-    hrdf_dailytimetable_tab.infotextcode,
-    hrdf_dailytimetable_tab.infotext_de,
-    hrdf_dailytimetable_tab.infotext_fr,
-    hrdf_dailytimetable_tab.infotext_en,
-    hrdf_dailytimetable_tab.infotext_it
-   FROM hrdf_dailytimetable_tab
-  WHERE hrdf_dailytimetable_tab.depdatetime IS NOT NULL
-  ORDER BY hrdf_dailytimetable_tab.depdatetime;
-
-/*
-\brief  view for stop information
-*/
-CREATE OR REPLACE VIEW hrdf.hrdf_stopinformation_view
-AS SELECT bhf.fk_eckdatenid,
-    bhf.stopno,
-    bhf.transportunion,
-    bhf.stopname,
-    bhf.stopnamelong,
-    bhf.stopnameshort,
-    bhf.stopnamealias,
-    koord.longitude_geo,
-    koord.latitude_geo,
-    koord.altitude_geo,
-    prio.transferprio,
-    umst.transfertime1,
-    umst.transfertime2
-   FROM hrdf_bahnhof_tab bhf
-     LEFT JOIN hrdf_bfkoord_tab koord ON bhf.fk_eckdatenid = koord.fk_eckdatenid AND bhf.stopno = koord.stopno
-     LEFT JOIN hrdf_bfprios_tab prio ON bhf.fk_eckdatenid = prio.fk_eckdatenid AND bhf.stopno = prio.stopno
-     LEFT JOIN hrdf_umsteigb_tab umst ON bhf.fk_eckdatenid = umst.fk_eckdatenid AND bhf.stopno = umst.stopno;
-     

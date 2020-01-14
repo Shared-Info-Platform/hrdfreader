@@ -40,7 +40,9 @@ AS SELECT hrdf_dailytimetable_tab.id,
 
 \echo '=> Stopinformation View'
 CREATE OR REPLACE VIEW hrdf.hrdf_stopinformation_view
-AS SELECT bhf.fk_eckdatenid,
+AS SELECT
+    bhf.id,
+    bhf.fk_eckdatenid,
     bhf.stopno,
     bhf.transportunion,
     bhf.stopname,
