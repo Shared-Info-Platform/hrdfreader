@@ -861,7 +861,8 @@ CREATE TABLE HRDF_linesperstop_TAB
   fk_eckdatenid integer NOT NULL,
   stopno integer NOT NULL,
   operationalno varchar(32) NOT NULL,
-  lineno varchar(8) NOT NULL
+  lineno varchar(8) NULL,
+  categorycode varchar(8) NULL
 )
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
@@ -869,3 +870,4 @@ COMMENT ON TABLE HRDF_linesperstop_TAB IS 'Linien pro Haltestelle und EckdatenID
 CREATE INDEX IDX01_HRDF_linesperstop_TAB ON HRDF_linesperstop_TAB (fk_eckdatenid,operationalno) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX02_HRDF_linesperstop_TAB ON HRDF_linesperstop_TAB (fk_eckdatenid,lineno) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX03_HRDF_linesperstop_TAB ON HRDF_linesperstop_TAB (fk_eckdatenid,stopno) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX04_HRDF_linesperstop_TAB ON HRDF_linesperstop_TAB (fk_eckdatenid,categorycode) TABLESPACE :TBSINDEXNAME;
