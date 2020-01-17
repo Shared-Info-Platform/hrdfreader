@@ -2,9 +2,11 @@ import psycopg2
 from datetime import datetime, date, timedelta, time
 from io import StringIO
 from hrdf.hrdflog import logger
+from hrdf.hrdfdb import HrdfDB
 from hrdf.hrdfTTGCache import HrdfTTGCache
 from hrdf.hrdfTTGWorker import HrdfTTGWorker
-from threading import Thread
+import time
+from threading import Thread, _start_new_thread, _allocate_lock
 from queue import Queue
 
 class HrdfTTG:
@@ -27,6 +29,10 @@ class HrdfTTG:
 		self.__commQueue = Queue()
 		self.__responseQueue = Queue()
 		self.__responseData = dict()
+
+		self.__numOfCurrentDBThreads = 0
+		self.__DBThreadStarted = False
+		self.__lock = _allocate_lock()
 
 		self.__numberOfWorker = 5
 		self.__chunkSize = 5000
@@ -134,15 +140,19 @@ class HrdfTTG:
 			for day, resData in self.__responseData.items():
 				if (resData["paketCnt"] == len(resData["dataItems"])):
 					if (resData["complete"] == False):
-						#save Data
 						logger.info("{:%d.%m.%Y} => Tagesfahrplan wird gesichert".format(day))
-						self.saveNewDailyTimetable(self.__eckdatenid, day, resData["dataItems"])					
+						_start_new_thread(self.saveNewDailyTimetable, (self.__eckdatenid, day, resData["dataItems"],))
 						resData["complete"] = True				
 				else:
 					allComplete = False
 					break;
 
 			if (allComplete): moreResponseData = False
+
+		# Mindestens eine DB-Thread sollte gestartet worden sein
+		while not self.__DBThreadStarted: time.sleep(5)
+		# Alle DB-Threads müssen sich beendet haben
+		while self.__numOfCurrentDBThreads > 0: time.sleep(5)
 
 		# Warten bis alle dataItem abgearbeitet sind
 		self.__workQueue.join()
@@ -159,35 +169,52 @@ class HrdfTTG:
 		"""
 		Die Funktion speichert die übergebenen TimeTable-Chunks in der Datenbank.
 		Um Konsistenz zu bleiben wird der bestehende Tagesfahrplan zuerst gelöscht
+		Die Funktion wird als Thread aufgerufen
 
 		eckdatenid - id der Fahrplandaten
 		generationDay - Generierungsdatum
 		ttChunkSet - Set mit mehreren Chunks (csv-Stings) des Tagesfahrplans
 		"""	
+		self.__lock.acquire()
+		self.__numOfCurrentDBThreads += 1
+		self.__DBThreadStarted = True
+		self.__lock.release()
+
+		# Lokale DB-Verbindung erstellen
+		hrdfDBSingle = HrdfDB(self.__hrdfdb.dbname, self.__hrdfdb.host, self.__hrdfdb.user, self.__hrdfdb.password)
+
 		# Löschen von bestehenden Tagesdaten"
-		curDeleteDay = self.__hrdfdb.connection.cursor()
-		sql_delDay = "DELETE FROM HRDF_DailyTimeTable_TAB WHERE fk_eckdatenid = %s AND operatingday = %s"
-		curDeleteDay.execute(sql_delDay, (eckdatenid, str(generationDay)))
-		deletedRows = curDeleteDay.rowcount
-		logger.info("{:%d.%m.%Y} => {} bestehende Einträge wurden geloescht".format(generationDay, deletedRows))
-		curDeleteDay.close()
+		if (hrdfDBSingle.connect()):
+			curDeleteDay = hrdfDBSingle.connection.cursor()
+			sql_delDay = "DELETE FROM HRDF_DailyTimeTable_TAB WHERE fk_eckdatenid = %s AND operatingday = %s"
+			curDeleteDay.execute(sql_delDay, (eckdatenid, str(generationDay)))
+			deletedRows = curDeleteDay.rowcount
+			logger.info("{:%d.%m.%Y} => {} bestehende Einträge wurden geloescht".format(generationDay, deletedRows))
+			curDeleteDay.close()
 
-		if (len(ttChunkSet)>0):
-			curSaveTrip = self.__hrdfdb.connection.cursor()
-			strCopy = "COPY HRDF_DailyTimeTable_TAB (fk_eckdatenid,tripident,tripno,operationalno,tripversion,"\
-						"operatingday,stopsequenceno,stopident,stopname,stoppointident,stoppointname,arrstoppointtext,depstoppointtext,arrdatetime,depdatetime,noentry,noexit,"\
-						"categorycode,classno,categoryno,lineno,directionshort,directiontext,"\
-						"attributecode,attributetext_de,attributetext_fr,attributetext_en,attributetext_it,"\
-						"infotextcode,infotext_de,infotext_fr,infotext_en,infotext_it,"\
-						"longitude_geo,latitude_geo,altitude_geo,transfertime1,transfertime2,transferprio,tripno_continued,operationalno_continued,stopno_continued)"\
-						" FROM STDIN USING DELIMITERS ';' NULL AS ''"
-			for chunk in ttChunkSet:
-				dailytimetable_strIO = StringIO()
-				dailytimetable_strIO.write(chunk)
-				dailytimetable_strIO.seek(0)
-				curSaveTrip.copy_expert(strCopy, dailytimetable_strIO)
-				dailytimetable_strIO.close()
+			if (len(ttChunkSet)>0):
+				curSaveTrip = hrdfDBSingle.connection.cursor()
+				strCopy = "COPY HRDF_DailyTimeTable_TAB (fk_eckdatenid,tripident,tripno,operationalno,tripversion,"\
+							"operatingday,stopsequenceno,stopident,stopname,stoppointident,stoppointname,arrstoppointtext,depstoppointtext,arrdatetime,depdatetime,noentry,noexit,"\
+							"categorycode,classno,categoryno,lineno,directionshort,directiontext,"\
+							"attributecode,attributetext_de,attributetext_fr,attributetext_en,attributetext_it,"\
+							"infotextcode,infotext_de,infotext_fr,infotext_en,infotext_it,"\
+							"longitude_geo,latitude_geo,altitude_geo,transfertime1,transfertime2,transferprio,tripno_continued,operationalno_continued,stopno_continued)"\
+							" FROM STDIN USING DELIMITERS ';' NULL AS ''"
+				for chunk in ttChunkSet:
+					dailytimetable_strIO = StringIO()
+					dailytimetable_strIO.write(chunk)
+					dailytimetable_strIO.seek(0)
+					curSaveTrip.copy_expert(strCopy, dailytimetable_strIO)
+					dailytimetable_strIO.close()
 
-			curSaveTrip.close()
-			self.__hrdfdb.connection.commit()
-			logger.info("{:%d.%m.%Y} => Neuer Tagesfahrplan wurde gesichert".format(generationDay, deletedRows))
+				curSaveTrip.close()
+				hrdfDBSingle.connection.commit()
+				logger.info("{:%d.%m.%Y} => Neuer Tagesfahrplan wurde gesichert".format(generationDay, deletedRows))
+		else:
+			logger.error("{:%d.%m.%Y} => DB-Thread konnte keine Verbindung zur Datenbank aufbauen".format(generationDay))
+
+		# DB-Thread-Zähler wieder zurücksetzen
+		self.__lock.acquire()
+		self.__numOfCurrentDBThreads -= 1
+		self.__lock.release()

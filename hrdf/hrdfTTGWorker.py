@@ -232,24 +232,11 @@ class HrdfTTGWorker(Thread):
 					iErrorCnt += 1
 					logger.error("Die Fahrt {} konnte nicht generiert werden. Error:\n{}".format(tripident,err))
 
-			# Alle Fahrten des Sets im IO abgelegt => speichern in DB
+			# Alle Fahrten des Sets im IO abgelegt => Zurückgabe an den Main-Thread
 			logger.info("\t{}: {:%d.%m.%Y} => {} Tagesfahrplaneinträge erstellt ...".format(self.__name, generationDay, numberOfGeneratedTrips))				
-			#curSaveTrip = self.__hrdfdb.connection.cursor()
-			#strCopy = "COPY HRDF_DailyTimeTable_TAB (fk_eckdatenid,tripident,tripno,operationalno,tripversion,"\
-			#			"operatingday,stopsequenceno,stopident,stopname,stoppointident,stoppointname,arrstoppointtext,depstoppointtext,arrdatetime,depdatetime,noentry,noexit,"\
-			#			"categorycode,classno,categoryno,lineno,directionshort,directiontext,"\
-			#			"attributecode,attributetext_de,attributetext_fr,attributetext_en,attributetext_it,"\
-			#			"infotextcode,infotext_de,infotext_fr,infotext_en,infotext_it,"\
-			#			"longitude_geo,latitude_geo,altitude_geo,transfertime1,transfertime2,transferprio,tripno_continued,operationalno_continued,stopno_continued)"\
-			#			" FROM STDIN USING DELIMITERS ';' NULL AS ''"
-
 			# Ergebnis liefern
 			dailytimetable_strIO.seek(0)
 			self.__responseQueue.put(dict(day=generationDay, data=dailytimetable_strIO.getvalue()))
-
-			#curSaveTrip.copy_expert(strCopy, dailytimetable_strIO)
-			#curSaveTrip.close()
-			#self.__hrdfdb.connection.commit()
 			dailytimetable_strIO.close()
 			tripStops.clear()
 
