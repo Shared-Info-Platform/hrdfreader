@@ -17,3 +17,7 @@ CREATE INDEX IDX03_HRDF_FPLANFahrt_TAB ON HRDF_FPLANFahrt_TAB (fk_eckdatenid, tr
 
 DROP INDEX IDX01_HRDF_ATTRIBUT_TAB;
 CREATE INDEX IDX01_HRDF_ATTRIBUT_TAB ON HRDF_ATTRIBUT_TAB (fk_eckdatenid, languagecode) TABLESPACE :TBSINDEXNAME;
+
+\echo '=> Erweiterung die Tabelle HRDF_linesperstop_TAB'
+ALTER TABLE HRDF_linesperstop_TAB ADD COLUMN categorycode varchar(8) NULL;
+CREATE INDEX IDX04_HRDF_linesperstop_TAB ON HRDF_linesperstop_TAB (fk_eckdatenid,categorycode) TABLESPACE :TBSINDEXNAME;

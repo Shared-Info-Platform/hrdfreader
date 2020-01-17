@@ -86,9 +86,9 @@ class HrdfReader:
 			else:
 				logger.error("Das Lesen der Datei ["+filename+"] wird nicht unterstützt")
 
-                self.determine_linesperstop()
-
-                self.determine_tripcount()				
+		# Aufbereitung und Verdichtung der importierten Daten
+		self.determine_linesperstop()
+		self.determine_tripcount()				
 				
 		logger.info("Der HRDF-Import <{}> wurde eingearbeitet".format(self.__hrdfzip.filename))
 

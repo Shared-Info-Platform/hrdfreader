@@ -14,7 +14,7 @@
     <InterpreterId>Global|PythonCore|3.6</InterpreterId>
     <EnableNativeCodeDebugging>True</EnableNativeCodeDebugging>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <CommandLineArguments>1</CommandLineArguments>
+    <CommandLineArguments>1 17.01.2020 18.01.2020</CommandLineArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
@@ -38,6 +38,12 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="hrdfread.py" />
+    <Compile Include="hrdf\hrdfTTGCache.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="hrdf\hrdfTTGWorker.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="hrdf\__init__.py">
       <SubType>Code</SubType>
     </Compile>

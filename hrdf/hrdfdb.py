@@ -14,10 +14,10 @@ connect()
 			user		-	Benutzer
 			password	-	Passwort
 		"""
-		self.__dbname = dbname
-		self.__host = host
-		self.__user = user
-		self.__password = password
+		self.dbname = dbname
+		self.host = host
+		self.user = user
+		self.password = password
 
 
 	def connect(self):
@@ -31,7 +31,7 @@ Liefert true wenn eine Verbindung besteht/hergestellt werden konnte ansonsten fa
 			cur.execute('SELECT 1')
 			connected = True;
 		except:
-			connstring = 'host='+self.__host+' dbname='+self.__dbname+' user='+self.__user+' password='+self.__password
+			connstring = 'host='+self.host+' dbname='+self.dbname+' user='+self.user+' password='+self.password
 			try:
 				self.connection = psycopg2.connect(connstring)
 				connected = True;
