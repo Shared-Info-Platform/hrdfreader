@@ -117,7 +117,6 @@ class HrdfReader:
 		"""Ermitteln und Schreiben der Linien, die in der aktuellen Fahrplanperiode an einem Halt vorkommen"""
 		logger.info('ermitteln der Linien pro Halt')
 		linesperstop_strIO = StringIO()
-
 		sql_stopsLookup = "SELECT DISTINCT flw.stopno, fahrt.operationalno, line.lineno, cat.categorycode "\
 					"FROM hrdf.hrdf_fplanfahrtlaufweg_tab flw "\
 					"LEFT OUTER JOIN hrdf.hrdf_fplanfahrt_tab fahrt on flw.fk_fplanfahrtid = fahrt.id and flw.fk_eckdatenid = fahrt.fk_eckdatenid "\
@@ -150,10 +149,12 @@ class HrdfReader:
 
 		sql_maxdays = "SELECT validto + 1 - validfrom FROM hrdf.hrdf_eckdaten_tab where id = %s"
 
-		sql_tripsLookup = "SELECT fahrt.id, operationalno, bit.bitfieldarray "\
+		sql_tripsLookup = "SELECT fahrt.id, fahrt.operationalno, bit.bitfieldarray "\
 					"from hrdf.hrdf_fplanfahrt_tab fahrt "\
 					"left outer join hrdf.hrdf_fplanfahrtve_tab ve on fahrt.fk_eckdatenid = ve.fk_eckdatenid and fahrt.id = ve.fk_fplanfahrtid "\
-
+					"left outer join hrdf.hrdf_bitfeld_tab bit on ve.bitfieldno = bit.bitfieldno and ve.fk_eckdatenid = bit.fk_eckdatenid "\
+					"where fahrt.fk_eckdatenid = %s"
+		
 		curMaxdays = self.__hrdfdb.connection.cursor()
 		curMaxdays.execute(sql_maxdays, (self.__fkdict['fk_eckdatenid'],))
 		resMaxdays = curMaxdays.fetchone()
