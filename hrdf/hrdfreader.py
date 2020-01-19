@@ -113,82 +113,82 @@ class HrdfReader:
 		self.__eckdaten_validTo = datetime.strptime(lines[1], '%d.%m.%Y').date()
 		cur.close()
 
-        def determine_linesperstop(self):
-                """Ermitteln und Schreiben der Linien, die in der aktuellen Fahrplanperiode an einem Halt vorkommen"""
-                logger.info('ermitteln der Linien pro Halt')
-                linesperstop_strIO = StringIO()
+	def determine_linesperstop(self):
+		"""Ermitteln und Schreiben der Linien, die in der aktuellen Fahrplanperiode an einem Halt vorkommen"""
+		logger.info('ermitteln der Linien pro Halt')
+		linesperstop_strIO = StringIO()
 
-                sql_stopsLookup = "SELECT DISTINCT flw.stopno, fahrt.operationalno, line.lineno, cat.categorycode "\
-                                        "FROM hrdf.hrdf_fplanfahrtlaufweg_tab flw "\
-                                        "LEFT OUTER JOIN hrdf.hrdf_fplanfahrt_tab fahrt on flw.fk_fplanfahrtid = fahrt.id and flw.fk_eckdatenid = fahrt.fk_eckdatenid "\
-                                        "LEFT OUTER JOIN hrdf.hrdf_fplanfahrtl_tab line on line.fk_fplanfahrtid = fahrt.id and line.fk_eckdatenid = fahrt.fk_eckdatenid "\
-                                        "LEFT OUTER JOIN hrdf.hrdf_fplanfahrtg_tab cat on cat.fk_fplanfahrtid = fahrt.id and cat.fk_eckdatenid = fahrt.fk_eckdatenid "\
-                                        "WHERE fahrt.fk_eckdatenid = %s"
+		sql_stopsLookup = "SELECT DISTINCT flw.stopno, fahrt.operationalno, line.lineno, cat.categorycode "\
+					"FROM hrdf.hrdf_fplanfahrtlaufweg_tab flw "\
+					"LEFT OUTER JOIN hrdf.hrdf_fplanfahrt_tab fahrt on flw.fk_fplanfahrtid = fahrt.id and flw.fk_eckdatenid = fahrt.fk_eckdatenid "\
+					"LEFT OUTER JOIN hrdf.hrdf_fplanfahrtl_tab line on line.fk_fplanfahrtid = fahrt.id and line.fk_eckdatenid = fahrt.fk_eckdatenid "\
+					"LEFT OUTER JOIN hrdf.hrdf_fplanfahrtg_tab cat on cat.fk_fplanfahrtid = fahrt.id and cat.fk_eckdatenid = fahrt.fk_eckdatenid "\
+					"WHERE fahrt.fk_eckdatenid = %s"
 
-                curLookup = self.__hrdfdb.connection.cursor()
-                curLookup.execute(sql_stopsLookup, (self.__fkdict['fk_eckdatenid'],))
-                stopslookup = curLookup.fetchall()
-                for item in stopslookup:
-                        linesperstop_strIO.write(self.__fkdict['fk_eckdatenid']+';'
-                                                                +str(item[0])+';'
-                                                                +item[1]+';'
-                                                                +str(item[2] or '')+';'
-                                                                +str(item[3] or '')+'\n')
-                curLookup.close()
-                linesperstop_strIO.seek(0)
+		curLookup = self.__hrdfdb.connection.cursor()
+		curLookup.execute(sql_stopsLookup, (self.__fkdict['fk_eckdatenid'],))
+		stopslookup = curLookup.fetchall()
+		for item in stopslookup:
+			linesperstop_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+								+str(item[0])+';'
+								+item[1]+';'
+								+str(item[2] or '')+';'
+								+str(item[3] or '')+'\n')
+		curLookup.close()
+		linesperstop_strIO.seek(0)
 
-                cur = self.__hrdfdb.connection.cursor()
-                cur.copy_expert("COPY HRDF_LINESPERSTOP_TAB (eckdatenid,stopno,operationalno,lineno,categorycode) FROM STDIN USING DELIMITERS ';' NULL AS ''", linesperstop_strIO)
-                self.__hrdfdb.connection.commit()
-                cur.close()
-                linesperstop_strIO.close()
+		cur = self.__hrdfdb.connection.cursor()
+		cur.copy_expert("COPY HRDF_LINESPERSTOP_TAB (eckdatenid,stopno,operationalno,lineno,categorycode) FROM STDIN USING DELIMITERS ';' NULL AS ''", linesperstop_strIO)
+		self.__hrdfdb.connection.commit()
+		cur.close()
+		linesperstop_strIO.close()
 
-        def determine_tripcount(self):
-                """Ermitteln und Schreiben der Anzahl Fahrten pro Verwaltungsnummer"""
-                logger.info('ermitteln der Anzahl Fahrten pro Verwaltung')
-                tripcount_strIO = StringIO()
+	def determine_tripcount(self):
+		"""Ermitteln und Schreiben der Anzahl Fahrten pro Verwaltungsnummer"""
+		logger.info('ermitteln der Anzahl Fahrten pro Verwaltung')
+		tripcount_strIO = StringIO()
 
-                sql_maxdays = "SELECT validto + 1 - validfrom FROM hrdf.hrdf_eckdaten_tab where id = %s"
+		sql_maxdays = "SELECT validto + 1 - validfrom FROM hrdf.hrdf_eckdaten_tab where id = %s"
 
-                sql_tripsLookup = "SELECT fahrt.id, operationalno, bit.bitfieldarray "\
-                                        "from hrdf.hrdf_fplanfahrt_tab fahrt "\
-                                        "left outer join hrdf.hrdf_fplanfahrtve_tab ve on fahrt.fk_eckdatenid = ve.fk_eckdatenid and fahrt.id = ve.fk_fplanfahrtid "\
+		sql_tripsLookup = "SELECT fahrt.id, operationalno, bit.bitfieldarray "\
+					"from hrdf.hrdf_fplanfahrt_tab fahrt "\
+					"left outer join hrdf.hrdf_fplanfahrtve_tab ve on fahrt.fk_eckdatenid = ve.fk_eckdatenid and fahrt.id = ve.fk_fplanfahrtid "\
 
-                curMaxdays = self.__hrdfdb.connection.cursor()
-                curMaxdays.execute(sql_maxdays, (self.__fkdict['fk_eckdatenid'],))
-                resMaxdays = curMaxdays.fetchone()
-                maxdays = resMaxdays[0]
-                curMaxdays.close()
+		curMaxdays = self.__hrdfdb.connection.cursor()
+		curMaxdays.execute(sql_maxdays, (self.__fkdict['fk_eckdatenid'],))
+		resMaxdays = curMaxdays.fetchone()
+		maxdays = resMaxdays[0]
+		curMaxdays.close()
 
-                curLookup = self.__hrdfdb.connection.cursor()
-                curLookup.execute(sql_tripsLookup, (self.__fkdict['fk_eckdatenid'],))
-                tripslookup = curLookup.fetchall()
-                tripcountdict = {}
-                for item in tripslookup:
-                        if item[2] is not None:
-                                if item[1] in tripcountdict.keys():
-                                        tripcountdict[item[1]] += len(item[2])
-                                else:
-                                        tripcountdict[item[1]] = len(item[2])
-                        else:
-                                if item[1] in tripcountdict.keys():
-                                        tripcountdict[item[1]] += maxdays
-                                else:
-                                        tripcountdict[item[1]] = maxdays
+		curLookup = self.__hrdfdb.connection.cursor()
+		curLookup.execute(sql_tripsLookup, (self.__fkdict['fk_eckdatenid'],))
+		tripslookup = curLookup.fetchall()
+		tripcountdict = {}
+		for item in tripslookup:
+			if item[2] is not None:
+				if item[1] in tripcountdict.keys():
+					tripcountdict[item[1]] += len(item[2])
+				else:
+					tripcountdict[item[1]] = len(item[2])
+			else:
+				if item[1] in tripcountdict.keys():
+					tripcountdict[item[1]] += maxdays
+				else:
+					tripcountdict[item[1]] = maxdays
 
-                for entry in tripcountdict:
-                        tripcount_strIO.write(self.__fkdict['fk_eckdatenid']+';'
-                                                                +str(entry)+';'
-                                                                +str(tripcountdict[entry])+'\n')
+		for entry in tripcountdict:
+			tripcount_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+								+str(entry)+';'
+								+str(tripcountdict[entry])+'\n')
 
-                curLookup.close()
-                tripcount_strIO.seek(0)
+		curLookup.close()
+		tripcount_strIO.seek(0)
 
-                cur = self.__hrdfdb.connection.cursor()
-                cur.copy_expert( "COPY HRDF_TRIPCOUNT_OPERATOR_TAB (eckdatenid,operationalno,tripcount) FROM STDIN USING DELIMITERS ';' NULL AS ''", tripcount_strIO)
-                self.__hrdfdb.connection.commit()
-                cur.close()
-                tripcount_strIO.close()
+		cur = self.__hrdfdb.connection.cursor()
+		cur.copy_expert( "COPY HRDF_TRIPCOUNT_OPERATOR_TAB (eckdatenid,operationalno,tripcount) FROM STDIN USING DELIMITERS ';' NULL AS ''", tripcount_strIO)
+		self.__hrdfdb.connection.commit()
+		cur.close()
+		tripcount_strIO.close()
 
 	def read_bitfeld(self, filename):
 		"""Lesen der Datei BITFELD"""
