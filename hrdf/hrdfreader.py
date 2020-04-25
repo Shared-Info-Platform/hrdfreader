@@ -97,7 +97,7 @@ class HrdfReader:
 		"""Lesen der Datei ECKDATEN"""
 		logger.info('lesen und verarbeiten der Datei ECKDATEN')
 		lines = self.__hrdfzip.read(filename).decode(self.__charset).split('\r\n')[:-1]
- 		# spezifisch für SBB-Version ist die Trenner in der Bezeichnung, die hier in separate Felder geschrieben werden
+ 		# spezifisch für SBB-Version sind die Trenner in der Bezeichnung, die hier in separate Felder geschrieben werden
 		bezeichnung,exportdatum,hrdfversion,lieferant = lines[2].split('$')
 		cur = self.__hrdfdb.connection.cursor()
 		sql_string = "INSERT INTO HRDF_ECKDATEN_TAB (importFileName, importDateTime, validFrom, validTo, descriptionhrdf, description, creationdatetime, hrdfversion, exportsystem) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id;" 
@@ -207,7 +207,11 @@ class HrdfReader:
 					validDays.append(str(self.__eckdaten_validFrom + timedelta(days=i)))
 				i += 1
 
-			validDaysString = "{'" + "','".join(map(str,validDays)) + "'}"
+			if len(validDays) == 0:
+				validDaysString = "{}"
+			else:
+				validDaysString = "{'" + "','".join(map(str,validDays)) + "'}"
+
 			bitfeld_strIO.write(self.__fkdict['fk_eckdatenid']+';'
 										+line[:6]+';'
 										+line[7:]+';'
@@ -364,7 +368,7 @@ class HrdfReader:
 			sprache = '--'
 		logger.info('lesen und verarbeiten der Datei '+filename)
 
-		# Erster Durchlauf um die Ausgabeattributscodes für Teil- und Vollstrecke zu ermitteln
+		# Erster Durchlauf um die Ausgabeattributcodes für Teil- und Vollstrecke zu ermitteln
 		targetcodes = {}
 		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
 			line = line.decode(self.__charset).replace('\r\n', '')
@@ -547,7 +551,7 @@ class HrdfReader:
 					previousUB = False;
 
 				# Behandlung der Haltestellengruppen-Zeile
-				# Erster Stop beginnt bei Zeichen 10, danach beliebig viele Stop in der Länge von 7 Zeichen
+				# Erster Stop beginnt bei Zeichen 10, danach beliebig viele Stops in der Länge von 7 Zeichen
 				stopMemberList.clear()
 				strStopMember = ""
 				nextMemberStart = 10

@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{446da5d1-a613-4ad9-ae30-5468f4b9fa7b}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>hrdfgenerate.py</StartupFile>
+    <StartupFile>hrdfimport.py</StartupFile>
     <SearchPath />
     <WorkingDirectory>C:\Entwicklung\Source\BernMobil\hrdfreader</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -14,7 +14,7 @@
     <InterpreterId>Global|PythonCore|3.6</InterpreterId>
     <EnableNativeCodeDebugging>True</EnableNativeCodeDebugging>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <CommandLineArguments>1 17.01.2020 18.01.2020</CommandLineArguments>
+    <CommandLineArguments>../data/hrdf-202020200419032913.zip</CommandLineArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
