@@ -1,26 +1,12 @@
 from datetime import datetime
 
-class HrdfLog:
-	"""
-	Die Klasse dient zum Loggen von Ausgaben in einem festen Format
-	Sie stellt unterschiedliche Severity-Level zur Verfügung
+import logging
 
-	Format der Logzeile:
-	<yyyy-MM-dd'T'hh:mm:ss.ssss> - <Sverity-Level> - <message>
-	"""
+logger = logging.getLogger('HRDF-Reader')
+logger.setLevel(logging.DEBUG)
+logFH = logging.FileHandler('log/hrdfreader.log')
+logFH.setLevel(logging.DEBUG)
+logFormatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logFH.setFormatter(logFormatter)
 
-	def info(self, text):
-		msgLine = "{} - INFO - {}".format(datetime.now().isoformat(), text)
-		print(msgLine)
-
-	def error(self, text):
-		msgLine = "{} - ERROR - {}".format(datetime.now().isoformat(), text)
-		print(msgLine)
-
-	def warning(self, text):
-		msgLine = "{} - WARNING - {}".format(datetime.now().isoformat(), text)
-		print(msgLine)
-
-
-# Einen logger pro importiertem Modul => noch nicht die beste Lösung
-logger = HrdfLog()
+logger.addHandler(logFH)
