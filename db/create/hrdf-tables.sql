@@ -816,7 +816,7 @@ COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.operationalno_continued	IS 'Verwaltung
 COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.stopno_continued	IS 'HaltestellenNr für Durchbindung; kann unterschiedlich zum Halt sein';
 CREATE INDEX IDX01_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, operatingday) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX02_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, operationalno) TABLESPACE :TBSINDEXNAME;
-CREATE INDEX IDX03_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, lineno) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX03_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, lineno varchar_pattern_ops) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX04_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, stopident) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX05_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, directionshort) TABLESPACE :TBSINDEXNAME;
 
@@ -828,11 +828,13 @@ CREATE TABLE HRDF_tripcount_operator_TAB
   id SERIAL primary key,
   fk_eckdatenid integer NOT NULL,
   operationalno varchar(32) NOT NULL,
-  tripcount integer NULL
+  tripcount integer NULL,
+  lineno varchar(8) NULL,
+  categorycode varchar(8) NULL
 )
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
-COMMENT ON TABLE HRDF_tripcount_operator_TAB IS 'Anzahl Fahrten pro Operator und EckdatenID';
+COMMENT ON TABLE HRDF_tripcount_operator_TAB IS 'Anzahl Fahrten pro Operator/Linie/Kategorie und EckdatenID';
 CREATE INDEX IDX01_HRDF_tripcount_operator_TAB ON HRDF_tripcount_operator_TAB (fk_eckdatenid,operationalno) TABLESPACE :TBSINDEXNAME;
 
 /*
@@ -850,7 +852,7 @@ WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 COMMENT ON TABLE HRDF_tripcount_line_TAB IS 'Anzahl Fahrten pro Linie und EckdatenID';
 CREATE INDEX IDX01_HRDF_tripcount_line_TAB ON HRDF_tripcount_line_TAB (fk_eckdatenid,operationalno) TABLESPACE :TBSINDEXNAME;
-CREATE INDEX IDX02_HRDF_tripcount_line_TAB ON HRDF_tripcount_line_TAB (fk_eckdatenid,lineno) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX02_HRDF_tripcount_line_TAB ON HRDF_tripcount_line_TAB (fk_eckdatenid,lineno varchar_pattern_ops) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief  table for lines per stop
