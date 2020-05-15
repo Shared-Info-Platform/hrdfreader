@@ -130,11 +130,11 @@ class HrdfReader:
 		curLookup.close()
 
 	def determine_tripcount(self):
-		"""Ermitteln und Schreiben der Anzahl Fahrten (Linien/Kategorie) pro Verwaltungsnummer"""
+		"""Ermitteln und Schreiben der Anzahl Fahrten (Linien/Kategorie) pro Verwaltungsnummer - Taktdefinitionen mit eingeschlossen"""
 		logger.info('ermitteln der Anzahl Fahrten (Linien/Kategorie) pro Verwaltung')
 
 		sql_tripsLookup = "INSERT INTO HRDF.HRDF_TripCount_Operator_TAB (fk_eckdatenid, operationalno, lineno, categorycode, tripcount) "\
-					"(SELECT fahrt.fk_eckdatenid, fahrt.operationalno, line.lineno, cat.categorycode, sum(coalesce(array_length(bit.bitfieldarray, 1), eckdaten.maxdays)) "\
+					"(SELECT fahrt.fk_eckdatenid, fahrt.operationalno, line.lineno, cat.categorycode, sum(coalesce(array_length(bit.bitfieldarray, 1), eckdaten.maxdays)*coalesce(cyclecount+1,1)) "\
 					"   FROM hrdf.hrdf_fplanfahrt_tab fahrt "\
 					"        inner join (SELECT id, validto + 1 - validfrom as maxdays FROM hrdf.hrdf_eckdaten_tab) eckdaten on fahrt.fk_eckdatenid = eckdaten.id "\
 					"        LEFT OUTER JOIN hrdf.hrdf_fplanfahrtve_tab ve on fahrt.fk_eckdatenid = ve.fk_eckdatenid and fahrt.id = ve.fk_fplanfahrtid "\
