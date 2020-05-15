@@ -79,7 +79,7 @@ class HrdfTTG:
 		# Aufbau/Erzeugen des TTG-Cache mit den Lookup-Tabellen
 		self.__TTGCache.createCacheData(self.__eckdatenid, self.__generateFrom, self.__generateTo);
 
-		sql_selDayTrips = "SELECT b.id, b.tripno, b.operationalno, b.tripversion, array_agg(a.bitfieldno) as bitfieldnos "\
+		sql_selDayTrips = "SELECT b.id, b.tripno, b.operationalno, b.tripversion, array_agg(a.bitfieldno) as bitfieldnos, b.cyclecount, b.cycletimemin "\
 						  "FROM HRDF_FPlanFahrtVE_TAB a, "\
 						  "     HRDF_FPLanFahrt_TAB b "\
 						  "WHERE (a.bitfieldno in (SELECT bitfieldno FROM HRDF_Bitfeld_TAB where bitfieldarray @> ARRAY[%s::date] AND fk_eckdatenid = %s) "\
@@ -102,7 +102,7 @@ class HrdfTTG:
 			logger.info("{:%d.%m.%Y} => Start der Generierung".format(generationDay))
 
 			# Laden der Tagesfahrten und Generierung jeder Fahrt
-			# mit einer Schleife über den selDayTrip-Cursor, der in 10000er Blöcken abgearbeitet wird
+			# mit einer Schleife über den selDayTrip-Cursor, der in self.__chunkSize - Blöcken abgearbeitet wird
 			curDayTrip = self.__hrdfdb.connection.cursor("cursor_selDayTrip")
 			curDayTrip.execute(sql_selDayTrips, (str(generationDay), self.__eckdatenid, self.__eckdatenid))
 			currentRowCnt = 0
@@ -142,6 +142,7 @@ class HrdfTTG:
 					if (resData["complete"] == False):
 						logger.info("{:%d.%m.%Y} => Tagesfahrplan wird gesichert".format(day))
 						_start_new_thread(self.saveNewDailyTimetable, (self.__eckdatenid, day, resData["dataItems"],))
+						#self.saveNewDailyTimetable(self.__eckdatenid, day, resData["dataItems"])
 						resData["complete"] = True				
 				else:
 					allComplete = False
@@ -149,7 +150,7 @@ class HrdfTTG:
 
 			if (allComplete): moreResponseData = False
 
-		# Mindestens eine DB-Thread sollte gestartet worden sein
+		# Mindestens ein DB-Thread sollte gestartet worden sein
 		while not self.__DBThreadStarted: time.sleep(5)
 		# Alle DB-Threads müssen sich beendet haben
 		while self.__numOfCurrentDBThreads > 0: time.sleep(5)
@@ -168,7 +169,7 @@ class HrdfTTG:
 	def saveNewDailyTimetable(self, eckdatenid, generationDay, ttChunkSet):
 		"""
 		Die Funktion speichert die übergebenen TimeTable-Chunks in der Datenbank.
-		Um Konsistenz zu bleiben wird der bestehende Tagesfahrplan zuerst gelöscht
+		Um konsistent zu bleiben wird der bestehende Tagesfahrplan zuerst gelöscht
 		Die Funktion wird als Thread aufgerufen
 
 		eckdatenid - id der Fahrplandaten

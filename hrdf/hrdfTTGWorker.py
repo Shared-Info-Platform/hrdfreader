@@ -63,170 +63,190 @@ class HrdfTTGWorker(Thread):
 			iErrorCnt = 0
 			for trip in trips:
 				tripStops.clear()					
-				tripident = "{}-{}-{}".format(trip[1],trip[2],trip[3])
+				origtripident = "{}-{}-{}".format(trip[1],trip[2],trip[3])
+
 				try:
 					self.generateTrip(trip, tripStops, generationDay)
-					#Schreibe Fahrtinformation in Tabellenformat
-					for tripStop in tripStops.values():
-						arrival = tripStop["stop"][3]
-						departure = tripStop["stop"][4]
-						noentry = False
-						noexit = False
+					# Ein Trip kann Taktdefinitionen enthalten, dann muss diese Fahrt mit ihren Stops x mal mit versetzten Zeiten eingetragen werden
+					# Um die Einträge eindeutig der gleichen Fahrt zuordnen zu können wird bei Taktdefinitionen der TripIdentifier erweitert
+					cycletimemin = 0
+					cyclecount = 0
+					cycledefs = False
+					if (trip[5] is not None):
+						cycledefs = True
+						cyclecount = trip[5]
+						cycletimemin = trip[6]
+					
+					i = 0
+					while i <= cyclecount:
+						additionalCycletimeMin = cycletimemin*i
+						# Erweiterung des TripIdentifiers um eine 4-stellige Zahl mit führenden Nullen
+						# 1440 Minuten = 24 Std bei minütlicher Taktung
+						if (cycledefs == True): tripident = "{}-{:04d}".format(origtripident, i)
+						else: tripident = origtripident
 
-						arrdatetime = ""
-						if (arrival is not None):
-							if (arrival < 0): noexit = True
-							arrival = abs(arrival)
-							arrMins = (int(arrival/100)*60)+(arrival%100)
-							arrdatetime = str(datetime.combine(generationDay, time(0,0)) + timedelta(minutes=arrMins))
+						# Schreibe Fahrtinformation in Tabellenformat
+						for tripStop in tripStops.values():
+							arrival = tripStop["stop"][3]
+							departure = tripStop["stop"][4]
+							noentry = False
+							noexit = False
 
-						depdatetime = ""
-						if (departure is not None):
-							if(departure < 0): noenty = True
-							departure = abs(departure)
-							depMins = (int(departure/100)*60)+(departure%100)
-							depdatetime = str(datetime.combine(generationDay, time(0,0)) + timedelta(minutes=depMins))
+							arrdatetime = ""
+							if (arrival is not None):
+								if (arrival < 0): noexit = True
+								arrival = abs(arrival)
+								arrMins = (int(arrival/100)*60)+(arrival%100)+additionalCycletimeMin
+								arrdatetime = str(datetime.combine(generationDay, time(0,0)) + timedelta(minutes=arrMins))
 
-						# Attribute
-						strAttributecode = ""
-						strAttributetextDE = ""
-						strAttributetextFR = ""
-						strAttributetextEN = ""
-						strAttributetextIT = ""
-						if (len(tripStop["attributecode"]) > 0):
-							strAttributecode = "{'" + "','".join(map(str,tripStop["attributecode"])) + "'}"
-						if (len(tripStop["attributetext_de"]) > 0):
-							strAttributetextDE = "{'" + "','".join(map(str,tripStop["attributetext_de"])) + "'}"
-						if (len(tripStop["attributetext_fr"]) > 0):
-							strAttributetextFR = "{'" + "','".join(map(str,tripStop["attributetext_fr"])) + "'}"
-						if (len(tripStop["attributetext_en"]) > 0):
-							strAttributetextEN = "{'" + "','".join(map(str,tripStop["attributetext_en"])) + "'}"
-						if (len(tripStop["attributetext_it"]) > 0):
-							strAttributetextIT = "{'" + "','".join(map(str,tripStop["attributetext_it"])) + "'}"
+							depdatetime = ""
+							if (departure is not None):
+								if(departure < 0): noenty = True
+								departure = abs(departure)
+								depMins = (int(departure/100)*60)+(departure%100)+additionalCycletimeMin
+								depdatetime = str(datetime.combine(generationDay, time(0,0)) + timedelta(minutes=depMins))
 
-						# Infotexte
-						strInfotextcode = ""
-						strInfotextDE = ""
-						strInfotextFR = ""
-						strInfotextEN = ""
-						strInfotextIT = ""
-						if (len(tripStop["infotextcode"]) > 0):
-							strInfotextcode = '{"' + '","'.join(map(self.infohelp,tripStop["infotextcode"])) + '"}'
-						if (len(tripStop["infotext_de"]) > 0):
-							strInfotextDE = '{"' + '","'.join(map(self.infohelp,tripStop["infotext_de"])) + '"}'
-						if (len(tripStop["infotext_fr"]) > 0):
-							strInfotextFR = '{"' + '","'.join(map(self.infohelp,tripStop["infotext_fr"])) + '"}'
-						if (len(tripStop["infotext_en"]) > 0):
-							strInfotextEN = '{"' + '","'.join(map(self.infohelp,tripStop["infotext_en"])) + '"}'
-						if (len(tripStop["infotext_it"]) > 0):
-							strInfotextIT = '{"' + '","'.join(map(self.infohelp,tripStop["infotext_it"])) + '"}'
+							# Attribute
+							strAttributecode = ""
+							strAttributetextDE = ""
+							strAttributetextFR = ""
+							strAttributetextEN = ""
+							strAttributetextIT = ""
+							if (len(tripStop["attributecode"]) > 0):
+								strAttributecode = "{'" + "','".join(map(str,tripStop["attributecode"])) + "'}"
+							if (len(tripStop["attributetext_de"]) > 0):
+								strAttributetextDE = "{'" + "','".join(map(str,tripStop["attributetext_de"])) + "'}"
+							if (len(tripStop["attributetext_fr"]) > 0):
+								strAttributetextFR = "{'" + "','".join(map(str,tripStop["attributetext_fr"])) + "'}"
+							if (len(tripStop["attributetext_en"]) > 0):
+								strAttributetextEN = "{'" + "','".join(map(str,tripStop["attributetext_en"])) + "'}"
+							if (len(tripStop["attributetext_it"]) > 0):
+								strAttributetextIT = "{'" + "','".join(map(str,tripStop["attributetext_it"])) + "'}"
+
+							# Infotexte
+							strInfotextcode = ""
+							strInfotextDE = ""
+							strInfotextFR = ""
+							strInfotextEN = ""
+							strInfotextIT = ""
+							if (len(tripStop["infotextcode"]) > 0):
+								strInfotextcode = '{"' + '","'.join(map(self.infohelp,tripStop["infotextcode"])) + '"}'
+							if (len(tripStop["infotext_de"]) > 0):
+								strInfotextDE = '{"' + '","'.join(map(self.infohelp,tripStop["infotext_de"])) + '"}'
+							if (len(tripStop["infotext_fr"]) > 0):
+								strInfotextFR = '{"' + '","'.join(map(self.infohelp,tripStop["infotext_fr"])) + '"}'
+							if (len(tripStop["infotext_en"]) > 0):
+								strInfotextEN = '{"' + '","'.join(map(self.infohelp,tripStop["infotext_en"])) + '"}'
+							if (len(tripStop["infotext_it"]) > 0):
+								strInfotextIT = '{"' + '","'.join(map(self.infohelp,tripStop["infotext_it"])) + '"}'
 							
-						# Angaben zur Haltestelle
-						strLongitudeGeo = ""
-						strLatitudeGeo = ""
-						strAltitudeGeo = ""
-						strTransferTime1 = ""
-						strTransferTime2 = ""
-						strTransferPrio = ""
-						strTripNoContinued = ""
-						strOperationalNoContinued = ""
-						strStopNoContinued = ""
-						if (tripStop["longitude_geo"] is not None): strLongitudeGeo = str(tripStop["longitude_geo"])
-						if (tripStop["latitude_geo"] is not None): strLatitudeGeo = str(tripStop["latitude_geo"])
-						if (tripStop["altitude_geo"] is not None): strAltitudeGeo = str(tripStop["altitude_geo"])
-						if (tripStop["transfertime1"] is not None): strTransferTime1 = str(tripStop["transfertime1"])
-						if (tripStop["transfertime2"] is not None): strTransferTime2 = str(tripStop["transfertime2"])
-						if (tripStop["transferprio"] is not None): strTransferPrio = str(tripStop["transferprio"])
-						if (tripStop["tripno_continued"] is not None): strTripNoContinued = str(tripStop["tripno_continued"])
-						if (tripStop["operationalno_continued"] is not None): strOperationalNoContinued = str(tripStop["operationalno_continued"])
-						if (tripStop["stopno_continued"] is not None): strStopNoContinued = str(tripStop["stopno_continued"])
+							# Angaben zur Haltestelle
+							strLongitudeGeo = ""
+							strLatitudeGeo = ""
+							strAltitudeGeo = ""
+							strTransferTime1 = ""
+							strTransferTime2 = ""
+							strTransferPrio = ""
+							strTripNoContinued = ""
+							strOperationalNoContinued = ""
+							strStopNoContinued = ""
+							if (tripStop["longitude_geo"] is not None): strLongitudeGeo = str(tripStop["longitude_geo"])
+							if (tripStop["latitude_geo"] is not None): strLatitudeGeo = str(tripStop["latitude_geo"])
+							if (tripStop["altitude_geo"] is not None): strAltitudeGeo = str(tripStop["altitude_geo"])
+							if (tripStop["transfertime1"] is not None): strTransferTime1 = str(tripStop["transfertime1"])
+							if (tripStop["transfertime2"] is not None): strTransferTime2 = str(tripStop["transfertime2"])
+							if (tripStop["transferprio"] is not None): strTransferPrio = str(tripStop["transferprio"])
+							if (tripStop["tripno_continued"] is not None): strTripNoContinued = str(tripStop["tripno_continued"])
+							if (tripStop["operationalno_continued"] is not None): strOperationalNoContinued = str(tripStop["operationalno_continued"])
+							if (tripStop["stopno_continued"] is not None): strStopNoContinued = str(tripStop["stopno_continued"])
 
-						# Schreiben des Datensatzes
-						dailytimetable_strIO.write(eckdatenid)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(tripident)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(str(trip[1]))
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(trip[2])
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(str(trip[3]))
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(str(generationDay))
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(str(tripStop["stop"][2]))
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(str(tripStop["stop"][0]))
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(tripStop["stop"][1])
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(str(tripStop["stop"][0]))
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(tripStop["stop"][1])
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(tripStop["arrstoppointtext"])
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(tripStop["depstoppointtext"])
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(arrdatetime)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(depdatetime)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(str(noentry))
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(str(noexit))
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(tripStop["categorycode"])
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(str(tripStop["classno"]))
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(str(tripStop["categoryno"]))
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(tripStop["lineno"])
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(tripStop["directionshort"])
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(tripStop["directiontext"])
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(strAttributecode)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(strAttributetextDE)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(strAttributetextFR)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(strAttributetextEN)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(strAttributetextIT)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(strInfotextcode)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(strInfotextDE)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(strInfotextFR)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(strInfotextEN)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(strInfotextIT)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(strLongitudeGeo)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(strLatitudeGeo)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(strAltitudeGeo)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(strTransferTime1)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(strTransferTime2)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(strTransferPrio)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(strTripNoContinued)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(strOperationalNoContinued)
-						dailytimetable_strIO.write(';')
-						dailytimetable_strIO.write(strStopNoContinued)						
-						dailytimetable_strIO.write('\n')
-						numberOfGeneratedTrips += 1
+							# Schreiben des Datensatzes
+							dailytimetable_strIO.write(eckdatenid)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(tripident)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(str(trip[1]))
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(trip[2])
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(str(trip[3]))
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(str(generationDay))
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(str(tripStop["stop"][2]))
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(str(tripStop["stop"][0]))
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(tripStop["stop"][1])
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(str(tripStop["stop"][0]))
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(tripStop["stop"][1])
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(tripStop["arrstoppointtext"])
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(tripStop["depstoppointtext"])
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(arrdatetime)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(depdatetime)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(str(noentry))
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(str(noexit))
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(tripStop["categorycode"])
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(str(tripStop["classno"]))
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(str(tripStop["categoryno"]))
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(tripStop["lineno"])
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(tripStop["directionshort"])
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(tripStop["directiontext"])
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(strAttributecode)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(strAttributetextDE)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(strAttributetextFR)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(strAttributetextEN)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(strAttributetextIT)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(strInfotextcode)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(strInfotextDE)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(strInfotextFR)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(strInfotextEN)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(strInfotextIT)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(strLongitudeGeo)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(strLatitudeGeo)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(strAltitudeGeo)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(strTransferTime1)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(strTransferTime2)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(strTransferPrio)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(strTripNoContinued)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(strOperationalNoContinued)
+							dailytimetable_strIO.write(';')
+							dailytimetable_strIO.write(strStopNoContinued)						
+							dailytimetable_strIO.write('\n')
+							numberOfGeneratedTrips += 1
+						i += 1
 
 				except Exception as err:
 					iErrorCnt += 1
