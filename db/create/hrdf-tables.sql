@@ -632,6 +632,7 @@ COMMENT ON COLUMN HRDF_FPLANFahrtSH_TAB.stop is 'HaltestellenNr für den die sai
 COMMENT ON COLUMN HRDF_FPLANFahrtSH_TAB.bitfieldno is 'Eindeutige Nr der Verkehrstagesdefinition';
 COMMENT ON COLUMN HRDF_FPLANFahrtSH_TAB.deptimeFrom is 'Abfahrtszeitpunkt der Ab-Haltestelle';
 CREATE INDEX IDX01_HRDF_FPLANFahrtSH_TAB ON HRDF_FPLANFahrtSH_TAB (fk_fplanfahrtid) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX02_HRDF_FPLANFahrtSH_TAB ON HRDF_FPLANFahrtSH_TAB (fk_eckdatenid) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief	table for file FPLAN lines beginning with *GR
@@ -656,7 +657,8 @@ COMMENT ON COLUMN HRDF_FPLANFahrtGR_TAB.prevStop is 'HaltestellenNr vor dem Gren
 COMMENT ON COLUMN HRDF_FPLANFahrtGR_TAB.nextStop is 'HaltestellenNr nach dem Grenzpunkt';
 COMMENT ON COLUMN HRDF_FPLANFahrtGR_TAB.deptimePrev is 'Abfahrtszeitpunkt der Vorgänger-Haltestelle';
 COMMENT ON COLUMN HRDF_FPLANFahrtGR_TAB.arrtimeNext is 'Ankunftszeitpunkt der Nachfolger-Haltestelle';
-CREATE INDEX IDX01_HRDF_FPLANFahrtGR_TAB ON HRDF_FPLANFahrtL_TAB (fk_fplanfahrtid) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX01_HRDF_FPLANFahrtGR_TAB ON HRDF_FPLANFahrtGR_TAB (fk_fplanfahrtid) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX02_HRDF_FPLANFahrtGR_TAB ON HRDF_FPLANFahrtGR_TAB (fk_eckdatenid) TABLESPACE :TBSINDEXNAME;
 
 
 /*
@@ -685,6 +687,7 @@ COMMENT ON COLUMN HRDF_FPLANFahrtC_TAB.toStop is 'HaltestellenNr bis zu die Ein-
 COMMENT ON COLUMN HRDF_FPLANFahrtC_TAB.deptimeFrom is 'Abfahrtszeitpunkt der Ab-Haltestelle';
 COMMENT ON COLUMN HRDF_FPLANFahrtC_TAB.arrtimeTo is 'Ankunftszeitpunkt der Bis-Haltestelle';
 CREATE INDEX IDX01_HRDF_FPLANFahrtC_TAB ON HRDF_FPLANFahrtC_TAB (fk_fplanfahrtid) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX02_HRDF_FPLANFahrtC_TAB ON HRDF_FPLANFahrtC_TAB (fk_eckdatenid) TABLESPACE :TBSINDEXNAME;
 
 
 /*
