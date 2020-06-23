@@ -20,7 +20,9 @@ CREATE TABLE HRDF_ECKDATEN_TAB
   creationdatetime	timestamp with time zone NULL,
   hrdfversion		varchar(10)		NULL,
   exportsystem		varchar(20)		NULL,
-  deleteFlag		bool			NULL
+  deleteFlag		bool			NULL,
+  inactive		bool			NULL,
+  ttgenerated		date[]			NULL
 )
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
@@ -36,6 +38,8 @@ COMMENT ON COLUMN HRDF_ECKDATEN_TAB.creationdatetime is '+ Erzeugungsdatum mit Z
 COMMENT ON COLUMN HRDF_ECKDATEN_TAB.hrdfversion is '+ Version der HRDF-Daten';
 COMMENT ON COLUMN HRDF_ECKDATEN_TAB.exportsystem is '+ System von dem die HRDF-Daten exportiert wurden';
 COMMENT ON COLUMN HRDF_ECKDATEN_TAB.deleteFlag is '+ Markierung, dass die Daten gelöscht werden sollen';
+COMMENT ON COLUMN HRDF_ECKDATEN_TAB.inactive is 'Markierung, dass die Daten nicht verwendet werden sollen';
+COMMENT ON COLUMN HRDF_ECKDATEN_TAB.ttgenerated is 'Array mit den Tagen, für die die Tagesfahrpläne bereits generiert wurden';
 
 /*
 \brief	table for file BITFELD
