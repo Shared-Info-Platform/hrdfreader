@@ -143,6 +143,7 @@ class HrdfTTGCache:
 		curFahrtZugart = self.__hrdfdb.connection.cursor()
 		curFahrtZugart.execute(sql_zugartLookup, (eckdatenid,))
 		fahrtZugarten = curFahrtZugart.fetchall()
+		curFahrtZugart.close()
 		for fahrtZugart in fahrtZugarten:
 			fahrtId = fahrtZugart[0]
 			if ( fahrtId in self.__fahrtZugartLookup):
@@ -151,7 +152,7 @@ class HrdfTTGCache:
 				zugartList = list()
 				zugartList.append(fahrtZugart);
 				self.__fahrtZugartLookup[fahrtId] = zugartList
-		curFahrtZugart.close()
+		fahrtZugarten.clear()
 
 		# Lookup für Bahnhofsnamen, Übergangszeiten (mit Standardzeit aus erster Zeile stopno 9999999) und GEO-Koordinaten
 		logger.info("Lookup für Bahnhofsinformation aufbauen")
@@ -167,10 +168,11 @@ class HrdfTTGCache:
 						    " WHERE a.fk_eckdatenid = %s"
 		curBahnhof = self.__hrdfdb.connection.cursor()
 		curBahnhof.execute(sql_bahnhofLookup, (eckdatenid,))		
-		bahnhhoefe = curBahnhof.fetchall()
-		for bahnhof in bahnhhoefe:
-			self.__bahnhofLookup[bahnhof[0]] = bahnhof
+		bahnhoefe = curBahnhof.fetchall()
 		curBahnhof.close()
+		for bahnhof in bahnhoefe:
+			self.__bahnhofLookup[bahnhof[0]] = bahnhof
+		bahnhoefe.clear()
 
 		# Lookup für Haltepositionstexte aufbauen (a.id zu beginn ist schneller als es wegzulassen oder am Ende zu stellen)
 		# key => <FahrtId>-<StopNo>[-<StopPointTime>]
@@ -204,6 +206,7 @@ class HrdfTTGCache:
 								self.__gleisLookupDay[generationDay] = gleisLookup
 					# Tageszähler hochzählen und nächsten gewünschten Tag generieren
 					i += 1
+		allGleise.clear()
 
 		# Lookup für allTripStops erstellen. allTripStops einer Fahrt enthält den kompletten Laufweg der Fahrt.
 		logger.info("Lookup für Laufwege der Fahrten aufbauen")
@@ -224,6 +227,7 @@ class HrdfTTGCache:
 				tripStopList = list()
 				tripStopList.append(tripStop);
 				self.__allTripStopsLookup[tripStop[11]] = tripStopList
+		allTripStops.clear()
 
 		# Lookup für allVEs erstellen. allVEs einer Fahrt enthält alle Verkehrstagesdefinitionen einer Fahrt
 		logger.info("Lookup für Verkehrstagesinformation der Fahrten aufbauen")
@@ -239,6 +243,7 @@ class HrdfTTGCache:
 				VEList = list()
 				VEList.append(fahrtVE)
 				self.__allVEsLookup[fahrtVE[5]] = VEList
+		allVEs.clear()
 
 		# Lookup für Linieninformationen der Fahrten
 		logger.info("Lookup für Linieninformationen der Fahrten aufbauen")
@@ -254,6 +259,7 @@ class HrdfTTGCache:
 				LList = list()
 				LList.append(fahrtL)
 				self.__fahrtLinienLookup[fahrtL[5]] = LList
+		allLs.clear()
 
 		# Lookup für Richtungstexte der Fahrten
 		logger.info("Lookup für Richtungstexte der Fahrten aufbauen")
@@ -275,6 +281,7 @@ class HrdfTTGCache:
 				RList = list()
 				RList.append(fahrtR)
 				self.__fahrtRichtungLookup[fahrtR[6]] = RList
+		allRs.clear()
 
 		# Lookup der Attribute einer Fahrt
 		logger.info("Lookup für Attribute der Fahrten aufbauen")
@@ -304,6 +311,7 @@ class HrdfTTGCache:
 				AList = list()
 				AList.append(fahrtA)
 				self.__fahrtAttributLookup[fahrtA[13]] = AList
+		allAs.clear()
 
 		# Lookup für die Infotext einer Fahrt
 		logger.info("Lookup für Infotexte der Fahrten aufbauen")
@@ -330,6 +338,7 @@ class HrdfTTGCache:
 				IList = list()
 				IList.append(fahrtI)
 				self.__fahrtInfoLookup[fahrtI[10]] = IList
+		allIs.clear()
 
 		# Lookup für die DurchbindungsInformation zu einer Fahrt
 		logger.info("Lookup für Durchbindungsinformation der Fahrten aufbauen")
@@ -351,3 +360,4 @@ class HrdfTTGCache:
 				DuBiList = list()
 				DuBiList.append(fahrtDuBI)
 				self.__fahrtDurchbindungLookup[fahrtDuBI[6]] = DuBiList
+		allDurchBi.clear()

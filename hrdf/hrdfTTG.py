@@ -34,7 +34,7 @@ class HrdfTTG:
 		self.__DBThreadStarted = False
 		self.__lock = _allocate_lock()
 
-		self.__numberOfWorker = 5
+		self.__numberOfWorker = 2
 		self.__chunkSize = 5000
 
 	def setup(self, eckdatenId, generateFrom, generateTo):
@@ -113,7 +113,7 @@ class HrdfTTG:
 				paketCnt+=1				
 				# Schiebe die zu generierenden Trips in die Workqueue, damit sie dort von den Workern abgeholt werden können
 				dataItem = dict(eckdatenid=self.__eckdatenid, day=generationDay, trips=trips)
-				self.__workQueue.put(dataItem)
+				self.__workQueue.put(dataItem.copy())
 				currentRowCnt += len(trips)
 
 			# Aufbau einer tagesbezogenen Response-Datenstruktur zur Verarbeitung der Ergebnisse der Worker
@@ -135,18 +135,20 @@ class HrdfTTG:
 		while moreResponseData:
 			responseData = self.__responseQueue.get()
 			self.__responseData[responseData["day"]]["dataItems"].add(responseData["data"])
+			#logger.info("{} {} {} {} => neue Antwortdaten angekommen".format(responseData["day"], self.__responseData[responseData["day"]]["paketCnt"], self.__responseData[responseData["day"]]["complete"], len(self.__responseData[responseData["day"]]["dataItems"])))
 
 			allComplete = True
 			for day, resData in self.__responseData.items():
-				if (resData["paketCnt"] == len(resData["dataItems"])):
-					if (resData["complete"] == False):
+				if (resData["complete"] == False):
+					if (resData["paketCnt"] == len(resData["dataItems"])):					
 						logger.info("{:%d.%m.%Y} => Tagesfahrplan wird gesichert".format(day))
-						_start_new_thread(self.saveNewDailyTimetable, (self.__eckdatenid, day, resData["dataItems"],))
+						_start_new_thread(self.saveNewDailyTimetable, (self.__eckdatenid, day, resData["dataItems"].copy(),))
 						#self.saveNewDailyTimetable(self.__eckdatenid, day, resData["dataItems"])
-						resData["complete"] = True				
-				else:
-					allComplete = False
-					break;
+						resData["complete"] = True
+						resData["dataItems"].clear()
+					else:
+						allComplete = False
+						break
 
 			if (allComplete): moreResponseData = False
 
@@ -192,7 +194,7 @@ class HrdfTTG:
 			deletedRows = curDeleteDay.rowcount
 			logger.info("{:%d.%m.%Y} => {} bestehende Einträge wurden geloescht".format(generationDay, deletedRows))
 			curDeleteDay.close()
-
+					   
 			if (len(ttChunkSet)>0):
 				curSaveTrip = hrdfDBSingle.connection.cursor()
 				strCopy = "COPY HRDF_DailyTimeTable_TAB (fk_eckdatenid,tripident,tripno,operationalno,tripversion,"\
@@ -202,16 +204,22 @@ class HrdfTTG:
 							"infotextcode,infotext_de,infotext_fr,infotext_en,infotext_it,"\
 							"longitude_geo,latitude_geo,altitude_geo,transfertime1,transfertime2,transferprio,tripno_continued,operationalno_continued,stopno_continued)"\
 							" FROM STDIN USING DELIMITERS ';' NULL AS ''"
-				for chunk in ttChunkSet:
+				cnt = 0
+				chunkCnt = len(ttChunkSet)
+				while len(ttChunkSet) > 0:
+					cnt += 1
+					logger.info("Sichern Chunk {} von {} für Tag {:%d.%m.%Y}".format(cnt, chunkCnt, generationDay))
 					dailytimetable_strIO = StringIO()
-					dailytimetable_strIO.write(chunk)
+					dailytimetable_strIO.write(ttChunkSet.pop())
 					dailytimetable_strIO.seek(0)
-					curSaveTrip.copy_expert(strCopy, dailytimetable_strIO)
+					curSaveTrip.copy_expert(strCopy, dailytimetable_strIO)	
 					dailytimetable_strIO.close()
-
+					
 				curSaveTrip.close()
-				hrdfDBSingle.connection.commit()
-				logger.info("{:%d.%m.%Y} => Neuer Tagesfahrplan wurde gesichert".format(generationDay, deletedRows))
+
+			hrdfDBSingle.connection.commit()
+			logger.info("{:%d.%m.%Y} => Neuer Tagesfahrplan wurde gesichert".format(generationDay, deletedRows))
+
 		else:
 			logger.error("{:%d.%m.%Y} => DB-Thread konnte keine Verbindung zur Datenbank aufbauen".format(generationDay))
 
