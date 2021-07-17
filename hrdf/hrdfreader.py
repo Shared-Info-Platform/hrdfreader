@@ -648,7 +648,7 @@ class HrdfReader:
 													  +line[36:42].strip()+
 													  '\n')
 					else:
-						logger.warning("*A VE-Zeile gehört zu nicht unterstützter "+line[:4]+"-Zeile und wird nicht verarbeitet")
+						logger.warning("*A VE-Zeile gehört zu nicht unterstützter "+self.__AVE_type+"-Zeile und wird nicht verarbeitet")
 						
 				elif line[:4] == "*KWZ":
 					self.__AVE_type = line[:4]
