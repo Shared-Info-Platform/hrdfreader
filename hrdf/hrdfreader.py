@@ -43,6 +43,9 @@ class HrdfReader:
 		self.__fplanFahrtSH_strIO = StringIO()
 		self.__fplanFahrtC_strIO = StringIO()
 		self.__fplanFahrtGR_strIO = StringIO()
+		
+		#Workaround um Zugehörigkeit einer AVE-Zeile prüfen zu können (gibt es auch bei Kurswagen)
+		self.__AVE_type = "None"
 
 
 	def readfiles(self):
@@ -635,7 +638,8 @@ class HrdfReader:
 
 				# Attribut-Zeilen (!! längste Attribut-Kennung zuerst abfragen, dann weiter absteigend !!)
 				if line[:5] == "*A VE":
-					self.__fplanFahrtAVE_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
+					if self.__AVE_type == "*Z" or self.__AVE_type == "*T":
+						self.__fplanFahrtAVE_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
 													  +self.__fkdict["fk_fplanfahrtid"]+';'
 													  +line[6:13].strip()+';'
 													  +line[14:21].strip()+';'
@@ -643,11 +647,16 @@ class HrdfReader:
 													  +line[29:35].strip()+';'
 													  +line[36:42].strip()+
 													  '\n')
+					else:
+						logger.warning("*A VE-Zeile gehört zu nicht unterstützter "+line[:4]+"-Zeile und wird nicht verarbeitet")
+						
 				elif line[:4] == "*KWZ":
-					logger.warning("Zeile"+line[:4]+"wird derzeit nicht unterstützt")
+					self.__AVE_type = line[:4]
+					logger.warning("Zeile "+line[:4]+" wird derzeit nicht unterstützt")
 
 				elif line[:3] == "*KW" or line[:3] == "*TT":
-					logger.warning("Zeile"+line[:3]+"wird derzeit nicht unterstützt")
+					self.__AVE_type = line[:3]
+					logger.warning("Zeile "+line[:3]+" wird derzeit nicht unterstützt")
 
 				elif line[:3] == "*SH":
 					self.__fplanFahrtSH_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
@@ -669,9 +678,10 @@ class HrdfReader:
 
 
 				elif line[:2] == "*B" or line[:2] == "*E":
-					logger.warning("Zeile"+line[:2]+"wird derzeit nicht unterstützt")
+					logger.warning("Zeile "+line[:2]+" wird derzeit nicht unterstützt")
 
 				elif line[:2] == "*Z":
+					self.__AVE_type = line[:2]
 					sql_string = "INSERT INTO HRDF_FPLANFahrt_TAB (fk_eckdatenid,triptype,tripno,operationalno,tripversion,cyclecount,cycletimemin) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id;"
 					cyclecount = line[22:25].strip()
 					cycletimemin = line[26:29].strip()
@@ -683,6 +693,7 @@ class HrdfReader:
 					self.__fkdict["fk_fplanfahrtid"] = str(curIns.fetchone()[0])
 
 				elif line[:2] == "*T":
+					self.__AVE_type = line[:2]
 					sql_string = "INSERT INTO HRDF_FPLANFahrt_TAB (fk_eckdatenid,triptype,tripno,operationalno,triptimemin,cycletimesec) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id;"
 					triptimemin = line[16:20].strip()
 					cycletimesec = line[21:25].strip()
