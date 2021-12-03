@@ -1,5 +1,6 @@
 
 import sys
+import logging
 from hrdf.hrdfdb import HrdfDB
 from hrdf.hrdfreader import HrdfReader
 from hrdf.hrdflog import logger
@@ -43,26 +44,53 @@ def load_hrdfzipfile(filename, dbname, host):
 		logger.error("Es konnte keine Verbindung zur Datenbank aufgebaut werden")
 
 
+def initialize_logging(loglevel):
+	"""Initialisiert den Logger
+	loglevel -- Level für die Logausgabe 
+	"""	
+	logger.setLevel(loglevel)
+	# Handler für das Schreiben der Logausgaben in Datei
+	logFH = logging.FileHandler('log/hrdfreader-import.log')
+	logFH.setLevel(loglevel)
+	# Handler für das Schreiben direkt auf die Console
+	logCH = logging.StreamHandler()
+	logCH.setLevel(loglevel)
+	# Formattierung der Ausgabe
+	if (logger.level == logging.DEBUG):
+		logFormatter = logging.Formatter('%(asctime)s - %(name)s %(funcName)s-%(lineno)d - %(levelname)s - %(message)s')
+	else:
+		logFormatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+	logFH.setFormatter(logFormatter)
+	logCH.setFormatter(logFormatter)
+	# Aktivierung der Log-Handler
+	logger.addHandler(logFH)
+	logger.addHandler(logCH)
 if __name__ == '__main__':
 	# Auswertung der übergebenen Parameter
 	paraCnt = len(sys.argv)
 
 	if (paraCnt < 2):
-		print("\nAufruf: hrdfimport.py <importFile> [<dbname>] [<host>]\n")
-		print("importFile\tPfad/Name der HRDF-Import-Zipdatei die zu laden ist")
+		print("\nAufruf: hrdfimport.py <importFile> [<loglevel>] [<dbname>] [<host>]\n")
+		print("importFile\tPfad/Name der HRDF-Import-Zipdatei die zu laden ist")		
+		print("loglevel\t\tLevel für die Logausgabe (default => INFO)")
 		print("dbname\t\tDatenbankname (default => hrdfdb)")
 		print("host\t\tHost auf dem die Datenbank läuft (default => 127.0.0.1)")
 	else:
 		zipfilename = sys.argv[1]
+		# Logging initialisieren
+		loglevel = "INFO"
+		if (paraCnt >=3):
+			loglevel = sys.argv[2]
+		initialize_logging(loglevel)
 		
 		# Default für die Datenbank
 		dbname = "hrdfdb"
-		if (paraCnt >= 3):
-			dbname = sys.argv[2]
+		if (paraCnt >= 4):
+			dbname = sys.argv[3]
 
 		# Default für den Host
 		host = "127.0.0.1"
-		if (paraCnt >= 4):
-			host = sys.argv[3]
-	
+		if (paraCnt >= 5):
+			host = sys.argv[4]
+
 		load_hrdfzipfile(zipfilename, dbname, host)

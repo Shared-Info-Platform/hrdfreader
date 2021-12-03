@@ -1,5 +1,6 @@
 
 import sys
+import logging
 from datetime import datetime, date, timedelta
 from hrdf.hrdfdb import HrdfDB
 from hrdf.hrdfTTG import HrdfTTG
@@ -36,16 +37,38 @@ def generate_timetable_from_hrdf(eckdatenId, generateFrom, generateTo, dbname, h
 	else:
 		logger.error("Es konnte keine Verbindung zur Datenbank aufgebaut werden")
 
+def initialize_logging(loglevel):
+	"""Initialisiert den Logger
 
+	loglevel -- Level für die Logausgabe 
+	"""	
+	logger.setLevel(loglevel)
+	# Handler für das Schreiben der Logausgaben in Datei
+	logFH = logging.FileHandler('log/hrdfreader-generate.log')
+	logFH.setLevel(loglevel)
+	# Handler für das Schreiben direkt auf die Console
+	logCH = logging.StreamHandler()
+	logCH.setLevel(loglevel)
+	# Formattierung der Ausgabe
+	if (logger.level == logging.DEBUG):
+		logFormatter = logging.Formatter('%(asctime)s - %(name)s (%(thread)d) %(funcName)s-%(lineno)d - %(levelname)s - %(message)s')
+	else:
+		logFormatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+	logFH.setFormatter(logFormatter)
+	logCH.setFormatter(logFormatter)
+	# Aktivierung der Log-Handler
+	logger.addHandler(logFH)
+	logger.addHandler(logCH)
 if __name__ == '__main__':
 	# Auswertung der übergebenen Parameter	
 	paraCnt = len(sys.argv)
 
 	if (paraCnt < 2):
-		print("\nAufruf: hrdfgenerate.py <eckdatenId> [<generateFrom> <generateTo>] [<dbname>] [<host>]\n")
+		print("\nAufruf: hrdfgenerate.py <eckdatenId> [<generateFrom> <generateTo>] [<loglevel>] [<dbname>] [<host>]\n")
 		print("eckdatenId\tId des zu betrachtenden HRDF-Import")
 		print("generateFrom\tBeginn des Zeitbereichs, für den der Tagesfahrlan generiert wird (String-Format '%d.%m.%Y') (default => heute)")
-		print("generateTo\tEnde des Zeitbereichs, für den der Tagesfahrplan generiert wird (String-Format '%d.%m.%Y') (default => heute)")
+		print("generateTo\tEnde des Zeitbereichs, für den der Tagesfahrplan generiert wird (String-Format '%d.%m.%Y') (default => heute)")				
+		print("loglevel\t\tLevel für die Logausgabe (default => INFO)")
 		print("dbname\t\tDatenbankname (default => hrdfdb)")
 		print("host\t\tHost auf dem die Datenbank läuft (default => 127.0.0.1)")
 	else:
@@ -58,14 +81,19 @@ if __name__ == '__main__':
 			generateFrom = sys.argv[2]
 			generateTo = sys.argv[3]
 
+		# Logging initialisieren
+		loglevel = "INFO"
+		if (paraCnt >=5):
+			loglevel = sys.argv[4]
+		initialize_logging(loglevel)
 		# Default für die Datenbank
 		dbname = "hrdfdb"
-		if (paraCnt >= 5):
-			dbname = sys.argv[4]
+		if (paraCnt >= 6):
+			dbname = sys.argv[5]
 
 		# Default für den Host
 		host = "127.0.0.1"
-		if (paraCnt >= 6):
-			host = sys.argv[5]
+		if (paraCnt >= 7):
+			host = sys.argv[6]
 
 		generate_timetable_from_hrdf(eckdatenId, generateFrom, generateTo, dbname, host)
