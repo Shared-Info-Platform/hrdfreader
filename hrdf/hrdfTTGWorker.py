@@ -56,7 +56,7 @@ class HrdfTTGWorker(Thread):
 	def processTrips(self, eckdatenid, generationDay, trips):
 		""" Die Funktion generiert den Tagesfahrplan für die übergebenen Trips am gewünschten Tag"""
 		if (len(trips) > 1):
-			#logger.error("{}: bearbeitet {} Fahrten".format(self.__name, len(trips)))
+			logger.debug("{}: bearbeitet {} Fahrten".format(self.__name, len(trips)))
 			tripStops = dict()		
 			dailytimetable_strIO = StringIO()							
 			numberOfGeneratedTrips = 0
@@ -250,10 +250,10 @@ class HrdfTTGWorker(Thread):
 
 				except Exception as err:
 					iErrorCnt += 1
-					logger.error("Die Fahrt {} konnte nicht generiert werden. Error:\n{}".format(tripident,err))
+					logger.error("{}: Die Fahrt {} konnte nicht generiert werden. Error:\n{}".format(self.__name, tripident, err))
 
 			# Alle Fahrten des Sets im IO abgelegt => Zurückgabe an den Main-Thread
-			logger.info("\t{}: {:%d.%m.%Y} => {} Tagesfahrplaneinträge erstellt ...".format(self.__name, generationDay, numberOfGeneratedTrips))				
+			logger.info("{}: {:%d.%m.%Y} => {} Tagesfahrplaneinträge erstellt ...".format(self.__name, generationDay, numberOfGeneratedTrips))				
 			# Ergebnis liefern
 			dailytimetable_strIO.seek(0)
 			self.__responseQueue.put(dict(day=generationDay, data=dailytimetable_strIO.getvalue()))
@@ -268,7 +268,7 @@ class HrdfTTGWorker(Thread):
 		generationDay - Tag für den diese Trips generiert werden sollen
 		"""
 		bReturn = True
-		#logger.info("generiere Zug {}".format(trip))
+		logger.debug("{}: generiere Zug {}".format(self.__name, trip))
 		fplanfahrtid = trip[0]
 
 		allTripStops = self.__ttgcache.lookupAllTripStops(fplanfahrtid)
@@ -280,6 +280,7 @@ class HrdfTTGWorker(Thread):
 			self.__bitfieldnumbers = self.__ttgcache.lookupBitfieldnumbersOfDay(generationDay)
 
 			# Erstellen des definitiven Laufwegs für diesen Tag alls dictonary um den Laufweg mit zusätzlichen Informationen ergänzen zu können
+			logger.debug("{}: Fahrt {} erstellen des tatsächlichen Laufwegs aus {} VE's und {} TripStops".format(self.__name, trip[0], len(allVEs), len(allTripStops)))
 			for ve in allVEs:
 				if (ve[0] is None or (ve[0] in self.__bitfieldnumbers) or ve[0] == 0):
 					bTakeStop = False
@@ -370,6 +371,7 @@ class HrdfTTGWorker(Thread):
 					# neue Stopliste ist erweitert um die Angaben des VEs
 
 			# alle VEs sind bearbeitet
+			logger.debug("{}: Fahrt {} Laufweg mit {} tatsächlichen Halten erstellt".format(self.__name, trip[0], len(newTripStops)))
 			# newTripStops enthält nun den tätsächlichen Laufweg, der jetzt mit zusätzlichen Informationen an den Halten gefüllt wird
 			# G-Zeilen Information hinzufügen
 			self.add_GInfoToTrip(fplanfahrtid, newTripStops)
@@ -383,6 +385,7 @@ class HrdfTTGWorker(Thread):
 			self.add_RInfoToTrip(fplanfahrtid, newTripStops)
 			# Durchbindungs Information hinzufügen
 			self.add_DurchBIToTrip(fplanfahrtid, newTripStops)
+			logger.debug("{}: Fahrt {} vollständig generiert".format(self.__name, trip))
 
 			return bReturn
 
@@ -445,7 +448,8 @@ class HrdfTTGWorker(Thread):
 		"""
 		#listentry => a.fplanfahrtid, a.categorycode, fromstop, tostop, deptimefrom, arrtimeto, b.classno, b.categoryno
 		zugartList = self.__ttgcache.lookupFahrtZugart(fplanfahrtid)
-		if (zugartList is not None):		
+		if (zugartList is not None):
+			logger.debug("{}: Fahrt {} füge {} Element(e) aus Zugart-Liste (G-Info) hinzu".format(self.__name, fplanfahrtid, len(zugartList)))
 			if (len(zugartList) == 1):
 				for tripStop in newTripStops.values():
 					tripStop["categorycode"] = zugartList[0][1]
@@ -467,7 +471,8 @@ class HrdfTTGWorker(Thread):
 		newTripStops - angepasster Laufweg für diese Fahrt
 		"""
 		allLs = self.__ttgcache.lookupFahrtLinien(fplanfahrtid)
-		if ( allLs is not None):		
+		if ( allLs is not None):
+			logger.debug("{}: Fahrt {} füge {} Element(e) aus Linien-Liste (L-Info) hinzu".format(self.__name, fplanfahrtid, len(allLs)))
 			if (len(allLs) == 1):
 				for tripStop in newTripStops.values():
 					tripStop["lineno"] = allLs[0][0]
@@ -503,6 +508,7 @@ class HrdfTTGWorker(Thread):
 		# Sobald ein Datensatz FahrtR vorhanden ist muss die "kompliziertere" Variante der Findung des richtigen Stops erfolgen
 		allRs = self.__ttgcache.lookupFahrtRichtung(fplanfahrtid)
 		if (allRs is not None):
+			logger.debug("{}: Fahrt {} füge {} Element(e) aus Richtungstext-Liste (R-Info) hinzu".format(self.__name, fplanfahrtid, len(allRs)))
 			for r in allRs:
 				sequenceNoList = self.getAffectedStops(r[1], r[2], r[3], r[4], newTripStops)
 				# Belegung der notwendigen Attribute und Defaultwerte beachten
@@ -523,6 +529,7 @@ class HrdfTTGWorker(Thread):
 		"""
 		allAs = self.__ttgcache.lookupFahrtAttribut(fplanfahrtid)
 		if (allAs is not None):
+			logger.debug("{}: Fahrt {} füge {} Element(e) aus Attribute-Liste (A-Info) hinzu".format(self.__name, fplanfahrtid, len(allAs)))
 			for a in allAs:
 				# ist die bitfieldno eine gueltige bitfieldno für heute 
 				if (a[5] is None or (a[5] in self.__bitfieldnumbers) or a[5] == 0):
@@ -543,6 +550,7 @@ class HrdfTTGWorker(Thread):
 		"""
 		allIs = self.__ttgcache.lookupFahrtInfo(fplanfahrtid)
 		if (allIs is not None):
+			logger.debug("{}: Fahrt {} füge {} Element(e) aus Infotext-Liste (I-Info) hinzu".format(self.__name, fplanfahrtid, len(allIs)))
 			for i in allIs:
 				# ist die bitfieldno eine gueltige bitfieldno für heute
 				if (i[5] is None or (i[5] in self.__bitfieldnumbers) or i[5] == 0):
@@ -564,6 +572,7 @@ class HrdfTTGWorker(Thread):
 		"""
 		allDurchBi = self.__ttgcache.lookupFahrtDuBi(fplanfahrtid)
 		if (allDurchBi is not None):
+			logger.debug("{}: Fahrt {} füge {} Element(e) aus Durbindungs-Liste hinzu".format(self.__name, fplanfahrtid, len(allDurchBi)))
 			for d in allDurchBi:
 				# ist die bitfieldno eine gueltige bitfieldno für heute
 				if (d[1] is None or (d[1] in self.__bitfieldnumbers) or d[1] == 0):

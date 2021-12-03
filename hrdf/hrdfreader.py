@@ -130,6 +130,7 @@ class HrdfReader:
 		curLookup = self.__hrdfdb.connection.cursor()
 		curLookup.execute(sql_stopsLookup, (self.__fkdict['fk_eckdatenid'],))
 		self.__hrdfdb.connection.commit()
+		logger.debug('LinesPerStop: {} eingefügte Datensätze'.format(curLookup.rowcount))
 		curLookup.close()
 
 	def determine_tripcount(self):
@@ -150,6 +151,7 @@ class HrdfReader:
 		curLookup = self.__hrdfdb.connection.cursor()
 		curLookup.execute(sql_tripsLookup, (self.__fkdict['fk_eckdatenid'],))
 		self.__hrdfdb.connection.commit()
+		logger.debug('TripCountPerOperator: {} eingefügte Datensätze'.format(curLookup.rowcount))
 		curLookup.close()
 
 	def read_bitfeld(self, filename):
@@ -183,6 +185,7 @@ class HrdfReader:
 		cur = self.__hrdfdb.connection.cursor()
 		cur.copy_expert("COPY HRDF_BITFELD_TAB (fk_eckdatenid,bitfieldno,bitfield,bitfieldextend,bitfieldarray) FROM STDIN USING DELIMITERS ';' NULL AS ''",bitfeld_strIO)
 		self.__hrdfdb.connection.commit()
+		logger.debug('BitField: {} eingefügte Datensätze'.format(cur.rowcount))
 		cur.close()
 		bitfeld_strIO.close()
 
@@ -219,6 +222,7 @@ class HrdfReader:
 		cur = self.__hrdfdb.connection.cursor()
 		cur.copy_expert("COPY HRDF_BAHNHOF_TAB (fk_eckdatenid,stopno,transportUnion,stopname,stopnamelong,stopnameshort,stopnamealias) FROM STDIN USING DELIMITERS ';' NULL AS ''", bahnhof_strIO)
 		self.__hrdfdb.connection.commit()
+		logger.debug('Bahnhof: {} eingefügte Datensätze'.format(cur.rowcount))
 		cur.close()
 		bahnhof_strIO.close()
 
@@ -240,6 +244,7 @@ class HrdfReader:
 		cur = self.__hrdfdb.connection.cursor()
 		cur.copy_expert("COPY HRDF_GLEIS_TAB (fk_eckdatenid,stopno,tripno,operationalno,stoppointtext,stoppointtime,bitfieldno) FROM STDIN USING DELIMITERS ';' NULL AS ''", gleis_strIO)
 		self.__hrdfdb.connection.commit()
+		logger.debug('Gleis: {} eingefügte Datensätze'.format(cur.rowcount))
 		cur.close()
 		gleis_strIO.close()
 
@@ -257,6 +262,7 @@ class HrdfReader:
 		cur = self.__hrdfdb.connection.cursor()
 		cur.copy_expert("COPY HRDF_RICHTUNG_TAB (fk_eckdatenid,directioncode, directiontext) FROM STDIN USING DELIMITERS ';' NULL AS ''", richtung_strIO)
 		self.__hrdfdb.connection.commit()
+		logger.debug('Richtung: {} eingefügte Datensätze'.format(cur.rowcount))
 		cur.close()
 		richtung_strIO.close()
 
@@ -308,10 +314,15 @@ class HrdfReader:
 
 		cur = self.__hrdfdb.connection.cursor()
 		cur.copy_expert("COPY HRDF_ZUGART_TAB (fk_eckdatenid,categorycode,classno,tariffgroup,outputcontrol,categorydesc,extracharge,flags,categoryimage,categoryno) FROM STDIN USING DELIMITERS ';' NULL AS ''", zugart_strIO)
+		zugartRows = cur.rowcount
 		cur.copy_expert("COPY HRDF_ZUGARTKategorie_TAB (fk_eckdatenid,categoryno,languagecode,categorytext) FROM STDIN USING DELIMITERS ';' NULL AS ''",zugartcategory_strIO)
+		zugartKatRows = cur.rowcount
 		cur.copy_expert("COPY HRDF_ZUGARTKlasse_TAB (fk_eckdatenid,classno,languagecode,classtext) FROM STDIN USING DELIMITERS ';' NULL AS ''",zugartclass_strIO)
+		zugartClassRows = cur.rowcount
 		cur.copy_expert("COPY HRDF_ZUGARTOption_TAB (fk_eckdatenid,optionno,languagecode,optiontext) FROM STDIN USING DELIMITERS ';' NULL AS ''",zugartoption_strIO)
+		zugartOptRows = cur.rowcount
 		self.__hrdfdb.connection.commit()
+		logger.debug('Zugart: {} ZugartKategorie: {} ZugartKlasse: {} ZuartOption: {} eingefügte Datensätze'.format(zugartRows, zugartKatRows, zugartClassRows, zugartOptRows))
 		cur.close()
 		zugart_strIO.close()
 		zugartcategory_strIO.close()
@@ -363,6 +374,7 @@ class HrdfReader:
 		cur = self.__hrdfdb.connection.cursor()
 		cur.copy_expert("COPY HRDF_ATTRIBUT_TAB (fk_eckdatenid,attributecode,languagecode,stopcontext,outputprio,outputpriosort,attributetext,outputforsection,outputforcomplete) FROM STDIN USING DELIMITERS ';' NULL AS ''", attribute_strIO)
 		self.__hrdfdb.connection.commit()
+		logger.debug('Attribute: {} eingefügte Datensätze'.format(cur.rowcount))
 		cur.close()
 		attribute_strIO.close()
 
@@ -390,6 +402,7 @@ class HrdfReader:
 		cur = self.__hrdfdb.connection.cursor()
 		cur.copy_expert("COPY HRDF_INFOTEXT_TAB (fk_eckdatenid,infotextno,languagecode,infotext) FROM STDIN USING DELIMITERS ';' NULL AS ''", infotext_strIO)
 		self.__hrdfdb.connection.commit()
+		logger.debug('InfoText: {} eingefügte Datensätze'.format(cur.rowcount))
 		cur.close()
 		infotext_strIO.close()
 
@@ -414,6 +427,7 @@ class HrdfReader:
 		cur = self.__hrdfdb.connection.cursor()
 		cur.copy_expert("COPY HRDF_DURCHBI_TAB (fk_eckdatenid,tripno1,operationalno1,laststopno1,tripno2,operationalno2,bitfieldno,firststopno2,attribute,comment) FROM STDIN USING DELIMITERS ';' NULL AS ''", durchbi_strIO)
 		self.__hrdfdb.connection.commit()
+		logger.debug('Durchbindung: {} eingefügte Datensätze'.format(cur.rowcount))
 		cur.close()
 		durchbi_strIO.close()
 
@@ -433,6 +447,7 @@ class HrdfReader:
 		cur = self.__hrdfdb.connection.cursor()
 		cur.copy_expert("COPY HRDF_BFKOORD_TAB (fk_eckdatenid,stopno,longitude_geo,latitude_geo,altitude_geo) FROM STDIN USING DELIMITERS ';' NULL AS ''", bfkoordgeo_strIO)
 		self.__hrdfdb.connection.commit()
+		logger.debug('BFKoord_GEO: {} eingefügte Datensätze'.format(cur.rowcount))
 		cur.close()
 		bfkoordgeo_strIO.close()
 
@@ -451,6 +466,7 @@ class HrdfReader:
 		cur = self.__hrdfdb.connection.cursor()
 		cur.copy_expert("COPY HRDF_UMSTEIGB_TAB (fk_eckdatenid,stopno,transfertime1,transfertime2) FROM STDIN USING DELIMITERS ';' NULL AS ''", umsteigb_strIO)
 		self.__hrdfdb.connection.commit()
+		logger.debug('UmsteigB: {} eingefügte Datensätze'.format(cur.rowcount))
 		cur.close()
 		umsteigb_strIO.close()
 
@@ -468,6 +484,7 @@ class HrdfReader:
 		cur = self.__hrdfdb.connection.cursor()
 		cur.copy_expert("COPY HRDF_BFPRIOS_TAB (fk_eckdatenid,stopno,transferprio) FROM STDIN USING DELIMITERS ';' NULL AS ''", bfprios_strIO)
 		self.__hrdfdb.connection.commit()
+		logger.debug('BFPRIOS: {} eingefügte Datensätze'.format(cur.rowcount))
 		cur.close()
 		bfprios_strIO.close()
 
@@ -551,6 +568,7 @@ class HrdfReader:
 		curUB = self.__hrdfdb.connection.cursor()
 		curUB.copy_expert("COPY HRDF_METABHF_TAB (fk_eckdatenid,stopnofrom,stopnoto,transfertimemin,transfertimesec,attributecode) FROM STDIN USING DELIMITERS ';' NULL AS ''", metabhfUB_strIO)
 		self.__hrdfdb.connection.commit()
+		logger.debug('METABHF: {} eingefügte Datensätze'.format(curUB.rowcount))
 		curUB.close()
 		metabhfUB_strIO.close()
 
@@ -558,6 +576,7 @@ class HrdfReader:
 		curHG = self.__hrdfdb.connection.cursor()
 		curHG.copy_expert("COPY HRDF_METABHFGRUPPE_TAB (fk_eckdatenid,stopgroupno,stopmember) FROM STDIN USING DELIMITERS ';' NULL AS ''", metabhfHG_strIO)
 		self.__hrdfdb.connection.commit()
+		logger.debug('METABHFGRUPPE: {} eingefügte Datensätze'.format(curHG.rowcount))
 		curHG.close()
 		metabhfHG_strIO.close()
 
@@ -626,6 +645,7 @@ class HrdfReader:
 
 		bDataLinesRead = False
 		iSequenceCnt = 0
+		iNumberFplanFahrt = 0
 		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
 			line = line.decode(self.__charset).replace('\r\n','')
 
@@ -633,6 +653,7 @@ class HrdfReader:
 				if bDataLinesRead:
 					# Datenzeilen wurden gelesen, wir sind jetzt wieder beim nächsten Zug und schreiben den Vorgänger erstmal in die DB
 					self.save_currentFplanFahrt()
+					iNumberFplanFahrt += 1
 					bDataLinesRead = False
 					iSequenceCnt = 0
 
@@ -796,7 +817,9 @@ class HrdfReader:
 		# Nach dem Durchlauf der Schleife muss der letzte Zug noch gespeichert werden
 		if bDataLinesRead:
 			self.save_currentFplanFahrt()
+			iNumberFplanFahrt += 1
 			bDataLinesRead = False
 			iSequenceCnt = 0
 
+		logger.debug('FplanFahrt: {} eingefügte Datensätze'.format(iNumberFplanFahrt))
 		curIns.close()

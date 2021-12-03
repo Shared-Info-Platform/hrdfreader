@@ -143,6 +143,7 @@ class HrdfTTGCache:
 		curFahrtZugart = self.__hrdfdb.connection.cursor()
 		curFahrtZugart.execute(sql_zugartLookup, (eckdatenid,))
 		fahrtZugarten = curFahrtZugart.fetchall()
+		logger.debug("Es werden {} Zugarten analysiert".format(len(fahrtZugarten)))
 		curFahrtZugart.close()
 		for fahrtZugart in fahrtZugarten:
 			fahrtId = fahrtZugart[0]
@@ -169,6 +170,7 @@ class HrdfTTGCache:
 		curBahnhof = self.__hrdfdb.connection.cursor()
 		curBahnhof.execute(sql_bahnhofLookup, (eckdatenid,))		
 		bahnhoefe = curBahnhof.fetchall()
+		logger.debug("Es werden {} Bahnhöfe analysiert".format(len(bahnhoefe)))
 		curBahnhof.close()
 		for bahnhof in bahnhoefe:
 			self.__bahnhofLookup[bahnhof[0]] = bahnhof
@@ -187,6 +189,7 @@ class HrdfTTGCache:
 		curGleis.execute(sql_selGleisData, (eckdatenid,))
 		allGleise = curGleis.fetchall()
 		curGleis.close()
+		logger.debug("Es werden {} Haltepositionstexte analysiert".format(len(allGleise)))
 		for gleis in allGleise:
 			if (gleis[3] is None or gleis[3] == 0):
 				self.__gleisLookup[gleis[1]] = gleis[2]
@@ -219,6 +222,7 @@ class HrdfTTGCache:
 		curStop = self.__hrdfdb.connection.cursor()
 		curStop.execute(sql_selStops, (eckdatenid,))
 		allTripStops = curStop.fetchall()
+		logger.debug("Es werden {} Fahrtlaufwege analysiert".format(len(allTripStops)))
 		curStop.close()
 		for tripStop in allTripStops:
 			if (tripStop[11] in self.__allTripStopsLookup):
@@ -235,6 +239,7 @@ class HrdfTTGCache:
 		curVE = self.__hrdfdb.connection.cursor()
 		curVE.execute(sql_selVEData, (eckdatenid,))
 		allVEs = curVE.fetchall()
+		logger.debug("Es werden {} Verkehrstagesinformationen analysiert".format(len(allVEs)))
 		curVE.close()
 		for fahrtVE in allVEs:
 			if (fahrtVE[5] in self.__allVEsLookup):
@@ -251,6 +256,7 @@ class HrdfTTGCache:
 		curL = self.__hrdfdb.connection.cursor()
 		curL.execute(sql_selLData, (eckdatenid,))
 		allLs = curL.fetchall()
+		logger.debug("Es werden {} Linieninformationen analysiert".format(len(allLs)))
 		curL.close()
 		for fahrtL in allLs:
 			if (fahrtL[5] in self.__fahrtLinienLookup):
@@ -273,6 +279,7 @@ class HrdfTTGCache:
 		curR = self.__hrdfdb.connection.cursor()
 		curR.execute(sql_selRData, (eckdatenid,))
 		allRs = curR.fetchall()
+		logger.debug("Es werden {} Richtungstexte analysiert".format(len(allRs)))
 		curR.close()
 		for fahrtR in allRs:
 			if (fahrtR[6] in self.__fahrtRichtungLookup):
@@ -303,6 +310,7 @@ class HrdfTTGCache:
 		curA = self.__hrdfdb.connection.cursor()
 		curA.execute(sql_selAData, (eckdatenid,))
 		allAs = curA.fetchall()
+		logger.debug("Es werden {} Fahrtattribute analysiert".format(len(allAs)))
 		curA.close()
 		for fahrtA in allAs:
 			if (fahrtA[13] in self.__fahrtAttributLookup):
@@ -330,6 +338,7 @@ class HrdfTTGCache:
 		curI = self.__hrdfdb.connection.cursor()
 		curI.execute(sql_selIData, (eckdatenid,))
 		allIs = curI.fetchall()
+		logger.debug("Es werden {} Fahrtinfotexte analysiert".format(len(allIs)))
 		curI.close()
 		for fahrtI in allIs:
 			if (fahrtI[10] in self.__fahrtInfoLookup):
@@ -340,7 +349,7 @@ class HrdfTTGCache:
 				self.__fahrtInfoLookup[fahrtI[10]] = IList
 		allIs.clear()
 
-		# Lookup für die DurchbindungsInformation zu einer Fahrt
+		# Lookup für die DurchbindungsInformation zu einer Fahrt		 
 		logger.info("Lookup für Durchbindungsinformation der Fahrten aufbauen")
 		sql_selDurchBiData = "SELECT b.laststopno1, b.bitfieldno, b.tripno2, b.operationalno2, coalesce(b.firststopno2, b.laststopno1), b.comment, a.id "\
 						"  FROM HRDF_FPlanFahrt_TAB a, "\
@@ -352,6 +361,7 @@ class HrdfTTGCache:
 		curDurchBi = self.__hrdfdb.connection.cursor()
 		curDurchBi.execute(sql_selDurchBiData, (eckdatenid,))
 		allDurchBi = curDurchBi.fetchall()
+		logger.debug("Es werden {} Durchbindungsinformation der Fahrten analysiert".format(len(allDurchBi)))
 		curDurchBi.close()
 		for fahrtDuBI in allDurchBi:
 			if (fahrtDuBI[6] in self.__fahrtDurchbindungLookup):
@@ -360,4 +370,4 @@ class HrdfTTGCache:
 				DuBiList = list()
 				DuBiList.append(fahrtDuBI)
 				self.__fahrtDurchbindungLookup[fahrtDuBI[6]] = DuBiList
-		allDurchBi.clear()
+		allDurchBi.clear()		
