@@ -87,7 +87,7 @@ if __name__ == '__main__':
 			# Logging initialisieren
 			loglevel = "INFO"
 			if (paraCnt >=3):
-				loglevel = sys.argv[2]
+				loglevel = sys.argv[2].upper()
 			initialize_logging(loglevel)
 		
 			# Default für die Datenbank
