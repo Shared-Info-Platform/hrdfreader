@@ -24,6 +24,7 @@ def load_hrdfzipfile(filename, dbname, host):
 		INFOTEXT_XX (sprachabhängig)
 		DURCHBI
 		BFKOORD_GEO
+		BFKOORD_WGS
 		UMSTEIGB
 		BFPRIOS
 		METABHF
@@ -34,7 +35,7 @@ def load_hrdfzipfile(filename, dbname, host):
 
 		# ZipFile öffnen und zu lesende Dateien bestimmen
 		hrdfzip = zipfile.ZipFile(filename, 'r')
-		hrdffiles = ['ECKDATEN','BITFELD','RICHTUNG','BAHNHOF','GLEIS','ZUGART','ATTRIBUT','INFOTEXT','DURCHBI','BFKOORD_GEO','UMSTEIGB','BFPRIOS','METABHF','FPLAN']
+		hrdffiles = ['ECKDATEN','BITFELD','RICHTUNG','BAHNHOF','GLEIS','ZUGART','ATTRIBUT','INFOTEXT','DURCHBI','BFKOORD_GEO','BFKOORD_WGS','UMSTEIGB','BFPRIOS','METABHF','FPLAN']
 		
 		# Initialisierung des HRDF-Readers und lesen der gewünschten HRDF-Dateien
 		reader = HrdfReader(hrdfzip, hrdf_db, hrdffiles)
@@ -65,6 +66,7 @@ def initialize_logging(loglevel):
 	# Aktivierung der Log-Handler
 	logger.addHandler(logFH)
 	logger.addHandler(logCH)
+
 if __name__ == '__main__':
 	# Auswertung der übergebenen Parameter
 	paraCnt = len(sys.argv)
@@ -76,21 +78,26 @@ if __name__ == '__main__':
 		print("dbname\t\tDatenbankname (default => hrdfdb)")
 		print("host\t\tHost auf dem die Datenbank läuft (default => 127.0.0.1)")
 	else:
-		zipfilename = sys.argv[1]
-		# Logging initialisieren
-		loglevel = "INFO"
-		if (paraCnt >=3):
-			loglevel = sys.argv[2]
-		initialize_logging(loglevel)
+
+		if (sys.argv[1] == "-v"):
+			print("\nHRDF-Reader: Import-Modul Version 1")
+			print("HRDF-Format: 5.20.39")
+		else:
+			zipfilename = sys.argv[1]
+			# Logging initialisieren
+			loglevel = "INFO"
+			if (paraCnt >=3):
+				loglevel = sys.argv[2]
+			initialize_logging(loglevel)
 		
-		# Default für die Datenbank
-		dbname = "hrdfdb"
-		if (paraCnt >= 4):
-			dbname = sys.argv[3]
+			# Default für die Datenbank
+			dbname = "hrdfdb"
+			if (paraCnt >= 4):
+				dbname = sys.argv[3]
 
-		# Default für den Host
-		host = "127.0.0.1"
-		if (paraCnt >= 5):
-			host = sys.argv[4]
+			# Default für den Host
+			host = "127.0.0.1"
+			if (paraCnt >= 5):
+				host = sys.argv[4]
 
-		load_hrdfzipfile(zipfilename, dbname, host)
+			load_hrdfzipfile(zipfilename, dbname, host)

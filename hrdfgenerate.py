@@ -72,28 +72,32 @@ if __name__ == '__main__':
 		print("dbname\t\tDatenbankname (default => hrdfdb)")
 		print("host\t\tHost auf dem die Datenbank läuft (default => 127.0.0.1)")
 	else:
-		eckdatenId = sys.argv[1]
+		if (sys.argv[1] == "-v"):
+			print("\nHRDF-Reader: Tagesfahrplan-Modul Version 1")
+			print("HRDF-Format: 5.20.39")
+		else:
+			eckdatenId = sys.argv[1]
 
-		# Default für den Generierungszeitraum (=> heute)
-		generateFrom = "{:%d.%m.%Y}".format(datetime.now().date())
-		generateTo = generateFrom
-		if (paraCnt >= 4):
-			generateFrom = sys.argv[2]
-			generateTo = sys.argv[3]
+			# Default für den Generierungszeitraum (=> heute)
+			generateFrom = "{:%d.%m.%Y}".format(datetime.now().date())
+			generateTo = generateFrom
+			if (paraCnt >= 4):
+				generateFrom = sys.argv[2]
+				generateTo = sys.argv[3]
 
-		# Logging initialisieren
-		loglevel = "INFO"
-		if (paraCnt >=5):
-			loglevel = sys.argv[4]
-		initialize_logging(loglevel)
-		# Default für die Datenbank
-		dbname = "hrdfdb"
-		if (paraCnt >= 6):
-			dbname = sys.argv[5]
+			# Logging initialisieren
+			loglevel = "INFO"
+			if (paraCnt >=5):
+				loglevel = sys.argv[4]
+			initialize_logging(loglevel)
+			# Default für die Datenbank
+			dbname = "hrdfdb"
+			if (paraCnt >= 6):
+				dbname = sys.argv[5]
 
-		# Default für den Host
-		host = "127.0.0.1"
-		if (paraCnt >= 7):
-			host = sys.argv[6]
+			# Default für den Host
+			host = "127.0.0.1"
+			if (paraCnt >= 7):
+				host = sys.argv[6]
 
-		generate_timetable_from_hrdf(eckdatenId, generateFrom, generateTo, dbname, host)
+			generate_timetable_from_hrdf(eckdatenId, generateFrom, generateTo, dbname, host)
