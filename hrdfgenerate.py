@@ -88,7 +88,7 @@ if __name__ == '__main__':
 			# Logging initialisieren
 			loglevel = "INFO"
 			if (paraCnt >=5):
-				loglevel = sys.argv[4]
+				loglevel = sys.argv[4].upper()
 			initialize_logging(loglevel)
 			# Default für die Datenbank
 			dbname = "hrdfdb"
