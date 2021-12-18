@@ -41,7 +41,7 @@ class HrdfTTGCache:
 	def lookupBahnhof(self, stopno):
 		""" Lookup auf die Bahnhofs-Informationen für die Fahrt """
 		if (stopno in self.__bahnhofLookup):
-			self.__bahnhofLookup[stopno]
+			return self.__bahnhofLookup[stopno]			
 		else:
 			return None
 
