@@ -73,8 +73,8 @@ if __name__ == '__main__':
 		print("host\t\tHost auf dem die Datenbank läuft (default => 127.0.0.1)")
 	else:
 		if (sys.argv[1] == "-v"):
-			print("\nHRDF-Reader: Tagesfahrplan-Modul Version 1")
-			print("HRDF-Format: 5.20.39")
+			print("\nHRDF-Reader: Tagesfahrplan-Modul Version {}".format(HrdfTTG.modulVersion))
+			print("HRDF-Formate: {}".format(HrdfTTG.hrdfFormats))
 		else:
 			eckdatenId = sys.argv[1]
 
@@ -88,7 +88,7 @@ if __name__ == '__main__':
 			# Logging initialisieren
 			loglevel = "INFO"
 			if (paraCnt >=5):
-				loglevel = sys.argv[4]
+				loglevel = sys.argv[4].upper()
 			initialize_logging(loglevel)
 			# Default für die Datenbank
 			dbname = "hrdfdb"

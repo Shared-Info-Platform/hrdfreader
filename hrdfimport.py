@@ -23,7 +23,6 @@ def load_hrdfzipfile(filename, dbname, host):
 		ATTRIBUT_XX (sprachabhängig)
 		INFOTEXT_XX (sprachabhängig)
 		DURCHBI
-		BFKOORD_GEO
 		BFKOORD_WGS
 		UMSTEIGB
 		BFPRIOS
@@ -35,7 +34,7 @@ def load_hrdfzipfile(filename, dbname, host):
 
 		# ZipFile öffnen und zu lesende Dateien bestimmen
 		hrdfzip = zipfile.ZipFile(filename, 'r')
-		hrdffiles = ['ECKDATEN','BITFELD','RICHTUNG','BAHNHOF','GLEIS','ZUGART','ATTRIBUT','INFOTEXT','DURCHBI','BFKOORD_GEO','UMSTEIGB','BFPRIOS','METABHF','FPLAN']
+		hrdffiles = ['ECKDATEN','BITFELD','RICHTUNG','BAHNHOF','GLEIS','ZUGART','ATTRIBUT','INFOTEXT','DURCHBI','BFKOORD_WGS','UMSTEIGB','BFPRIOS','METABHF','FPLAN']
 		
 		# Initialisierung des HRDF-Readers und lesen der gewünschten HRDF-Dateien
 		reader = HrdfReader(hrdfzip, hrdf_db, hrdffiles)
@@ -80,14 +79,14 @@ if __name__ == '__main__':
 	else:
 
 		if (sys.argv[1] == "-v"):
-			print("\nHRDF-Reader: Import-Modul Version 1")
-			print("HRDF-Format: 5.20.39")
+			print("\nHRDF-Reader: Import-Modul Version {}".format(HrdfReader.modulVersion))
+			print("HRDF-Formate: {}".format(HrdfReader.hrdfFormats))
 		else:
 			zipfilename = sys.argv[1]
 			# Logging initialisieren
 			loglevel = "INFO"
 			if (paraCnt >=3):
-				loglevel = sys.argv[2]
+				loglevel = sys.argv[2].upper()
 			initialize_logging(loglevel)
 		
 			# Default für die Datenbank
