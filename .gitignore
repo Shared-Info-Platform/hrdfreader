@@ -3,3 +3,8 @@
 ################################################################################
 
 /runImport.bat
+/runGenerate.bat
+/log/*.log
+/hrdf/__pycache__/*.pyc
+/example.ini
+/.vs/*
