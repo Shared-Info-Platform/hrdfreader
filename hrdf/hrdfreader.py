@@ -17,6 +17,8 @@ class HrdfReader:
 	HrdfReader(hrdfzipfile, db, hrdffiles)
 
 	"""
+	modulVersion = "2.0.1"
+	hrdfFormats = ["5.40.41"]
 	def __init__(self, hrdfzipfile, db, hrdffiles, charset='utf-8'):
 		"""
 		hrdfzipfile	- HRDF-ZipFile
@@ -78,7 +80,7 @@ class HrdfReader:
 				self.read_gleis(filename)
 			elif filename == "DURCHBI":
 				self.read_durchbi(filename)
-			elif filename == "BFKOORD_GEO":
+			elif filename == "BFKOORD_WGS":
 				self.read_bfkoordgeo(filename)
 			elif filename == "UMSTEIGB":
 				self.read_umsteigb(filename)
@@ -229,17 +231,48 @@ class HrdfReader:
 	def read_gleis(self, filename):
 		"""Lesen der Datei GLEIS"""
 		logger.info('lesen und verarbeiten der Datei GLEIS')
-		gleis_strIO = StringIO()
+		# Lesen der kompletten Datei, um Index-Tabelle mit Gleis-Bezeichnungen aufzubauen.
+		gleisTexte = dict();
+		gleisInfoList = list();
 		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
 			line = line.decode(self.__charset).replace('\r\n', '')
-			gleis_strIO.write(self.__fkdict['fk_eckdatenid']+';'
-										 +line[:7].strip()+';'
-										 +line[8:13].strip()+';'
-										 +line[14:20].strip()+';'
-										 +line[21:29].strip()+';'
-										 +line[30:34].strip()+';'
-										 +line[35:41].strip()
-										+'\n')
+			if (line[8] == "#"):
+				# Es handelt sich um das Zeilenformat "Definition der Gleistexte"
+				gleisTextKey = line[:7]+'-'+line[8:16];
+				text = line[17:].strip()
+				# extrahieren der einzelnen Gleistext-Komponenten
+				result = re.findall("G '([\w\/-]+)'( A '([\w\/-]+)')?( T '(.+)')?", text)
+				if (len(result) == 0):
+					logger.warning("Gleisbezeichnung konnte nicht ermittelt werden <{}>".format(text))
+				else:
+					gleisTexte[gleisTextKey] = "{}{}{}".format(result[0][0], result[0][4], result[0][2])
+			else:
+				# Es handelt sich um das Zeilenformat "Zuordnung der Gleistexte"
+				stopno = line[:7].strip();
+				tripno = line[8:14].strip();
+				operationalno = line[15:21].strip()				
+				indexText = line[22:30].strip()
+				stoppointtime = line[31:35].strip()
+				bitfieldno = line[36:42].strip()
+				gleisTextKey = stopno+'-'+indexText
+				gleisInfoList.append(tuple((gleisTextKey, stopno, tripno, operationalno, stoppointtime, bitfieldno)))
+
+		gleis_strIO = StringIO()
+		for gleisInfo in gleisInfoList:
+			stoppointtext = ""
+			try:
+				stoppointtext = gleisTexte[gleisInfo[0]]
+				gleis_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+								+gleisInfo[1]+';'
+								+gleisInfo[2]+';'
+								+gleisInfo[3]+';'
+								+stoppointtext+';'
+								+gleisInfo[4]+';'
+								+gleisInfo[5]+'\n')
+			except:
+				logger.warning("Gleisbezeichnung wurde nicht eingetragen für {}".format(gleisInfo))
+
+
 		gleis_strIO.seek(0)
 		cur = self.__hrdfdb.connection.cursor()
 		cur.copy_expert("COPY HRDF_GLEIS_TAB (fk_eckdatenid,stopno,tripno,operationalno,stoppointtext,stoppointtime,bitfieldno) FROM STDIN USING DELIMITERS ';' NULL AS ''", gleis_strIO)
@@ -393,12 +426,12 @@ class HrdfReader:
 		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
 			line = line.decode(self.__charset).replace('\r\n', '')
 			infotext_strIO.write(self.__fkdict['fk_eckdatenid']+';'
-										+line[:7]+';'
+										+line[:9]+';'
 										+sprache.lower()+';'
-										+line[8:].replace(';','\;')
+										+line[10:].replace(';','\;')
 										+'\n')
 		
-		infotext_strIO.seek(0)
+		infotext_strIO.seek(0) 
 		cur = self.__hrdfdb.connection.cursor()
 		cur.copy_expert("COPY HRDF_INFOTEXT_TAB (fk_eckdatenid,infotextno,languagecode,infotext) FROM STDIN USING DELIMITERS ';' NULL AS ''", infotext_strIO)
 		self.__hrdfdb.connection.commit()
@@ -413,15 +446,15 @@ class HrdfReader:
 		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
 			line = line.decode(self.__charset).replace('\r\n', '')
 			durchbi_strIO.write(self.__fkdict['fk_eckdatenid']+';'
-										 +line[:5]+';'
-										 +line[6:12].strip()+';'
-										 +line[13:20]+';'
-										 +line[21:26]+';'
-										 +line[27:33].strip()+';'
-										 +line[34:40]+';'
-										 +line[41:48]+';'
-										 +line[49:51].strip()+';'
-										 +line[53:].strip()
+										 +line[:6]+';'
+										 +line[7:13].strip()+';'
+										 +line[14:21]+';'
+										 +line[22:28]+';'
+										 +line[29:35].strip()+';'
+										 +line[36:42]+';'
+										 +line[43:50]+';'
+										 +line[51:53].strip()+';'
+										 +line[54:].strip()
 										+'\n')
 		durchbi_strIO.seek(0)
 		cur = self.__hrdfdb.connection.cursor()
@@ -433,7 +466,7 @@ class HrdfReader:
 
 	def read_bfkoordgeo(self, filename):
 		"""Lesen der Datei BFKOORD_GEO"""
-		logger.info('lesen und verarbeiten der Datei BFKOORD_GEO')
+		logger.info('lesen und verarbeiten der Datei BFKOORD_WGS')
 		bfkoordgeo_strIO = StringIO()
 		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
 			line = line.decode(self.__charset).replace('\r\n', '')
@@ -447,7 +480,7 @@ class HrdfReader:
 		cur = self.__hrdfdb.connection.cursor()
 		cur.copy_expert("COPY HRDF_BFKOORD_TAB (fk_eckdatenid,stopno,longitude_geo,latitude_geo,altitude_geo) FROM STDIN USING DELIMITERS ';' NULL AS ''", bfkoordgeo_strIO)
 		self.__hrdfdb.connection.commit()
-		logger.debug('BFKoord_GEO: {} eingefügte Datensätze'.format(cur.rowcount))
+		logger.debug('BFKoord_WGS: {} eingefügte Datensätze'.format(cur.rowcount))
 		cur.close()
 		bfkoordgeo_strIO.close()
 
@@ -704,13 +737,13 @@ class HrdfReader:
 				elif line[:2] == "*Z":
 					self.__AVE_type = line[:2]
 					sql_string = "INSERT INTO HRDF_FPLANFahrt_TAB (fk_eckdatenid,triptype,tripno,operationalno,tripversion,cyclecount,cycletimemin) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id;"
-					cyclecount = line[22:25].strip()
-					cycletimemin = line[26:29].strip()
+					cyclecount = line[23:26].strip()
+					cycletimemin = line[27:30].strip()
 					if not cyclecount:
 						cyclecount = None
 					if not cycletimemin:
 						cycletimemin = None
-					curIns.execute(sql_string, (self.__fkdict['fk_eckdatenid'], line[1:2], line[3:8], line[9:15], line[18:21], cyclecount, cycletimemin))
+					curIns.execute(sql_string, (self.__fkdict['fk_eckdatenid'], line[1:2], line[3:9], line[10:16], line[17:22], cyclecount, cycletimemin))
 					self.__fkdict["fk_fplanfahrtid"] = str(curIns.fetchone()[0])
 
 				elif line[:2] == "*T":
@@ -776,12 +809,12 @@ class HrdfReader:
 					self.__fplanFahrtI_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
 													+self.__fkdict["fk_fplanfahrtid"]+';'
 													+line[3:5].strip()+';'
-													+line[29:36].strip()+';'
+													+line[29:38].strip()+';'
 													+line[6:13].strip()+';'
 													+line[14:21].strip()+';'
 													+line[22:28].strip()+';'
-													+line[37:43].strip()+';'
-													+line[44:50].strip()+
+													+line[39:45].strip()+';'
+													+line[46:52].strip()+
 													'\n')
 
 				elif line[:2] == "*L":
