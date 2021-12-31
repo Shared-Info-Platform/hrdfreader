@@ -6,6 +6,26 @@
 \set TBSINDEXNAME tbs_ :DBNAME _index
 
 /*
+\brief	table that holds the update history of database
+*/
+CREATE TABLE HRDF_UPDATEHISTORY_TAB
+(
+  id				SERIAL			NOT NULL,
+  databaseVersion varchar(10) NOT NULL,
+  scriptName	varchar(100)	NOT NULL,
+  scriptVersion varchar(10)   NOT NULL,
+  description   varchar       NULL
+)
+WITH ( OIDS=FALSE )
+TABLESPACE :TBSDATANAME;
+ALTER TABLE HRDF_UPDATEHISTORY_TAB ADD CONSTRAINT PK_HRDF_UPDATEHISTORY_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+COMMENT ON TABLE HRDF_UPDATEHISTORY_TAB IS 'Update Historie der Datenbank';
+COMMENT ON COLUMN HRDF_UPDATEHISTORY_TAB.databaseVersion is '+ Dateiname der Importdatei';
+COMMENT ON COLUMN HRDF_UPDATEHISTORY_TAB.scriptName is '+ Startzeitpunkt des Imports';
+COMMENT ON COLUMN HRDF_UPDATEHISTORY_TAB.scriptVersion is 'erster Gueltigkeitstag des Fahrplans';
+COMMENT ON COLUMN HRDF_UPDATEHISTORY_TAB.description is 'letzter Gueltigkeitstag des Fahrplans';
+
+/*
 \brief	table for file ECKDATEN (with extensions)
 */
 CREATE TABLE HRDF_ECKDATEN_TAB
@@ -22,7 +42,8 @@ CREATE TABLE HRDF_ECKDATEN_TAB
   exportsystem		varchar(20)		NULL,
   deleteFlag		bool			NULL,
   inactive		bool			NULL,
-  ttgenerated		date[]			NULL
+  ttgenerated		date[]			NULL,
+  importstatus		varchar(20)		NULL
 )
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
@@ -40,6 +61,7 @@ COMMENT ON COLUMN HRDF_ECKDATEN_TAB.exportsystem is '+ System von dem die HRDF-D
 COMMENT ON COLUMN HRDF_ECKDATEN_TAB.deleteFlag is '+ Markierung, dass die Daten gelöscht werden sollen';
 COMMENT ON COLUMN HRDF_ECKDATEN_TAB.inactive is 'Markierung, dass die Daten nicht verwendet werden sollen';
 COMMENT ON COLUMN HRDF_ECKDATEN_TAB.ttgenerated is 'Array mit den Tagen, für die die Tagesfahrpläne bereits generiert wurden';
+COMMENT ON COLUMN HRDF_ECKDATEN_TAB.importstatus is 'Status des Imports dieser Daten (ok,running,error)';
 
 /*
 \brief	table for file BITFELD
