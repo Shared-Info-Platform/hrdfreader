@@ -20,10 +20,10 @@ WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_UPDATEHISTORY_TAB ADD CONSTRAINT PK_HRDF_UPDATEHISTORY_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
 COMMENT ON TABLE HRDF_UPDATEHISTORY_TAB IS 'Update Historie der Datenbank';
-COMMENT ON COLUMN HRDF_UPDATEHISTORY_TAB.databaseVersion is '+ Dateiname der Importdatei';
-COMMENT ON COLUMN HRDF_UPDATEHISTORY_TAB.scriptName is '+ Startzeitpunkt des Imports';
-COMMENT ON COLUMN HRDF_UPDATEHISTORY_TAB.scriptVersion is 'erster Gueltigkeitstag des Fahrplans';
-COMMENT ON COLUMN HRDF_UPDATEHISTORY_TAB.description is 'letzter Gueltigkeitstag des Fahrplans';
+COMMENT ON COLUMN HRDF_UPDATEHISTORY_TAB.databaseVersion is 'Dateiname der Importdatei';
+COMMENT ON COLUMN HRDF_UPDATEHISTORY_TAB.scriptName is 'Name des Script, das ausgeführt wurde';
+COMMENT ON COLUMN HRDF_UPDATEHISTORY_TAB.scriptVersion is 'Version des Script, das ausgeführt wurde';
+COMMENT ON COLUMN HRDF_UPDATEHISTORY_TAB.description is 'Beschreibung der Änderungen';
 
 /*
 \brief	table for file ECKDATEN (with extensions)
