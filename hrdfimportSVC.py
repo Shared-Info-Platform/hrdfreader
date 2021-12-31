@@ -47,7 +47,7 @@ if __name__ == '__main__':
 			print("HRDF-Formate: {}".format(HrdfReader.hrdfFormats))
 		elif (sys.arg[1] == "-h"):
 			print("\nAufruf: hrdfimportSVC.py [<configFile>]\n")
-			print("configFile\tPfad/Name der Konfigurationsdatei für den HRDF-Import-Service (default=> importSVC.config")
+			print("configFile\tPfad/Name der Konfigurationsdatei für den HRDF-Import-Service (default=> hrdfconfig.config")
 		else:
 			# Es ist eine Konfigurationsdatei angegeben
 			configFile = sys.argv[1]
