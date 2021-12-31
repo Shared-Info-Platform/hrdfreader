@@ -2,9 +2,8 @@
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
-/runImport.bat
-/runGenerate.bat
 /log/*.log
 /hrdf/__pycache__/*.pyc
 /example.ini
 /.vs/*
+*.bat
