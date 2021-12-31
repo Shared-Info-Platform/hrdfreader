@@ -17,7 +17,7 @@ class HrdfReader:
 	HrdfReader(hrdfzipfile, db, hrdffiles)
 
 	"""
-	modulVersion = "2.0.1"
+	modulVersion = "2.0.2"
 	hrdfFormats = ["5.40.41"]
 	def __init__(self, hrdfzipfile, db, hrdffiles, charset='utf-8'):
 		"""
@@ -52,52 +52,69 @@ class HrdfReader:
 
 	def readfiles(self):
 		"""Liest die gewünschten HRDF-Dateien und schreibt sie in die Datenbank"""
+		readFilesOk = False
 
-		for filename in self.__hrdffiles:
-			if filename == "ECKDATEN":
-				self.read_eckdaten(filename)
-			elif filename == "BITFELD":
-				self.read_bitfeld(filename)
-			elif filename == "RICHTUNG":
-				self.read_richtung(filename)
-			elif filename == "ZUGART":
-				self.read_zugart(filename)
-			elif filename == "ATTRIBUT":
-				self.read_attribut(filename, "DE")
-				self.read_attribut(filename, "EN")
-				self.read_attribut(filename, "FR")
-				self.read_attribut(filename, "IT")
-			elif filename == "INFOTEXT":
-				self.read_infotext(filename, "DE")
-				self.read_infotext(filename, "EN")
-				self.read_infotext(filename, "FR")
-				self.read_infotext(filename, "IT")
-			elif filename == "FPLAN":
-				self.read_fplan(filename)
-			elif filename == "BAHNHOF":
-				self.read_bahnhof(filename)
-			elif filename == "GLEIS":
-				self.read_gleis(filename)
-			elif filename == "DURCHBI":
-				self.read_durchbi(filename)
-			elif filename == "BFKOORD_WGS":
-				self.read_bfkoordgeo(filename)
-			elif filename == "UMSTEIGB":
-				self.read_umsteigb(filename)
-			elif filename == "BFPRIOS":
-				self.read_bfprios(filename)
-			elif filename == "METABHF":
-				self.read_metabhf(filename)
-			else:
-				logger.error("Das Lesen der Datei ["+filename+"] wird nicht unterstützt")
+		try:
+			for filename in self.__hrdffiles:
+				if filename == "ECKDATEN":
+					self.read_eckdaten(filename)
+				elif filename == "BITFELD":
+					self.read_bitfeld(filename)
+				elif filename == "RICHTUNG":
+					self.read_richtung(filename)
+				elif filename == "ZUGART":
+					self.read_zugart(filename)
+				elif filename == "ATTRIBUT":
+					self.read_attribut(filename, "DE")
+					self.read_attribut(filename, "EN")
+					self.read_attribut(filename, "FR")
+					self.read_attribut(filename, "IT")
+				elif filename == "INFOTEXT":
+					self.read_infotext(filename, "DE")
+					self.read_infotext(filename, "EN")
+					self.read_infotext(filename, "FR")
+					self.read_infotext(filename, "IT")
+				elif filename == "FPLAN":
+					self.read_fplan(filename)
+				elif filename == "BAHNHOF":
+					self.read_bahnhof(filename)
+				elif filename == "GLEIS":
+					self.read_gleis(filename)
+				elif filename == "DURCHBI":
+					self.read_durchbi(filename)
+				elif filename == "BFKOORD_WGS":
+					self.read_bfkoordgeo(filename)
+				elif filename == "UMSTEIGB":
+					self.read_umsteigb(filename)
+				elif filename == "BFPRIOS":
+					self.read_bfprios(filename)
+				elif filename == "METABHF":
+					self.read_metabhf(filename)
+				else:
+					logger.error("Das Lesen der Datei ["+filename+"] wird nicht unterstützt")
 
-		# Aufbereitung und Verdichtung der importierten Daten
-		self.determine_linesperstop()
-		self.determine_tripcount()				
-				
-		logger.info("Der HRDF-Import <{}> wurde eingearbeitet".format(self.__hrdfzip.filename))
+			# Aufbereitung und Verdichtung der importierten Daten
+			self.determine_linesperstop()
+			self.determine_tripcount()
 
+			readFilesOk = True
+			logger.info("Der HRDF-Import <{}> wurde eingearbeitet".format(self.__hrdfzip.filename))
 
+		except Exception as e:
+			logger.info("Der HRDF-Import wurde <{}> wegen Fehler abgebrochen {}".format(self.__hrdfzip.filename), e)
+
+		# Setzen des Import-Status in der Eckdaten-Tabelle
+		cur = self.__hrdfdb.connection.cursor()
+		sql_string = "UPDATE HRDF.HRDF_ECKDATEN_TAB SET importstatus = %s WHERE id = %s"
+		if readFilesOk:
+			importStatus = "ok"
+		else:
+			importStatus = "error"
+		cur.execute(sql_string, (importStatus, self.__fkdict["fk_eckdatenid"]))
+		self.__hrdfdb.connection.commit()
+		cur.close()
+		
+		
 	def read_eckdaten(self, filename):
 		"""Lesen der Datei ECKDATEN"""
 		logger.info('lesen und verarbeiten der Datei ECKDATEN')

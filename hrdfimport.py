@@ -1,6 +1,8 @@
 
 import sys
+import os
 import logging
+import configparser
 from hrdf.hrdfdb import HrdfDB
 from hrdf.hrdfreader import HrdfReader
 from hrdf.hrdflog import logger
@@ -8,7 +10,7 @@ from hrdf.hrdflog import logger
 import zipfile
 
 
-def load_hrdfzipfile(filename, dbname, host):
+def load_hrdfzipfile(filename, dbname, host, user, pwd):
 	"""Lädt die HRDF-Zipdatei und schreibt den Inhalt der Dateien in die Datenbank
 
 	filename -- Pfad/Name der Zipdatei die zu laden ist
@@ -29,7 +31,7 @@ def load_hrdfzipfile(filename, dbname, host):
 		METABHF
 		FPLAN
 	"""
-	hrdf_db = HrdfDB(dbname, host, "hrdf", "bmHRDF")
+	hrdf_db = HrdfDB(dbname, host, user, pwd)
 	if hrdf_db.connect():
 
 		# ZipFile öffnen und zu lesende Dateien bestimmen
@@ -39,18 +41,22 @@ def load_hrdfzipfile(filename, dbname, host):
 		# Initialisierung des HRDF-Readers und lesen der gewünschten HRDF-Dateien
 		reader = HrdfReader(hrdfzip, hrdf_db, hrdffiles)
 		reader.readfiles()
+		hrdfzip.close()
 
 	else:
 		logger.error("Es konnte keine Verbindung zur Datenbank aufgebaut werden")
 
 
-def initialize_logging(loglevel):
+def initialize_logging(loglevel, logfile):
 	"""Initialisiert den Logger
-	loglevel -- Level für die Logausgabe 
+	loglevel -- Level für die Logausgabe	
+	logfile -- Name der Logdatei (default => log/hrdfreader-import.log)
 	"""	
 	logger.setLevel(loglevel)
+	if (logfile == ""): logfile = 'log/hrdfreader-import.log'
+
 	# Handler für das Schreiben der Logausgaben in Datei
-	logFH = logging.FileHandler('log/hrdfreader-import.log')
+	logFH = logging.FileHandler(logfile)
 	logFH.setLevel(loglevel)
 	# Handler für das Schreiben direkt auf die Console
 	logCH = logging.StreamHandler()
@@ -69,34 +75,34 @@ def initialize_logging(loglevel):
 if __name__ == '__main__':
 	# Auswertung der übergebenen Parameter
 	paraCnt = len(sys.argv)
+	configFile = 'hrdfconfig.config'
 
 	if (paraCnt < 2):
-		print("\nAufruf: hrdfimport.py <importFile> [<loglevel>] [<dbname>] [<host>]\n")
-		print("importFile\tPfad/Name der HRDF-Import-Zipdatei die zu laden ist")		
-		print("loglevel\t\tLevel für die Logausgabe (default => INFO)")
-		print("dbname\t\tDatenbankname (default => hrdfdb)")
-		print("host\t\tHost auf dem die Datenbank läuft (default => 127.0.0.1)")
+		print("\nAufruf: hrdfimport.py <importFile>\n")
 	else:
 
 		if (sys.argv[1] == "-v"):
 			print("\nHRDF-Reader: Import-Modul Version {}".format(HrdfReader.modulVersion))
 			print("HRDF-Formate: {}".format(HrdfReader.hrdfFormats))
 		else:
-			zipfilename = sys.argv[1]
-			# Logging initialisieren
-			loglevel = "INFO"
-			if (paraCnt >=3):
-				loglevel = sys.argv[2].upper()
-			initialize_logging(loglevel)
+			if (os.path.exists(configFile)):
+				zipfilename = sys.argv[1]
+
+				hrdfConfig = configparser.ConfigParser()
+				hrdfConfig.read(configFile)
+
+				# Logging initialisieren
+				loglevel = hrdfConfig['HRDFImport']["loglevel"]
+				logfile = hrdfConfig['HRDFImport']["logfile"]
+				initialize_logging(loglevel, logfile)
+				logger.info("HRDF-Reader: Import-Modul Version {} / HRDF-Formate: <{}>".format(HrdfReader.modulVersion, HrdfReader.hrdfFormats))
 		
-			# Default für die Datenbank
-			dbname = "hrdfdb"
-			if (paraCnt >= 4):
-				dbname = sys.argv[3]
+				# Angaben zur Datenbank
+				dbname = hrdfConfig['DATABASE']['dbname']
+				host = hrdfConfig['DATABASE']['host']
+				user = hrdfConfig['DATABASE']['user']
+				pwd = hrdfConfig['DATABASE']['pwd']
 
-			# Default für den Host
-			host = "127.0.0.1"
-			if (paraCnt >= 5):
-				host = sys.argv[4]
-
-			load_hrdfzipfile(zipfilename, dbname, host)
+				load_hrdfzipfile(zipfilename, dbname, host, user, pwd)
+			else:
+				print("HRDF-Konfigurationsdatei {} existiert nicht".format(configFile))
