@@ -164,7 +164,7 @@ class HrdfReaderService:
                           "hrdf.hrdf_zugartklasse_tab",
                           "hrdf.hrdf_zugartoption_tab",
                           "hrdf.hrdf_tripcount_operator_tab",
-                          "hrdf.hrdf_linesperstop_tab"
+                          "hrdf.hrdf_linesperstop_tab",
                           "hrdf.hrdf_dailytimetable_tab"]
 
         # Für alle zu löschenden EckdatenIds
