@@ -31,6 +31,7 @@ else
 	#psql -h $1 -d $2 -U $3 -f update_2.3-2.sql
 
 	echo "updating to version 2.4 ..."
-	psql -h $1 -d $2 -U $3 -f update_2.4-0.sql
+	#psql -h $1 -d $2 -U $3 -f update_2.4-0.sql
+	psql -h $1 -d $2 -U $3 -f update_2.4-1.sql
 
 fi

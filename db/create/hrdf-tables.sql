@@ -848,6 +848,7 @@ CREATE INDEX IDX02_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (
 CREATE INDEX IDX03_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, lineno varchar_pattern_ops) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX04_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, stopident) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX05_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, directionshort) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX06_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (operatingday) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief  table for tripcount per operator
