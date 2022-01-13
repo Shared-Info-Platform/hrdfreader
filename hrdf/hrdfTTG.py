@@ -14,7 +14,7 @@ class HrdfTTG:
 	Die Klasse generiert einen Tagesfahrplan für einen gewünschten Zeitraum
 
 	"""
-	modulVersion = "2.0.1"
+	modulVersion = "2.0.2"
 	hrdfFormats = ["5.40.41"]
 	def __init__(self, db):
 		"""
@@ -175,11 +175,12 @@ class HrdfTTG:
 		angepasst
 		"""
 		# Löschen des Tagesfahrplans
+		logger.debug("Betriebstag {:%d.%m.%Y}-{} wird gelöscht...".format(generationDay, eckdatenid))
 		curDeleteDay = self.__hrdfdb.connection.cursor()
 		sql_delDay = "DELETE FROM HRDF_DailyTimeTable_TAB WHERE fk_eckdatenid = %s AND operatingday = %s"
 		curDeleteDay.execute(sql_delDay, (eckdatenid, str(generationDay)))
 		deletedRows = curDeleteDay.rowcount
-		logger.info("{:%d.%m.%Y} => {} bestehende Einträge wurden geloescht".format(generationDay, deletedRows))
+		logger.info("Betriebstag {:%d.%m.%Y}-{} => {} bestehende Einträge wurden geloescht".format(generationDay, eckdatenid, deletedRows))
 		curDeleteDay.close()
 
 		# Anpassen des Eintrags in der Eckdaten-Tabelle
