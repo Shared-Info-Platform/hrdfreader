@@ -3,7 +3,8 @@ certifi==2021.10.8
 charset-normalizer==2.0.9
 idna==3.3
 pip==21.3.1
-psycopg2==2.9.2
+psycopg2==2.9.3
+psycopg2-binary==2.9.3
 requests==2.26.0
 setuptools==59.4.0
 urllib3==1.26.7
