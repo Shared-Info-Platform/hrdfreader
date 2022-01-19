@@ -1,8 +1,6 @@
-# hrdfreader
+# hrdfreader [![Current Version](https://img.shields.io/badge/version-2.0.2-green.svg)](https://github.com/BERNMOBIL/hrdfreader)
 
 > parse hafas rohdaten format files into a postgres db
-
-[![Current Version](https://img.shields.io/badge/version-2.0.2-green.svg)](https://github.com/BERNMOBIL/hrdfreader)
 
 ## Description
 
