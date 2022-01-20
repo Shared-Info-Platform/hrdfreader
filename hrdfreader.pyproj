@@ -44,7 +44,6 @@
     <Compile Include="hrdf\hrdfreader.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="hrdfread.py" />
     <Compile Include="hrdf\hrdfTTGCache.py">
       <SubType>Code</SubType>
     </Compile>
