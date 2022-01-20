@@ -40,11 +40,12 @@ class HrdfTTGService:
         # Sicherstellen, dass der Generierungs-Service nur einmal gestartet wird
         if ( self.lockGeneration()):
             try:
-                # Bereinigung der alten, zu löschenden Tagesfahrpläne
-                self.cleanupDailyTimetable()
-
-                # Welches sind die aktuellsten Eckdaten auf denen der Fahrplan für die nächsten Tage generiert werden soll
                 previewDays = int(self.__hrdfConfig['HRDFGeneration']['previewDays'])
+
+                # Bereinigung der alten, und in der Zukunft "falschen" zu löschenden Tagesfahrpläne
+                self.cleanupDailyTimetable(previewDays)
+
+                # Welches sind die aktuellsten Eckdaten auf denen der Fahrplan für die nächsten Tage generiert werden soll                
                 generationList = self.buildGenerationList(previewDays)
 
                 # Generierung des Tagesfahrplans für die ermittelten Tage
@@ -138,17 +139,23 @@ class HrdfTTGService:
         return generationList
 
 
-    def cleanupDailyTimetable(self):
-        """ Aufräumen der alten Tagesfahrplandaten """
+    def cleanupDailyTimetable(self, previewDays):
+        """ Aufräumen der alten Tagesfahrplandaten
+            Es werden folgende Tagesfahrpläne gelöscht:
+            - alle Tagesfahrpläne, die älter als die konfigurierten Tage (deleteAfterDays) sind
+            - alle Tagesfahrpläne in der Zukunft, die zu Eckdaten gehören, die nicht mehr relevant sind
+
+            previewDays -- Anzahl der nächsten zu generierenden Tage
+        """
         deleteAfterDays = self.__hrdfConfig['HRDFGeneration']['deleteAfterDays']
-        logger.info('Ermitteln und Löschen der Tagesfahrplandaten die älter als {} Tage sind'.format(deleteAfterDays))
+        logger.info('Ermitteln und Löschen der Tagesfahrplandaten, die älter als {} Tage sind'.format(deleteAfterDays))
         
         sql_SelOperatingDay = "SELECT DISTINCT fk_eckdatenid, operatingday FROM HRDF.HRDF_DailyTimeTable_TAB WHERE operatingday < current_date - {}".format(deleteAfterDays)
         curSelOperatingDay = self.__hrdfdb.connection.cursor()
         curSelOperatingDay.execute(sql_SelOperatingDay)
         operatingDays = curSelOperatingDay.fetchall()
         curSelOperatingDay.close()
-
+        
         # Jeden zu löschenden Betriebstag einzelnd löschen
         if (len(operatingDays) == 0):
             logger.info("Es sind keine Tagesfahrpläne zu löschen")
@@ -158,3 +165,34 @@ class HrdfTTGService:
                     self.__ttGenerator.deleteDailyTimetable(operatingDay[0], operatingDay[1]);
                 except Exception as e:
                     logger.info("Betriebstag {:%d.%m.%Y}-{} => Fehler beim Löschen des Tagesfahrplans => {}".format(operatingDay[1], operatingDay[0], e))
+
+
+        logger.info('Ermitteln und Löschen der Tagesfahrplandaten, die bereits in der Zukunft über nicht mehr relevante Eckdaten generiert wurden')
+        startingDate = datetime.now().date()
+        curSelFutureTT = self.__hrdfdb.connection.cursor()
+        i = 0
+        while i <= previewDays:
+            # Für jeden Tag, der ab heute generiert werden soll werden alle Eckdaten durchsucht, die nicht für den heutigen Tag zuständig/valide sind
+            currentDate = startingDate + timedelta(days=i)
+            # Folgendes, geklammertes SQL-Statement entspricht dem Statement aus buildGenerationList()
+            sql_SelEckdaten =  "SELECT id FROM HRDF.HRDF_Eckdaten_TAB "\
+                               " WHERE id NOT IN "\
+                               "(SELECT id FROM HRDF.HRDF_Eckdaten_TAB "\
+                               " WHERE '{}' BETWEEN validfrom AND validto "\
+                               "   AND importstatus = 'ok' "\
+                               "   AND coalesce(deleteflag, false) = false "\
+                               "   AND coalesce(inactive, false) = false "\
+                               " ORDER BY creationdatetime desc limit 1)".format(currentDate, currentDate, currentDate)
+            curSelFutureTT.execute(sql_SelEckdaten)
+            futureTTs = curSelFutureTT.fetchall()
+            # Jeden zu löschenden Betriebstag einzelnd löschen
+            if (len(futureTTs) == 0):
+                logger.info("Es sind keine Tagesfahrpläne in der Zukunft zu löschen")
+            else:
+                for futureTT in futureTTs:
+                    try:
+                        self.__ttGenerator.deleteDailyTimetable(futureTT[0], currentDate);
+                    except Exception as e:
+                        logger.info("Betriebstag {:%d.%m.%Y}-{} => Fehler beim Löschen des Tagesfahrplans => {}".format(currentDate, futureTT[0], e))
+            i += 1
+        curSelFutureTT.close()
