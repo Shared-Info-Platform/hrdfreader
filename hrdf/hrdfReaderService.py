@@ -36,16 +36,19 @@ class HrdfReaderService:
     def run(self):
         """ Startet den Import-Service """
 
-        # Cleanup der zu löschenden Eckdaten (Feld: deletflag=true)
-        self.cleanupHRDF()
+        try:
+            # Cleanup der zu löschenden Eckdaten (Feld: deletflag=true)
+            self.cleanupHRDF()
 
-        # download zipFile to folder
-        newImportFile = self.checkForNewImportFile()
-        if (newImportFile is not None):
-            # Download war erfolgreich und das "newImportFile" wurde gespeichert
-            if (self.verifyImportFile(newImportFile)):
-                logger.info("Neuer HRDF-Import {} wird importiert".format(newImportFile))
-                self.importHRDFZip(newImportFile)
+            # download zipFile to folder
+            newImportFile = self.checkForNewImportFile()
+            if (newImportFile is not None):
+                # Download war erfolgreich und das "newImportFile" wurde gespeichert
+                if (self.verifyImportFile(newImportFile)):
+                    logger.info("Neuer HRDF-Import {} wird importiert".format(newImportFile))
+                    self.importHRDFZip(newImportFile)
+        except Exception as e:
+            logger.info("Der HRDF-Import wurde mit Fehler abgebrochen {}".format(e))
 
     def checkForNewImportFile(self):
         """ Lädt die aktuelle HRDF-Import-Datei über den PermalLink und legt die Datei in das entsprechende Verzeichnis """
