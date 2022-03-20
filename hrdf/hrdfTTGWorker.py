@@ -22,7 +22,7 @@ class HrdfTTGWorker(Thread):
 		self.__commQueue = commqueue
 		self.__responseQueue = responsequeue
 
-		self.__hrdfdb = HrdfDB(db.dbname, db.host, db.user, db.password)
+		self.__hrdfdb = HrdfDB(db.dbname, db.host, db.port, db.user, db.password)
 		self.__ttgcache = HrdfTTGCache(self.__hrdfdb)
 		self.__ttgcache = ttgcache
 		self.__stopSequenceLookup = dict()

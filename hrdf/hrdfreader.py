@@ -17,7 +17,7 @@ class HrdfReader:
 	HrdfReader(hrdfzipfile, db, hrdffiles)
 
 	"""
-	modulVersion = "2.0.2"
+	modulVersion = "2.1.1"
 	hrdfFormats = ["5.40.41"]
 	def __init__(self, hrdfzipfile, db, hrdffiles, charset='utf-8'):
 		"""

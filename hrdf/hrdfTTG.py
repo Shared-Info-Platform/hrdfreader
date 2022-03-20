@@ -14,7 +14,7 @@ class HrdfTTG:
 	Die Klasse generiert einen Tagesfahrplan für einen gewünschten Zeitraum
 
 	"""
-	modulVersion = "2.0.2"
+	modulVersion = "2.1.1"
 	hrdfFormats = ["5.40.41"]
 	def __init__(self, db):
 		"""
@@ -207,7 +207,7 @@ class HrdfTTG:
 		self.__lock.release()
 
 		# Lokale DB-Verbindung erstellen
-		hrdfDBSingle = HrdfDB(self.__hrdfdb.dbname, self.__hrdfdb.host, self.__hrdfdb.user, self.__hrdfdb.password)
+		hrdfDBSingle = HrdfDB(self.__hrdfdb.dbname, self.__hrdfdb.host, self.__hrdfdb.port, self.__hrdfdb.user, self.__hrdfdb.password)
 
 		if (hrdfDBSingle.connect()):
 

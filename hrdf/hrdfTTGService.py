@@ -25,9 +25,10 @@ class HrdfTTGService:
         # Aufbau der Datenbankverbindung
         dbname = self.__hrdfConfig['DATABASE']['dbname']
         host = self.__hrdfConfig['DATABASE']['host']
+        port = self.__hrdfConfig['DATABASE']['port']
         user = self.__hrdfConfig['DATABASE']['user']
         pwd = self.__hrdfConfig['DATABASE']['pwd']
-        self.__hrdfdb = HrdfDB(dbname, host, user, pwd)
+        self.__hrdfdb = HrdfDB(dbname, host, port, user, pwd)
         if self.__hrdfdb.connect():
             self.__ttGenerator = HrdfTTG(self.__hrdfdb)
             initOk = True
