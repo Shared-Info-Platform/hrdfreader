@@ -10,7 +10,7 @@ from hrdf.hrdflog import logger
 import zipfile
 
 
-def load_hrdfzipfile(filename, dbname, host, user, pwd):
+def load_hrdfzipfile(filename, dbname, host, port, user, pwd):
 	"""Lädt die HRDF-Zipdatei und schreibt den Inhalt der Dateien in die Datenbank
 
 	filename -- Pfad/Name der Zipdatei die zu laden ist
@@ -31,7 +31,7 @@ def load_hrdfzipfile(filename, dbname, host, user, pwd):
 		METABHF
 		FPLAN
 	"""
-	hrdf_db = HrdfDB(dbname, host, user, pwd)
+	hrdf_db = HrdfDB(dbname, host, port, user, pwd)
 	if hrdf_db.connect():
 
 		# ZipFile öffnen und zu lesende Dateien bestimmen
@@ -100,6 +100,7 @@ if __name__ == '__main__':
 				# Angaben zur Datenbank
 				dbname = hrdfConfig['DATABASE']['dbname']
 				host = hrdfConfig['DATABASE']['host']
+				port = hrdfConfig['DATABASE']['port']
 				user = hrdfConfig['DATABASE']['user']
 				pwd = hrdfConfig['DATABASE']['pwd']
 

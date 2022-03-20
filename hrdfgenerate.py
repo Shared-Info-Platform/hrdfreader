@@ -9,7 +9,7 @@ from hrdf.hrdfTTG import HrdfTTG
 from hrdf.hrdflog import logger
 
 
-def generate_timetable_from_hrdf(eckdatenId, generateFrom, generateTo, dbname, host, user, pwd):
+def generate_timetable_from_hrdf(eckdatenId, generateFrom, generateTo, dbname, host, port, user, pwd):
 	"""Generiert einen Tagesfahrplan aus den HRDF-Daten für die
 	Betriebstage im angegebenen Zeitbereich
 
@@ -18,10 +18,11 @@ def generate_timetable_from_hrdf(eckdatenId, generateFrom, generateTo, dbname, h
 	generateTo -- Ende des Zeitbereichs, für den der Tagesfahrplan generiert wird (String-Format '%d.%m.%Y')
 	dbname -- Datenbankname
 	host -- Host auf dem die Datenbank läuft
+	port -- Port für den Zugriff auf die Datenbank
 	user -- Datenbankbenutzer
 	pwd -- Passwort des DB-Benutzer
 	"""
-	hrdf_db = HrdfDB(dbname, host, user, pwd)
+	hrdf_db = HrdfDB(dbname, host, port, user, pwd)
 	if hrdf_db.connect():
 	
 		# Initialisierung des HRDF-TTGenerators
@@ -104,6 +105,7 @@ if __name__ == '__main__':
 				# Angaben zur Datenbank
 				dbname = hrdfConfig['DATABASE']['dbname']
 				host = hrdfConfig['DATABASE']['host']
+				port = hrdfConfig['DATABASE']['port']
 				user = hrdfConfig['DATABASE']['user']
 				pwd = hrdfConfig['DATABASE']['pwd']
 
