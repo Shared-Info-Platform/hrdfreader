@@ -48,6 +48,10 @@ class HrdfReaderService:
                 if (self.verifyImportFile(newImportFile)):
                     logger.info("Neuer HRDF-Import {} wird importiert".format(newImportFile))
                     self.importHRDFZip(newImportFile)
+
+            # Nach einem möglichen Import wird geprüft, ob die VDV-Mapping-Tabellen zu erweitern sind.
+            self.checkVDVMappingTables()
+
         except Exception as e:
             logger.info("Der HRDF-Import wurde mit Fehler abgebrochen {}".format(e))
 
@@ -187,3 +191,31 @@ class HrdfReaderService:
             self.__hrdfdb.connection.commit()
 
         curDelEckdaten.close()
+
+    def checkVDVMappingTables(self):
+        """ Überprüft die bestehenden VDV-Mapping-Tabellen und erweitert sie gegebenenfalls """        
+        sql_betreiberMapping = "INSERT INTO HRDF.HRDF_VDVBetreiberMapping_TAB (operationalno, uiclaendercode, gonr) "\
+                               "(SELECT distinct operationalno, '85', "\
+	                           "        CASE WHEN operationalno ~ '^(-)?[0-9]+$' THEN cast(cast(operationalno as int) as varchar) ELSE operationalno END "\
+                               "   FROM HRDF.HRDF_FPlanfahrt_TAB a "\
+                               "  WHERE NOT EXISTS (SELECT 1 FROM HRDF.HRDF_VDVBetreiberMapping_TAB WHERE operationalno = a.operationalno) "\
+                               "  ORDER BY a.operationalno)"
+        curBetreiber = self.__hrdfdb.connection.cursor()
+        curBetreiber.execute(sql_betreiberMapping)
+        self.__hrdfdb.connection.commit()
+        curBetreiber.close()
+        logger.info("VDV-Betreiber-Mapping: {} Datensätze in die VDV-BetreiberMapping-Tabelle eingefügt".format(curBetreiber.rowcount))
+
+        sql_linienMapping = "INSERT INTO HRDF.HRDF_VDVLinienMapping_TAB (operationalno, lineno, linienid, linientext) "\
+                            "(SELECT distinct a.operationalno, coalesce(d.infotext, b.lineno), coalesce(d.infotext, b.lineno), b.lineno "\
+                            "   FROM HRDF_FPlanFahrt_TAB a "\
+                            "	     INNER JOIN HRDF_FPlanFahrtl_TAB b ON b.fk_fplanfahrtid = a.id "\
+	                        "        LEFT OUTER JOIN HRDF_FPlanFahrtI_TAB c ON c.fk_fplanfahrtid = a.id AND c.infotextcode = 'RN' "\
+	                        "        LEFT OUTER JOIN HRDF_Infotext_TAB d ON d.fk_eckdatenid = c.fk_eckdatenid AND d.infotextno = c.infotextno AND d.languagecode = 'de' "\
+                            "  WHERE NOT EXISTS (SELECT 1 FROM HRDF.HRDF_VDVLinienMapping_TAB WHERE operationalno = a.operationalno AND lineno = coalesce(d.infotext, b.lineno)) "\
+                            "  ORDER BY a.operationalno, coalesce(d.infotext, b.lineno)) "
+        curLinien = self.__hrdfdb.connection.cursor()
+        curLinien.execute(sql_linienMapping)
+        self.__hrdfdb.connection.commit()
+        curLinien.close()
+        logger.info("VDV-Linien-Mapping: {} Datensätze in die VDV-LinienMapping-Tabelle eingefügt".format(curLinien.rowcount))
