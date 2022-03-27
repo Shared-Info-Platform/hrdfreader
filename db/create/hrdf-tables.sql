@@ -903,3 +903,51 @@ CREATE INDEX IDX01_HRDF_linesperstop_TAB ON HRDF_linesperstop_TAB (fk_eckdatenid
 CREATE INDEX IDX02_HRDF_linesperstop_TAB ON HRDF_linesperstop_TAB (fk_eckdatenid,lineno) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX03_HRDF_linesperstop_TAB ON HRDF_linesperstop_TAB (fk_eckdatenid,stopno) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX04_HRDF_linesperstop_TAB ON HRDF_linesperstop_TAB (fk_eckdatenid,categorycode) TABLESPACE :TBSINDEXNAME;
+
+
+/* ---------------------------------------------- Tabellen für den HRDF-VDVService -----------------------
+/*
+\brief  table for VDV Linien-Mapping
+*/
+CREATE TABLE HRDF_VDVLinienMapping_TAB
+(
+  id			SERIAL		NOT NULL,
+  operationalno	varchar(6)	NOT NULL,
+  lineno		varchar(8)	NOT NULL,
+  linienID		varchar(20)	NULL,
+  linienText	varchar(50) NULL,
+  creationdatetime timestamp with time zone NOT NULL DEFAULT(now())
+)
+WITH ( OIDS=FALSE )
+TABLESPACE :TBSDATANAME;
+ALTER TABLE HRDF_VDVLinienMapping_TAB ADD CONSTRAINT PK_HRDF_VDVLinienMapping_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+COMMENT ON TABLE HRDF_VDVLinienMapping_TAB IS 'Mapping-Tabelle für Linien';
+COMMENT ON COLUMN HRDF_VDVLinienMapping_TAB.operationalno IS 'HRDF-Verwaltungsnummer';
+COMMENT ON COLUMN HRDF_VDVLinienMapping_TAB.lineno IS 'HRDF-Liniennummer';
+COMMENT ON COLUMN HRDF_VDVLinienMapping_TAB.linienID IS 'Zu verwendende LinienID (technischer Linienschlüssel) ohne Betreiberkennung im VDV';
+COMMENT ON COLUMN HRDF_VDVLinienMapping_TAB.linienText IS 'Zu verwendender LinienText im VDV';
+COMMENT ON COLUMN HRDF_VDVLinienMapping_TAB.creationdatetime IS 'Zeitpunkt der Erstellung des Eintrags';
+CREATE INDEX IDX01_HRDF_VDVLinienMapping_TAB ON HRDF_VDVLinienMapping_TAB (operationalno, lineno) TABLESPACE :TBSINDEXNAME;
+
+/*
+\brief  table for VDV Betreiber-Mapping
+*/
+CREATE TABLE HRDF_VDVBetreiberMapping_TAB
+(
+  id				SERIAL		NOT NULL,
+  operationalno		varchar(6)	NOT NULL,
+  UICLaendercode	varchar(5)	NOT NULL,
+  GONr				varchar(20)	NOT NULL,
+  GOAbk				varchar(20) NULL,
+  creationdatetime timestamp with time zone NOT NULL DEFAULT(now())
+)
+WITH ( OIDS=FALSE )
+TABLESPACE :TBSDATANAME;
+ALTER TABLE HRDF_VDVBetreiberMapping_TAB ADD CONSTRAINT PK_HRDF_VDVBetreiberMapping_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+COMMENT ON TABLE HRDF_VDVBetreiberMapping_TAB IS 'Mapping-Tabelle für Betreiber';
+COMMENT ON COLUMN HRDF_VDVBetreiberMapping_TAB.operationalno IS 'HRDF-Verwaltungsnummer';
+COMMENT ON COLUMN HRDF_VDVBetreiberMapping_TAB.UICLaendercode IS 'UIC Laendercode';
+COMMENT ON COLUMN HRDF_VDVBetreiberMapping_TAB.GONr IS 'Geschäftsorganisations NR';
+COMMENT ON COLUMN HRDF_VDVBetreiberMapping_TAB.GOAbk IS 'Geschäftsorganisations Abkürzung';
+COMMENT ON COLUMN HRDF_VDVBetreiberMapping_TAB.creationdatetime IS 'Zeitpunkt der Erstellung des Eintrags';
+CREATE INDEX IDX01_HRDF_VDVBetreiberMapping_TAB ON HRDF_VDVBetreiberMapping_TAB (operationalno) TABLESPACE :TBSINDEXNAME;
