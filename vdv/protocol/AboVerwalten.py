@@ -7,7 +7,7 @@ import vdv.protocol.vdvProtocol as VDV
 class AboAntwort():
     """ Beschreibt die AboAntwort """
     def __init__(self, bestaetigung):
-        self.__XSDVersionID = 'V2017.d'
+        self.__XSDVersionID = 'xsd_2017d'
         self.__Bestaetigung = bestaetigung
         self.__BestaetigungMitAboIDs = list()
 
