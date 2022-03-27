@@ -25,11 +25,13 @@ class VdvPSAUSREF(VdvPartnerService):
         """
         if (len(serviceAboList) == 0):
             aboAntwort = AboAntwort(Bestaetigung())
+            aboAntwort.XSDVersionID = self.XSDVersionID
             aboAntwort.Bestaetigung.Ergebnis = 'notok'
             aboAntwort.Bestaetigung.Fehlernummer = Fehlernummer.ERR_NOREP
             aboAntwort.Bestaetigung.Fehlertext = 'Die Anfrage enthaelt keine Abos'
         else:
             aboAntwort = AboAntwort(None)
+            aboAntwort.XSDVersionID = self.XSDVersionID
             for aboAUSREF in serviceAboList:
                 aboID = aboAUSREF.get('AboID')
                 bestaetigungMitAboID = BestaetigungMitAboID(aboID)
@@ -85,11 +87,12 @@ class VdvPSAUSREF(VdvPartnerService):
             existingAbo.clearVDVLinienfahrplaene()
             abo.NextAboRefresh = datetime.datetime.now()
 
-    def __buildLinienfahrplaeneSQL(self, serviceAbo):
+    def __buildLinienfahrplaeneSQL(self, serviceAbo, eckdatenId):
         """ Erzeugt das SQL-Statment für die Linienfahrpläne des angegebenen ServiceAbos """
-        sql_stmt = "SELECT lineno, coalesce(directionshort, 'H'), operationalno, count(distinct tripident) "\
-						    "  FROM HRDF.HRDF_DailyTimetable_TAB "\
-						    " WHERE stopsequenceno = 0 AND depdatetime between %s and %s"
+        sql_stmt = "SELECT CASE WHEN array_position(infotextcode, 'RN') IS NULL THEN coalesce(lineno, cast(tripno as varchar)) ELSE infotext_de[array_position(infotextcode, 'RN')] END as lineno, "\
+                   "       coalesce(directionshort, 'H'), operationalno, count(distinct tripident) "\
+			       "  FROM HRDF.HRDF_DailyTimetable_TAB "\
+				   " WHERE stopsequenceno = 0 AND depdatetime between %s and %s and fk_eckdatenid = %s"\
 
         betreiberSQL = serviceAbo.buildBetreiberSQL()
         if ( betreiberSQL is not None): sql_stmt += " AND ("+betreiberSQL+")"
@@ -97,23 +100,25 @@ class VdvPSAUSREF(VdvPartnerService):
         linienSQL = serviceAbo.buildLinienSQL()
         if ( linienSQL is not None): sql_stmt += " AND ("+linienSQL+")"
 
-        sql_stmt += " GROUP BY lineno, coalesce(directionshort, 'H'), operationalno "\
+        sql_stmt += " GROUP BY lineno, coalesce(directionshort, 'H'), operationalno, (array_position(infotextcode, 'RN') IS NULL), coalesce(lineno, cast(tripno as varchar)), infotext_de[array_position(infotextcode, 'RN')] "\
 					" ORDER BY lineno, coalesce(directionshort, 'H'), operationalno "
         curLinienfahrplan = self.vdvDB.connection.cursor()
-        curLinienfahrplan.execute(sql_stmt, (VDV.vdvUTCToLocal(serviceAbo.GueltigVon), VDV.vdvUTCToLocal(serviceAbo.GueltigBis)))
+        curLinienfahrplan.execute(sql_stmt, (VDV.vdvUTCToLocal(serviceAbo.GueltigVon), VDV.vdvUTCToLocal(serviceAbo.GueltigBis), eckdatenId))
         linienFahrplaene = curLinienfahrplan.fetchall()
         curLinienfahrplan.close()
         return linienFahrplaene
 
-    def __buildFahrlplaeneSQL(self, serviceAbo, lineno, directionshort, operationalno):
+    def __buildFahrlplaeneSQL(self, serviceAbo, lineno, directionshort, operationalno, eckdatenId):
         """ Erzeugt das SQL-Statement für die einzelnen Fahrpläne eines Linienfahrplans des angegebenen serviceAbos """
         sql_stmt = "SELECT tripident, operatingday, "\
                    "       stoppointident, stoppointname, arrstoppointtext, depstoppointtext, arrdatetime, depdatetime, noentry, noexit, directiontext, stopname as fromdirectiontext, categorycode, classno, categoryno, "\
-                   "       fk_eckdatenid "\
-                   " FROM HRDF.HRDF_DailyTimetable_TAB WHERE lineno = %s and coalesce(directionshort, 'H') = %s and operationalno = %s and depdatetime between %s and %s "\
+                   "       fk_eckdatenid, infotextcode, infotext_de, lineno "\
+                   "  FROM HRDF.HRDF_DailyTimetable_TAB "\
+                   " WHERE CASE WHEN array_position(infotextcode, 'RN') IS NULL THEN coalesce(lineno, cast(tripno as varchar)) ELSE infotext_de[array_position(infotextcode, 'RN')] END = %s "\
+                   "   AND coalesce(directionshort, 'H') = %s and operationalno = %s and depdatetime between %s and %s  and fk_eckdatenid = %s"\
                    " ORDER BY lineno, coalesce(directionshort, 'H'), operationalno, tripident, stopsequenceno"
         curFahrplan = self.vdvDB.connection.cursor()
-        curFahrplan.execute(sql_stmt, (lineno, directionshort, operationalno, VDV.vdvUTCToLocal(serviceAbo.GueltigVon), VDV.vdvUTCToLocal(serviceAbo.GueltigBis)))
+        curFahrplan.execute(sql_stmt, (lineno, directionshort, operationalno, VDV.vdvUTCToLocal(serviceAbo.GueltigVon), VDV.vdvUTCToLocal(serviceAbo.GueltigBis), eckdatenId))
         fahrplaene = curFahrplan.fetchall()
         curFahrplan.close()
         return fahrplaene
@@ -121,27 +126,27 @@ class VdvPSAUSREF(VdvPartnerService):
     def refreshAbos(self):
         """ Die Funktion aktualisiert die Daten der Service-Abos """
         if (self.vdvDB.connect()):
+            eckdatenId = self.currentEckdatenId()
             for serviceAbo in self.ServiceAbos.values():
                 if (serviceAbo.State == PartnerServiceAboState.IDLE and serviceAbo.NextAboRefresh < datetime.datetime.now()):
-                    serviceAbo.State == PartnerServiceAboState.REFRESH_DATA
+                    serviceAbo.State = PartnerServiceAboState.REFRESH_DATA
                     # Gruppierung aller Linienfahrpläne, mit anschließendem Statement über alle beinhalteten Fahrten mit Haltestellen
-                    linienFahrplaene = self.__buildLinienfahrplaeneSQL(serviceAbo)
+                    linienFahrplaene = self.__buildLinienfahrplaeneSQL(serviceAbo, eckdatenId)
                     logger.info("{} => Abo {}: Starte Prüfung/Übernahme der {} Linienfahrplaene".format(self.ServiceName, serviceAbo.AboID, len(linienFahrplaene)))
                     # columns => lineno, coalesce(directionshort, 'H'), operationalno, count(distinct tripident)
                     for sqlLinienFahrplan in linienFahrplaene:
                         lineno = sqlLinienFahrplan[0]
                         directionshort = sqlLinienFahrplan[1]
                         operationalno = sqlLinienFahrplan[2]
-                        betreiberID = self.VdvMapper.mapBetreiber(operationalno)
-                        linienID = self.VdvMapper.mapLinie(operationalno, lineno)
+                        betreiberID = self.VdvMapper.mapBetreiberID(operationalno)
+                        linienID = self.VdvMapper.mapLinieID(operationalno, lineno)
                         richtungsID = directionshort 
                         linienfahrplan = Linienfahrplan(linienID, richtungsID)
-                        linienfahrplan.BetreiberID = betreiberID
-                        linienfahrplan.LinienText = lineno
-                        fahrplaene = self.__buildFahrlplaeneSQL(serviceAbo, lineno, directionshort, operationalno)
+                        linienfahrplan.BetreiberID = betreiberID                        
+                        fahrplaene = self.__buildFahrlplaeneSQL(serviceAbo, lineno, directionshort, operationalno, eckdatenId)
                         tripident = ""
                         operatingday = datetime.datetime.utcnow()
-                        # columns => tripident, operatingday, stoppointident, stoppointname, arrstoppointtext, depstoppointtext, arrdatetime, depdatetime, noentry, noexit, directiontext, stopname as fromdirectiontext, categorycode, classno, categoryno,fk_eckdatenid 
+                        # columns => tripident, operatingday, stoppointident, stoppointname, arrstoppointtext, depstoppointtext, arrdatetime, depdatetime, noentry, noexit, directiontext, stopname as fromdirectiontext, categorycode, classno, categoryno,fk_eckdatenid, infotextcode, infotext_de, lineno 
                         for sqlFahrplan in fahrplaene:
                             if (tripident != sqlFahrplan[0] or operatingday != sqlFahrplan[1]):
                                 # Neue Fahrt erstellen
@@ -154,8 +159,10 @@ class VdvPSAUSREF(VdvPartnerService):
                                 sollFahrt.VonRichtungsText = sqlFahrplan[11]
                                 firstCategoryCode = sqlFahrplan[12]
                                 firstCategoryNo = sqlFahrplan[14]
+                                firstLineNo = sqlFahrplan[18] # nicht gewandelte linieno der Fahrt (kann auch NULL sein) für korrekten LinienText
                                 linienfahrplan.VerkehrsmittelText = str(firstCategoryCode)
-                                linienfahrplan.ProduktID = self.VdvMapper.mapProdukt(firstCategoryNo, 'de', sqlFahrplan[15])
+                                linienfahrplan.ProduktID = self.VdvMapper.mapProduktID(firstCategoryNo, 'de', sqlFahrplan[15])
+                                linienfahrplan.LinienText = self.VdvMapper.mapLinieText(operationalno, lineno, firstCategoryNo, firstCategoryCode, firstLineNo)
                                 linienfahrplan.addSollFahrt(sollFahrt)
                             # Halte erstellen
                             sollHalt = SollHalt(sqlFahrplan[2])
@@ -168,7 +175,7 @@ class VdvPSAUSREF(VdvPartnerService):
                             sollHalt.Aussteigeverbot = sqlFahrplan[9]
                             if (sqlFahrplan[10] != sollFahrt.RichtungsText): sollHalt.RichtungsText = sqlFahrplan[10]
                             if (sqlFahrplan[12] != firstCategoryCode): sollFahrt.VerkehrsmittelText = str(sqlFahrplan[12])
-                            if (sqlFahrplan[14] != firstCategoryNo): sollFahrt.ProduktID = self.VdvMapper.mapProdukt(firstCategoryNo, 'de', sqlFahrplan[15])
+                            if (sqlFahrplan[14] != firstCategoryNo): sollFahrt.ProduktID = self.VdvMapper.mapProduktID(firstCategoryNo, 'de', sqlFahrplan[15])
                             sollFahrt.addSollHalt(sollHalt)
 
                         # Vor dem Einfügen des Linienfahrplans ins Abo muss geprüft werden ob dieser evtl. schon existiert und ob diese identisch sind
@@ -185,9 +192,9 @@ class VdvPSAUSREF(VdvPartnerService):
                             serviceAbo.addVDVLinienfahrplan(linienfahrplan)
 
                     # Refresh des Abos abgeschlossen
-                    serviceAbo.NextAboRefresh += datetime.timedelta(minutes=self.RefreshAboIntervalMin)
+                    serviceAbo.NextAboRefresh = datetime.datetime.now() + datetime.timedelta(minutes=self.RefreshAboIntervalMin)
                     logger.info("{} => Abo {}: Prüfung/Übernahme der Linienfahrplaene abgeschlossen. Naechste Prüfung => {}".format(self.ServiceName, serviceAbo.AboID, serviceAbo.NextAboRefresh))
-                    serviceAbo.State == PartnerServiceAboState.IDLE
+                    serviceAbo.State = PartnerServiceAboState.IDLE
 
 
     def createDatenAbrufenAntwort(self, datensatzAlle):
@@ -335,7 +342,7 @@ class VdvPSAboAUSREF(VdvPartnerServiceAbo):
             for linienRichtung in self.__linienFilter:
                 # linienRichtung => tuple von linienID und richtungsID
                 if cnt > 1: linienSQL += " or "
-                linienSQL += "(lineno='"+linienRichtung[0]+"'"
+                linienSQL += "(CASE WHEN array_position(infotextcode, 'RN') IS NULL THEN coalesce(lineno, cast(tripno as varchar)) ELSE infotext_de[array_position(infotextcode, 'RN')] END='"+linienRichtung[0]+"'"
                 if (linienRichtung[1] is not None): linienSQL += " and coalesce(directionshort, 'H') = '"+linienRichtung[1]+"'"
                 linienSQL += ")"
                 cnt += 1

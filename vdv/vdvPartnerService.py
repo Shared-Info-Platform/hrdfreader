@@ -30,8 +30,11 @@ class VdvPartnerService():
         self.__serviceName = self.__vdvConfig[partnerConfigName]['serviceName']
         self.__serviceType = PartnerServiceType[self.__vdvConfig[partnerConfigName]['serviceType']]
         self.__refreshAboIntervalMin = int(self.__vdvConfig[partnerConfigName]['refreshAboIntervalMin'])
+        self.__refreshMappingDataIntervalMin = int(self.__vdvConfig[partnerConfigName]['refreshAboIntervalMin'])
+        self.__nextMappingDataRefresh = datetime.datetime.now()
         self.__startTime = datetime.datetime.utcnow()
         self.__datenVersionID = None
+        self.__XSDVersionID = self.__vdvConfig[partnerConfigName]['XSDVersionID']
         # dictionary of serviceAbos
         self.__serviceAbos = dict()
         # Aufbau der Datenbankverbindung
@@ -41,9 +44,10 @@ class VdvPartnerService():
         user = self.__vdvConfig['DATABASE']['user']
         pwd = self.__vdvConfig['DATABASE']['pwd']
         self.__vdvDB = VdvDB(dbname, host, port, user, pwd)
-        if self.__vdvDB.connect() == False: logger.error("{} => Fehler beim Verbinden mit der Datenbank: ".format(self.__serviceName))
+        if self.__vdvDB.connect() == False: logger.error("{} => Fehler beim Verbinden mit der Datenbank: ".format(self.ServiceName))
         self.__vdvMapper = VdvPartnerMapper(self.vdvDB)
-        self.__vdvMapper.loadMappingData()
+        self.refreshMappingData()
+        logger.info("{} => {}-PartnerService mit URL {} angelegt ".format(self.ServiceName, self.ServiceType.name, self.ServiceURL))
 
     @property
     def vdvDB(self): return self.__vdvDB
@@ -58,9 +62,17 @@ class VdvPartnerService():
     @property
     def ServiceType(self): return self.__serviceType
     @property
+    def ServiceURL(self): return self.__serviceUrl
+    @property
     def RefreshAboIntervalMin(self): return self.__refreshAboIntervalMin
     @property
+    def RefreshMappingDataIntervalMin(self): return self.__refreshMappingDataIntervalMin
+    @property
+    def NextMappingDataRefresh(self): return self.__nextMappingDataRefresh
+    @property
     def DatenVersionID(self): return self.__datenVersionID
+    @property
+    def XSDVersionID(self): return self.__XSDVersionID
     @property
     def ServiceAbos(self): return self.__serviceAbos
 
@@ -81,6 +93,7 @@ class VdvPartnerService():
         self.refreshAbos()
 
     def isDataReady(self):
+        """ Prüft ob Daten zum Versand anstehen """
         dataIsReady = False
         if (len(self.__serviceAbos) > 0):
             for serviceAbo in self.__serviceAbos.values():
@@ -88,6 +101,27 @@ class VdvPartnerService():
                     dataIsReady = True
                     break;
         return dataIsReady
+
+    def refreshMappingData(self):
+        """ Aktualisiert die Mapping-Daten in bestimmten Min-Intervallen """
+        if self.__nextMappingDataRefresh <= datetime.datetime.now():
+            logger.info("{} => Aktualisieren der Mapping-Daten".format(self.__serviceName))
+            self.__vdvMapper.refreshMappingData()
+            self.__nextMappingDataRefresh = datetime.datetime.now() + datetime.timedelta(minutes=self.RefreshMappingDataIntervalMin)
+
+    def currentEckdatenId(self):
+        """ Liefert die aktuell gültige EckdatenId """
+        eckdatenId = -1
+        sql_stmt = "SELECT id FROM HRDF.HRDF_ECKDATEN_TAB "\
+                   " WHERE importstatus = 'ok' AND (deleteflag IS NULL OR deleteflag = false) AND (inactive IS NULL OR inactive = false) "\
+                   " ORDER BY creationdatetime desc limit 1 "
+        curEckdateId = self.vdvDB.connection.cursor()
+        curEckdateId.execute(sql_stmt)
+        eckdatenIds = curEckdateId.fetchall()
+        curEckdateId.close()
+        if len(eckdatenIds) > 0: eckdatenId = eckdatenIds[0][0]
+        return eckdatenId
+
 
 class VdvPartnerServiceAbo():
     """ Die Klasse beschreibt ein einzelnes VDV-PartnerserviceAbo """

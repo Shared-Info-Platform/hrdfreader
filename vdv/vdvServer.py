@@ -35,6 +35,7 @@ class VdvServer(threading.Thread):
         self.__port = int(self.__vdvConfig[serverConfigName]['port'])
         self.__partnerServices = dict()
         self.daemon = True
+        logger.info("Anlegen des VDVServers {} auf Port {}".format(self.__serverConfigName, self.__port))
         for x in range(int(self.__vdvConfig[serverConfigName]['partnerServiceCnt'])):
             partnerNo = x+1
             partnerConfigName = serverConfigName+"_P"+str(partnerNo)
@@ -76,7 +77,7 @@ class VdvServer(threading.Thread):
                 """ Liefert die aktuelle VDV-Request Kennung """
                 return os.path.splitext(os.path.basename(self.path))[0].lower()
 
-        server_address = ('', self.__port)
+        server_address = ('0.0.0.0', self.__port)
         self.__httpd = ThreadingHTTPServer(server_address, VdvServerRequestHandler)        
         self.__httpd.serve_forever()
 
@@ -85,15 +86,14 @@ class VdvServer(threading.Thread):
         self.__httpd.shutdown()
 
 
-    def handleGETRequest(self, request):
+    def handleGETRequest(self, vdvRequest):
         """ Bearbeiten von GET-Requests (Browser). Diese Requests werden den aktuellen Status des
             entsprechenden PartnerService zur Verfügung stellen
         """
-        # Auswerten der GET-Daten verteilen
-        requestedData = "Dies ist ein GET request"
-
-        request.sendResponse(HTTP)
-        request.wfile.write("GET request for {} => {}".format(self.path, requestedData).encode('utf-8'))
+        # Auswerten der GET-Daten
+        responseData = "GET request for"
+        httpStatusCode = HTTPStatus.OK
+        vdvRequest.sendResponse(httpStatusCode, responseData)
 
     def handleVdvRequest(self, vdvRequest):
         """ Bearbeitet den eingehenden VDV-Request """
@@ -216,5 +216,8 @@ class VdvServer(threading.Thread):
     def checkPartnerServices(self):
         """ Prüfen der ParnterServices, ob Aktionen anstehen """
         for partnerService in self.__partnerServices.values():
+            # Aktualisieren der Mappingdaten
+            partnerService.refreshMappingData()
+            # Aktualisieren/Prüfen der ServiceAbos
             partnerService.checkPartnerServiceAbos()
 
