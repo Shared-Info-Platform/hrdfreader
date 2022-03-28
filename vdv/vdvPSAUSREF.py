@@ -45,10 +45,10 @@ class VdvPSAUSREF(VdvPartnerService):
                             richtungsID = None
                         else:
                             richtungsID = linie.find('RichtungsID').text
-                        abo.addLinienFilter(linie.find('LinienID').text, richtungsID)
+                        abo.addLinienFilter(linie.find('LinienID').text, richtungsID, self.VdvMapper)
 
                     for betreiber in aboAUSREF.findall('BetreiberFilter'):
-                        abo.addBetreiberFilter(betreiber.find('BetreiberID').text)
+                        abo.addBetreiberFilter(betreiber.find('BetreiberID').text, self.VdvMapper)
 
                     # Überprüfen, ob dieses Abo bereits besteht.
                     if aboID not in self.ServiceAbos:
@@ -82,7 +82,9 @@ class VdvPSAUSREF(VdvPartnerService):
             existingAbo.GueltigVon = abo.GueltigVon
             existingAbo.GueltigBis = abo.GueltigBis
             existingAbo.LinienFilter = abo.LinienFilter
+            existingAbo.LinienFilterHRDF = abo.LinienFilterHRDF
             existingAbo.BetreiberFilter = abo.BetreiberFilter
+            existingAbo.BetreiberFilterHRDF = abo.BetreiberFilterHRDF
             existingAbo.DirtyData.clear()
             existingAbo.clearVDVLinienfahrplaene()
             abo.NextAboRefresh = datetime.datetime.now()
@@ -126,7 +128,7 @@ class VdvPSAUSREF(VdvPartnerService):
     def refreshAbos(self):
         """ Die Funktion aktualisiert die Daten der Service-Abos """
         if (self.vdvDB.connect()):
-            eckdatenId = self.currentEckdatenId()
+            eckdatenId = self.currentEckdatenId()            
             for serviceAbo in self.ServiceAbos.values():
                 if (serviceAbo.State == PartnerServiceAboState.IDLE and serviceAbo.NextAboRefresh < datetime.datetime.now()):
                     serviceAbo.State = PartnerServiceAboState.REFRESH_DATA
@@ -196,42 +198,63 @@ class VdvPSAUSREF(VdvPartnerService):
                     logger.info("{} => Abo {}: Prüfung/Übernahme der Linienfahrplaene abgeschlossen. Naechste Prüfung => {}".format(self.ServiceName, serviceAbo.AboID, serviceAbo.NextAboRefresh))
                     serviceAbo.State = PartnerServiceAboState.IDLE
 
-
     def createDatenAbrufenAntwort(self, datensatzAlle):
         """ Erzeugt eine DatenAbrufenAntwort dienstspezifisch """
         datenAbrufenAntwort = DatenAbrufenAntwort(Bestaetigung())
-        if (len(self.ServiceAbos) > 0):
-            for serviceAbo in self.ServiceAbos.values():
-                # Sind Linienfahrpläne zu übertragen => Status des Abos ist IDLE und es sind geänderte/neue Daten vorhanden
-                if serviceAbo.State == PartnerServiceAboState.IDLE:
-                    if datensatzAlle:
-                        # Es werden alle Linienfahrpläne abgefragt => alle als DirtyData markieren
-                        serviceAbo.DirtyData.clear()
-                        for linienfahrplan in serviceAbo.VDVLinienfahrplaene: serviceAbo.addDirtyData(hash(linienfahrplan))
+        try:
+            if (len(self.ServiceAbos) > 0):
+                for serviceAbo in self.ServiceAbos.values():
+                    # Sind Linienfahrpläne zu übertragen => Status des Abos ist IDLE und es sind geänderte/neue Daten vorhanden
+                    if serviceAbo.State == PartnerServiceAboState.IDLE:
+                        if datensatzAlle:
+                            # Es werden alle Linienfahrpläne abgefragt => alle als DirtyData markieren
+                            serviceAbo.DirtyData.clear()
+                            for linienfahrplan in serviceAbo.VDVLinienfahrplaene: serviceAbo.addDirtyData(hash(linienfahrplan))
 
-                    if len(serviceAbo.DirtyData) > 0:
-                        # Linienfahrpläne werden in der AUSNachricht verpackt und versendet
-                        serviceAbo.State = PartnerServiceAboState.SENDING_DATA
-                        ausNachricht = AUSNachricht(serviceAbo.AboID)
-                        for linienfahrplanHash in serviceAbo.DirtyData:
-                            linienFahrplan = serviceAbo.vdvLinienfahrplan(linienfahrplanHash)
-                            if linienFahrplan is not None: ausNachricht.addLinienFahrplan(linienFahrplan)
-                            else: logger.info("{} => Abo {}: LinienfahrplanHash {} konnte nicht gefunden werden".format(self.ServiceName, serviceAbo.AboID, linienfahrplanHash))
-                        datenAbrufenAntwort.addAUSNachricht(ausNachricht)
-                        serviceAbo.DirtyData.clear()
-                        serviceAbo.State = PartnerServiceAboState.IDLE
+                        if len(serviceAbo.DirtyData) > 0:
+                            # Linienfahrpläne werden in der AUSNachricht verpackt und versendet
+                            # Es werden maximal "maxTripsPerAbo" Fahrten verschickt. Wird TripsCnt während des Linienfahrplans überschritten, wird dieser aber vollständig übertragen
+                            # => Es können mehr als "maxTripsPerAbo" in einer DatenAbrufenAntwort auftreten.
+                            tripsPerAbo = 0
+                            serviceAbo.State = PartnerServiceAboState.SENDING_DATA
+                            ausNachricht = AUSNachricht(serviceAbo.AboID)
+                            linienFahrplanToRemove = list()
+                            for linienfahrplanHash in serviceAbo.DirtyData:
+                                linienFahrplan = serviceAbo.vdvLinienfahrplan(linienfahrplanHash)
+                                if linienFahrplan is not None:
+                                    tripsPerAbo += len(linienFahrplan.SollFahrt)
+                                    ausNachricht.addLinienFahrplan(linienFahrplan)
+                                else:
+                                    logger.info("{} => Abo {}: LinienfahrplanHash {} konnte nicht gefunden werden".format(self.ServiceName, serviceAbo.AboID, linienfahrplanHash))
+                                # Merken der LinienFahrpläne die aus der Dirty-Liste gelöscht werden können (In der Schleife löschen führt zu unvorhersehbaren Verhalten)
+                                linienFahrplanToRemove.append(linienfahrplanHash)                                
+                                if tripsPerAbo > self.MaxTripsPerAbo: break
 
-                elif (serviceAbo.State == PartnerServiceAboState.REFRESH_DATA):
-                    # Sicherstellen, dass auch die Daten in einem nächsten Schritt noch abgefragt werden, die gerade aufbereitet werden (Wir haben keine DatenBereitAnfrage)
-                    # So muss nicht auf eine StatusAnfrage gewartet werden
-                    logger.info("{} => Abo {}: Daten werden momentan aufbereitet".format(self.ServiceName, serviceAbo.AboID))
-                    datenAbrufenAntwort.WeitereDaten = True
+                            #Bereinigen der DirtyData Liste
+                            for linienfahrplanHash in linienFahrplanToRemove: serviceAbo.DirtyData.remove(linienfahrplanHash)
 
-                elif (serviceAbo.State == PartnerServiceAboState.SENDING_DATA):
-                    # Es kommt bereits die nächste DatenAbrufenAnfrage rein während wir senden => warum auch immer
-                    # Wir schicken hier ein False, um eine weitere überholende DatenAbrufenAnfrage zu verhindern
-                    logger.info("{} => Abo {}: Zuvor abgefragte Daten stehen kurz vor dem Senden".format(self.ServiceName, serviceAbo.AboID))
-                    datenAbrufenAntwort.WeitereDaten = False
+                            datenAbrufenAntwort.addAUSNachricht(ausNachricht)
+                            # Es braucht nur ein Abo, dass noch Daten zum Senden übrig hat, um WeiterDaten zu setzten
+                            if (len(serviceAbo.DirtyData) > 0): datenAbrufenAntwort.WeitereDaten = True
+                            serviceAbo.State = PartnerServiceAboState.IDLE
+
+                    elif (serviceAbo.State == PartnerServiceAboState.REFRESH_DATA):
+                        # Sicherstellen, dass auch die Daten in einem nächsten Schritt noch abgefragt werden, die gerade aufbereitet werden (Wir haben keine DatenBereitAnfrage)
+                        # So muss nicht auf eine StatusAnfrage gewartet werden
+                        logger.info("{} => Abo {}: Daten werden momentan aufbereitet".format(self.ServiceName, serviceAbo.AboID))
+                        datenAbrufenAntwort.WeitereDaten = True
+
+                    elif (serviceAbo.State == PartnerServiceAboState.SENDING_DATA):
+                        # Es kommt bereits die nächste DatenAbrufenAnfrage rein während wir senden => warum auch immer
+                        # Wir schicken hier ein False, um eine weitere überholende DatenAbrufenAnfrage zu verhindern
+                        logger.info("{} => Abo {}: Zuvor abgefragte Daten stehen kurz vor dem Senden".format(self.ServiceName, serviceAbo.AboID))
+                        datenAbrufenAntwort.WeitereDaten = False
+
+        except Exception as e:
+            datenAbrufenAntwort.Bestaetigung.Ergebnis = 'notok'
+            datenAbrufenAntwort.Bestaetigung.Fehlernummer = Fehlernummer.ERR_NOREP_INTERNAL.value
+            datenAbrufenAntwort.Bestaetigung.Fehlertext = 'Interner Fehler beim Zusammenstellen der DatenAbrufenAntwort aufgetreten'
+            logger.info("{} => Abo {}: Intern Fehler beim Zusammenstellen der DatenAbrufenAntwort aufgetreten: {}".format(self.ServiceName, serviceAbo.AboID, e))
 
         return datenAbrufenAntwort
 
@@ -245,7 +268,9 @@ class VdvPSAboAUSREF(VdvPartnerServiceAbo):
         self.__gueltigBis = None
         # optionale Filterkriterien
         self.__linienFilter = list()
+        self.__linienFilterHRDF = list()
         self.__betreiberFilter = list()
+        self.__betreiberFilterHRDF = list()
         self.__produktFilter = list()
         self.__verkehrsmittelTextFilter = list()
         self.__haltFilter = list()
@@ -266,7 +291,11 @@ class VdvPSAboAUSREF(VdvPartnerServiceAbo):
     @property
     def LinienFilter(self): return self.__linienFilter
     @property
+    def LinienFilterHRDF(self): return self.__linienFilterHRDF
+    @property
     def BetreiberFilter(self): return self.__betreiberFilter
+    @property
+    def BetreiberFilterHRDF(self): return self.__betreiberFilterHRDF
     @property
     def ProduktFilter(self): return self.__produktFilter
     @property
@@ -298,8 +327,12 @@ class VdvPSAboAUSREF(VdvPartnerServiceAbo):
     def GueltigBis(self, v): self.__gueltigBis = v
     @LinienFilter.setter
     def LinienFilter(self, v): self.__linienFilter = v
+    @LinienFilterHRDF.setter
+    def LinienFilterHRDF(self, v): self.__linienFilterHRDF = v
     @BetreiberFilter.setter
     def BetreiberFilter(self, v): self.__betreiberFilter = v
+    @BetreiberFilterHRDF.setter
+    def BetreiberFilterHRDF(self, v): self.__betreiberFilterHRDF = v
 
     def isEqual(self, other):
         """ Vergleich von 2 VDVPartnerServiceAboAUSREF """
@@ -312,10 +345,17 @@ class VdvPSAboAUSREF(VdvPartnerServiceAbo):
                 and VDV.vdvIsEqualElementList(self.BetreiberFilter, other.BetreiberFilter, False))
         
 
-    def addLinienFilter(self, linienID, richtungsID):
-        self.__linienFilter.append((linienID,richtungsID));
-    def addBetreiberFilter(self, betreiberID):
+    def addLinienFilter(self, linienID, richtungsID, vdvMapper):
+        self.__linienFilter.append((linienID,richtungsID))
+        # die Linienangaben sind RV-Konform (85:827:10). Für die weitere Verarbeitung muss dies auf HRDF gemappt werden
+        lineno = vdvMapper.mapLineno(linienID)
+        self.__linienFilterHRDF.append((lineno,richtungsID))
+
+    def addBetreiberFilter(self, betreiberID, vdvMapper):
         self.__betreiberFilter.append(betreiberID)
+        # die Betreiberangaben sind RV-Konform (85:827). Für die weitere Verarbeitung muss dies auf HRDF gemappt werden
+        operationalno = vdvMapper.mapOperationalno(betreiberID)
+        self.__betreiberFilterHRDF.append(operationalno)
 
     def existsVDVLinienfahrplan(self, linenfahrplan):
         """ Prüft, ob ein Linienfahrplan bereits vorhanden ist """
@@ -329,17 +369,17 @@ class VdvPSAboAUSREF(VdvPartnerServiceAbo):
 
     def buildBetreiberSQL(self):
         """ Erzeugt die WHERE-Bedingung für die Betreiberangaben im Abo """
-        if len(self.__betreiberFilter) > 0:
-            return " operationalno in ('"+ "','".join(self.__betreiberFilter) + "')"
+        if len(self.__betreiberFilterHRDF) > 0:
+            return " operationalno in ('"+ "','".join(self.__betreiberFilterHRDF) + "')"
         else:
             return None
 
     def buildLinienSQL(self):
         """ Erzeugt die WHERE-Bedingung für die Linienangaben im Abo """
-        if (len(self.__linienFilter) > 0):
+        if (len(self.__linienFilterHRDF) > 0):
             linienSQL = ""
             cnt = 1
-            for linienRichtung in self.__linienFilter:
+            for linienRichtung in self.__linienFilterHRDF:
                 # linienRichtung => tuple von linienID und richtungsID
                 if cnt > 1: linienSQL += " or "
                 linienSQL += "(CASE WHEN array_position(infotextcode, 'RN') IS NULL THEN coalesce(lineno, cast(tripno as varchar)) ELSE infotext_de[array_position(infotextcode, 'RN')] END='"+linienRichtung[0]+"'"

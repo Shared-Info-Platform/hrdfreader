@@ -10,7 +10,9 @@ class VdvPartnerMapper(object):
     def __init__(self, vdvDB):
         self.__vdvDB = vdvDB
         self.__betreiberLookUp = dict()
+        self.__operationalnoLookUp = dict()
         self.__linienLookUp = dict()
+        self.__linenoLookUp = dict()
         self.__produktTextLookUp = dict()
         self.__produktIDLookUp = dict()
         # Verkehrsmittelkategorien Zusammenfassung nach KategorieNr (HRDF_ZugartKategorie_tab)
@@ -54,6 +56,7 @@ class VdvPartnerMapper(object):
 
         # Betreiber-Mapping
         self.__betreiberLookUp.clear()
+        self.__operationalnoLookUp.clear()
         sql_betreiberLookUp = "SELECT operationalno, uiclaendercode, gonr, goabk FROM hrdf.hrdf_vdvbetreibermapping_tab ORDER BY operationalno"
         curBetreiber = self.__vdvDB.connection.cursor()
         curBetreiber.execute(sql_betreiberLookUp)
@@ -63,6 +66,7 @@ class VdvPartnerMapper(object):
         for b in betreiber:
             betreiberID = b[1]+":"+b[2]
             self.__betreiberLookUp[b[0]] = betreiberID
+            self.__operationalnoLookUp[betreiberID] = b[0]
         betreiber.clear()
 
         # Linien-Mapping
@@ -75,7 +79,10 @@ class VdvPartnerMapper(object):
         curLinien.close()
         for linie in linien:
             linienHash = hash((linie[0], linie[1]))
+            betreiberID = self.__betreiberLookUp[linie[0]]
+            linienID = betreiberID+":"+linie[2]
             self.__linienLookUp[linienHash] = (linie[2], linie[3])
+            self.__linenoLookUp[linienID] = linie[1]
         linien.clear()
 
     def mapBetreiberID(self, operationalno):
@@ -88,7 +95,19 @@ class VdvPartnerMapper(object):
             except:
                 betreiberID = "85:"+operationalno
         return betreiberID
-        
+
+    def mapOperationalno(self, betreiberID):
+        """ Mapped die VDV-BetreiberID zur HRDF-operationalno """
+        # Die VDV-BetreiberID (RV-Vorgabe ist <UIC-Ländercode>:<Go-Nummer>
+        if betreiberID in self.__operationalnoLookUp: return self.__operationalnoLookUp[betreiberID]
+        return betreiberID
+
+    def mapLineno(self, linienID):
+        """ Mapped die VDV-LinienID (mit BetreiberID) zur HRDF-lineno """
+        # DIe VDV-LinienID (RV-Vorgabe ist <UIC-Ländercode>:<Go-Nummer>:<Technischer Linienschlüssel>
+        if linienID in self.__linenoLookUp: return self.__linenoLookUp[linienID]
+        return linienID
+                
     def mapLinieID(self, operationalno, lineno):
         """ Mapped die HRDF-Linienno in eine VDV-LinienID """
         betreiberID = self.mapBetreiberID(operationalno)
