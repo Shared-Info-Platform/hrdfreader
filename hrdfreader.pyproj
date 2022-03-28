@@ -135,6 +135,8 @@
     <Content Include="db\update\update_2.3-0.sql" />
     <Content Include="db\update\update_2.3-1.sql" />
     <Content Include="db\update\update_2.3-2.sql" />
+    <Content Include="db\update\update_2.4-2.sql" />
+    <Content Include="db\update\update_2.4-3.sql" />
     <Content Include="requirements.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
