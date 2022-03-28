@@ -35,6 +35,7 @@ class VdvPartnerService():
         self.__startTime = datetime.datetime.utcnow()
         self.__datenVersionID = None
         self.__XSDVersionID = self.__vdvConfig[partnerConfigName]['XSDVersionID']
+        self.__maxTripsPerAbo = int(self.__vdvConfig[partnerConfigName]['maxTripsPerAbo'])
         # dictionary of serviceAbos
         self.__serviceAbos = dict()
         # Aufbau der Datenbankverbindung
@@ -73,6 +74,8 @@ class VdvPartnerService():
     def DatenVersionID(self): return self.__datenVersionID
     @property
     def XSDVersionID(self): return self.__XSDVersionID
+    @property
+    def MaxTripsPerAbo(self): return self.__maxTripsPerAbo
     @property
     def ServiceAbos(self): return self.__serviceAbos
 
