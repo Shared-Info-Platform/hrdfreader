@@ -10,6 +10,7 @@ class Fehlernummer(enum.Enum):
     REF_SENDER = 201    # falscher/unbekannter Sendername
     ERR_NOREP = 300     # Fehler auf Grund dessen die Anfrage nicht wiederholt werden sollte
     ERR_NOREP_SERVICE = 301     # Anfrage passt nicht zum Dienst
+    ERR_NOREP_INTERNAL = 302    # Interner Fehler aufgetreten
     ERR_REP = 400       # Fehler auf Grund dessen die Anfrage wiederholt werden kann
 
 class Bestaetigung():
