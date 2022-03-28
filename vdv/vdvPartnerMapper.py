@@ -137,3 +137,9 @@ class VdvPartnerMapper(object):
         # ProduktID muss einer Verkehrsmittelkategorie entsprechen siehe Doku (Harmonisierung...)
         # daher wir hier nicht auf self.__produktTextLookUp zugegriffen
         return produktID
+
+    def mapHaltID(self, stoppointident, extendHaltID7To9):
+        """ Mapped den HRDF-StoppointIdent in die VDV-HaltID """
+        # HRDF übliche 7-stellige Format durch Anhängen von "00" in das im 454 (NAV) übliche 9-stellige Format (konfigurierbar)
+        if (extendHaltID7To9 and len(stoppointident) == 7): return stoppointident+"00"
+        return stoppointident

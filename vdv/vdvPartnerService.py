@@ -3,6 +3,7 @@ import time
 import enum
 from vdv.vdvlog import logger
 from vdv.vdvdb import VdvDB
+import vdv.protocol.vdvProtocol as VDV
 from vdv.vdvPartnerMapper import VdvPartnerMapper
 
 class PartnerServiceType(enum.Enum):
@@ -36,6 +37,7 @@ class VdvPartnerService():
         self.__datenVersionID = None
         self.__XSDVersionID = self.__vdvConfig[partnerConfigName]['XSDVersionID']
         self.__maxTripsPerAbo = int(self.__vdvConfig[partnerConfigName]['maxTripsPerAbo'])
+        self.__extendHaltID7To9 = VDV.vdvStrToBool(self.__vdvConfig[partnerConfigName]['extendHaltID7To9'])
         # dictionary of serviceAbos
         self.__serviceAbos = dict()
         # Aufbau der Datenbankverbindung
@@ -76,6 +78,8 @@ class VdvPartnerService():
     def XSDVersionID(self): return self.__XSDVersionID
     @property
     def MaxTripsPerAbo(self): return self.__maxTripsPerAbo
+    @property
+    def ExtendHaltID7To9(self): return self.__extendHaltID7To9
     @property
     def ServiceAbos(self): return self.__serviceAbos
 

@@ -19,6 +19,12 @@ def vdvToVDVBool(booleanValue):
 	if (booleanValue is None): return None
 	elif (booleanValue == True): return "true"
 	else: return "false"
+
+def vdvStrToBool(strBooleanValue):
+	""" Wandelt einen String in einen Bool """
+	if (strBooleanValue is None): return None
+	elif (strBooleanValue.lower() == 'true') : return True
+	return False
 	
 
 def vdvStrToDateTimeUTC(strDateTime):

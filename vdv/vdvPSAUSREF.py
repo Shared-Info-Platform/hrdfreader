@@ -167,7 +167,7 @@ class VdvPSAUSREF(VdvPartnerService):
                                 linienfahrplan.LinienText = self.VdvMapper.mapLinieText(operationalno, lineno, firstCategoryNo, firstCategoryCode, firstLineNo)
                                 linienfahrplan.addSollFahrt(sollFahrt)
                             # Halte erstellen
-                            sollHalt = SollHalt(sqlFahrplan[2])
+                            sollHalt = SollHalt(self.VdvMapper.mapHaltID(sqlFahrplan[2], self.ExtendHaltID7To9))
                             sollHalt.HaltestellenName = sqlFahrplan[3]
                             sollHalt.AnkunftssteigText = sqlFahrplan[4]
                             sollHalt.AbfahrtssteigText = sqlFahrplan[5]
