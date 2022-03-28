@@ -40,6 +40,8 @@ class DatenAbrufenAntwort():
     @property
     def WeitereDaten(self):
         return self.__WeitereDaten
+    @WeitereDaten.setter
+    def WeitereDaten(self, v): self.__WeitereDaten = v
 
     def addAUSNachricht(self, ausNachricht):
         self.__AUSNachricht.append(ausNachricht)
