@@ -1,4 +1,4 @@
-# hrdfreader [![Current Version](https://img.shields.io/badge/version-2.0.2-green.svg)](https://github.com/BERNMOBIL/hrdfreader)
+# hrdfreader [![Current Version](https://img.shields.io/badge/version-2.1.1-green.svg)](https://github.com/BERNMOBIL/hrdfreader)
 
 > parse hafas rohdaten format files into a postgres db
 
@@ -6,9 +6,10 @@
 
 hrdfreader is used to import timetable data in HAFAS Rohdaten Format and is optimized for swiss public transport data as provided by [opentransportdata.ch](https://www.opentransportdata.ch)
 
-The focus is set on analytics and fast access to departures of a given day. hrdfreader is not meant to be a backend for a passenger information system.
+The focus is set on analytics and fast access to departures of a given day.
 
 It can manage multiple publications of timetable data and has features for automatic data import and time table generation.
+Since version 2.1.1 there's also a VDV454 AUSRef server integrated to convert HRDF data into 'Linienfahrplan' data as used for public transport in Switzerland.
 
 ## Installation
 
@@ -41,6 +42,9 @@ Configuration is done in hrdfconfig.config
 
 ## Version History
 
+* 2.1.1
+    * ADD: VDV454 AUSRef Server
+    * ADD: tables for conversion from HRDF formats to PT CH specific VDV formats 
 * 2.0.2
     * ADD: Automation of import and generation (cronjob needed)
     * ADD: config file for individual settings
