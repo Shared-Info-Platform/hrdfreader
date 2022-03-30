@@ -26,6 +26,8 @@ class VdvPartnerMapper(object):
         self.__catSesselbahn = tuple((30,))
         self.__catAufzug = tuple((2,))
         self.__catSchiff = tuple((4,12))
+        # Verkehrsmittelkategorien für spezielles Verhalten
+        self.__catForSpecialLinienText = self.__catZug + self.__catSchiff
 
     def refreshMappingData(self):
         """ Funktion lädt/aktualisiert die notwendigen Mappingdaten """        
@@ -119,9 +121,9 @@ class VdvPartnerMapper(object):
 
     def mapLinieText(self, operationalno, lineno, firstCategoryno, firstCategorycode, firstLineNo):
         """ Mapped die HRDF-Linienno in einen VDV-LinienText
-            Spezialität für Verkehrsmittelkategorie ZUG
+            Spezialität für Verkehrsmittelkategorie Zug/Schiff (siehe __init__())
         """
-        if firstCategoryno in self.__catZug:
+        if firstCategoryno in self.__catForSpecialLinienText:
             if firstLineNo is None: linienText = firstCategorycode
             else: linienText = firstCategorycode+firstLineNo
         else:
