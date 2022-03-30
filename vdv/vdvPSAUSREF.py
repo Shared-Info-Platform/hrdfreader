@@ -85,9 +85,10 @@ class VdvPSAUSREF(VdvPartnerService):
             existingAbo.LinienFilterHRDF = abo.LinienFilterHRDF
             existingAbo.BetreiberFilter = abo.BetreiberFilter
             existingAbo.BetreiberFilterHRDF = abo.BetreiberFilterHRDF
+            existingAbo.State = PartnerServiceAboState.UPDATED
             existingAbo.DirtyData.clear()
             existingAbo.clearVDVLinienfahrplaene()
-            abo.NextAboRefresh = datetime.datetime.now()
+            existingAbo.NextAboRefresh = datetime.datetime.now()            
 
     def __buildLinienfahrplaeneSQL(self, serviceAbo, eckdatenId):
         """ Erzeugt das SQL-Statment für die Linienfahrpläne des angegebenen ServiceAbos """
@@ -130,13 +131,16 @@ class VdvPSAUSREF(VdvPartnerService):
         if (self.vdvDB.connect()):
             eckdatenId = self.currentEckdatenId()            
             for serviceAbo in self.ServiceAbos.values():
-                if (serviceAbo.State == PartnerServiceAboState.IDLE and serviceAbo.NextAboRefresh < datetime.datetime.now()):
+                if ( (serviceAbo.State == PartnerServiceAboState.UPDATED or serviceAbo.State == PartnerServiceAboState.IDLE) and serviceAbo.NextAboRefresh < datetime.datetime.now()):
                     serviceAbo.State = PartnerServiceAboState.REFRESH_DATA
                     # Gruppierung aller Linienfahrpläne, mit anschließendem Statement über alle beinhalteten Fahrten mit Haltestellen
                     linienFahrplaene = self.__buildLinienfahrplaeneSQL(serviceAbo, eckdatenId)
                     logger.info("{} => Abo {}: Starte Prüfung/Übernahme der {} Linienfahrplaene".format(self.ServiceName, serviceAbo.AboID, len(linienFahrplaene)))
                     # columns => lineno, coalesce(directionshort, 'H'), operationalno, count(distinct tripident)
                     for sqlLinienFahrplan in linienFahrplaene:
+                        if (serviceAbo.State == PartnerServiceAboState.DELETED) or (serviceAbo.State == PartnerServiceAboState.UPDATED):
+                            logger.info("{} => Abo {}: Löschanforderung oder Update während der Datenaufbereitung eingetroffen".format(self.ServiceName, serviceAbo.AboID))
+                            break;
                         lineno = sqlLinienFahrplan[0]
                         directionshort = sqlLinienFahrplan[1]
                         operationalno = sqlLinienFahrplan[2]
@@ -194,14 +198,17 @@ class VdvPSAUSREF(VdvPartnerService):
                             serviceAbo.addVDVLinienfahrplan(linienfahrplan)
 
                     # Refresh des Abos abgeschlossen
-                    serviceAbo.NextAboRefresh = datetime.datetime.now() + datetime.timedelta(minutes=self.RefreshAboIntervalMin)
+                    
                     logger.info("{} => Abo {}: Prüfung/Übernahme der Linienfahrplaene abgeschlossen. Naechste Prüfung => {}".format(self.ServiceName, serviceAbo.AboID, serviceAbo.NextAboRefresh))
-                    serviceAbo.State = PartnerServiceAboState.IDLE
+                    if (serviceAbo.State == PartnerServiceAboState.REFRESH_DATA):
+                       serviceAbo.NextAboRefresh = datetime.datetime.now() + datetime.timedelta(minutes=self.RefreshAboIntervalMin)
+                       serviceAbo.State = PartnerServiceAboState.IDLE
 
     def createDatenAbrufenAntwort(self, datensatzAlle):
         """ Erzeugt eine DatenAbrufenAntwort dienstspezifisch """
         datenAbrufenAntwort = DatenAbrufenAntwort(Bestaetigung())
         try:
+            self.AboLock.acquire() # AboLock ebenfalls in checkPartnerServiceAbos
             if (len(self.ServiceAbos) > 0):
                 for serviceAbo in self.ServiceAbos.values():
                     # Sind Linienfahrpläne zu übertragen => Status des Abos ist IDLE und es sind geänderte/neue Daten vorhanden
@@ -220,6 +227,7 @@ class VdvPSAUSREF(VdvPartnerService):
                             ausNachricht = AUSNachricht(serviceAbo.AboID)
                             linienFahrplanToRemove = list()
                             for linienfahrplanHash in serviceAbo.DirtyData:
+                                if (serviceAbo.State == PartnerServiceAboState.DELETED) or (serviceAbo.State == PartnerServiceAboState.UPDATED): break
                                 linienFahrplan = serviceAbo.vdvLinienfahrplan(linienfahrplanHash)
                                 if linienFahrplan is not None:
                                     tripsPerAbo += len(linienFahrplan.SollFahrt)
@@ -233,10 +241,14 @@ class VdvPSAUSREF(VdvPartnerService):
                             #Bereinigen der DirtyData Liste
                             for linienfahrplanHash in linienFahrplanToRemove: serviceAbo.DirtyData.remove(linienfahrplanHash)
 
-                            datenAbrufenAntwort.addAUSNachricht(ausNachricht)
-                            # Es braucht nur ein Abo, dass noch Daten zum Senden übrig hat, um WeiterDaten zu setzten
-                            if (len(serviceAbo.DirtyData) > 0): datenAbrufenAntwort.WeitereDaten = True
-                            serviceAbo.State = PartnerServiceAboState.IDLE
+                            if (serviceAbo.State == PartnerServiceAboState.DELETED) or (serviceAbo.State == PartnerServiceAboState.UPDATED):
+                                logger.info("{} => Abo {}: Löschanforderung oder Update während der DatenAbrufenAntwort-Erstellung eingetroffen".format(self.ServiceName, serviceAbo.AboID))
+                            else:
+                                datenAbrufenAntwort.addAUSNachricht(ausNachricht)
+                                # Es braucht nur ein Abo, dass noch Daten zum Senden übrig hat, um WeiterDaten zu setzten
+                                if (len(serviceAbo.DirtyData) > 0): datenAbrufenAntwort.WeitereDaten = True
+
+                            if (serviceAbo.State != PartnerServiceAboState.DELETED): serviceAbo.State = PartnerServiceAboState.IDLE
 
                     elif (serviceAbo.State == PartnerServiceAboState.REFRESH_DATA):
                         # Sicherstellen, dass auch die Daten in einem nächsten Schritt noch abgefragt werden, die gerade aufbereitet werden (Wir haben keine DatenBereitAnfrage)
@@ -249,8 +261,9 @@ class VdvPSAUSREF(VdvPartnerService):
                         # Wir schicken hier ein False, um eine weitere überholende DatenAbrufenAnfrage zu verhindern
                         logger.info("{} => Abo {}: Zuvor abgefragte Daten stehen kurz vor dem Senden".format(self.ServiceName, serviceAbo.AboID))
                         datenAbrufenAntwort.WeitereDaten = False
-
+            self.AboLock.release()
         except Exception as e:
+            self.AboLock.release()
             datenAbrufenAntwort.Bestaetigung.Ergebnis = 'notok'
             datenAbrufenAntwort.Bestaetigung.Fehlernummer = Fehlernummer.ERR_NOREP_INTERNAL.value
             datenAbrufenAntwort.Bestaetigung.Fehlertext = 'Interner Fehler beim Zusammenstellen der DatenAbrufenAntwort aufgetreten'

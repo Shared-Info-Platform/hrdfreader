@@ -1,6 +1,7 @@
 import datetime
 import time
 import enum
+from threading import Lock
 from vdv.vdvlog import logger
 from vdv.vdvdb import VdvDB
 import vdv.protocol.vdvProtocol as VDV
@@ -18,6 +19,8 @@ class PartnerServiceAboState(enum.Enum):
     IDLE = 0
     REFRESH_DATA = 1
     SENDING_DATA = 2
+    DELETED = 3
+    UPDATED = 4
     
 
 class VdvPartnerService():
@@ -39,6 +42,7 @@ class VdvPartnerService():
         self.__maxTripsPerAbo = int(self.__vdvConfig[partnerConfigName]['maxTripsPerAbo'])
         self.__extendHaltID7To9 = VDV.vdvStrToBool(self.__vdvConfig[partnerConfigName]['extendHaltID7To9'])
         # dictionary of serviceAbos
+        self.__aboLock = Lock()
         self.__serviceAbos = dict()
         # Aufbau der Datenbankverbindung
         dbname = self.__vdvConfig['DATABASE']['dbname']
@@ -82,6 +86,8 @@ class VdvPartnerService():
     def ExtendHaltID7To9(self): return self.__extendHaltID7To9
     @property
     def ServiceAbos(self): return self.__serviceAbos
+    @property
+    def AboLock(self): return self.__aboLock
 
     @StartTime.setter
     def StartTime(self, v):
@@ -89,21 +95,41 @@ class VdvPartnerService():
 
     def deleteAllAbos(self):
         """ Loeschen aller Abos dieses PartnerService """
-        self.ServiceAbos.clear()
+        for serviceAbo in self.ServiceAbos:
+            serviceAbo.State = PartnerServiceAboState.DELETED
+            logger.info("{} => Abo {} zum Löschen vorgemerkt".format(self.ServiceName, serviceAbo.AboID))
 
     def deleteAbo(self, aboID):
         """ Loeschen des Abos mit der entsprechenden AboID """
-        self.ServiceAbos.pop(aboID)
+        if aboID in self.ServiceAbos:
+            self.ServiceAbos[aboID].State = PartnerServiceAboState.DELETED
+            logger.info("{} => Abo {} zum Löschen vorgemerkt".format(self.ServiceName, aboID))
 
     def checkPartnerServiceAbos(self):
         """ Prüft die Service-Abos, ob Daten zur Abholung bereitstehen bzw. ob sich Änderungen ergeben haben """
+        # Es muss hier geprüft werden, welche Abos zum Löschen anstehen
+        deletableAbos = list()
+        for serviceAbo in self.ServiceAbos.values():
+            if (serviceAbo.State == PartnerServiceAboState.DELETED): deletableAbos.append(serviceAbo.AboID)
+
+        # AboLock ebenfalls in createDatenAbrufenAntwort
+        self.AboLock.acquire()
+        for aboID in deletableAbos:
+            serviceAbo = self.ServiceAbos.pop(aboID)
+            serviceAbo.DirtyData.clear()
+            serviceAbo.clearVDVLinienfahrplaene()
+            del serviceAbo
+            logger.info("{} => Abo {} wurde gelöscht".format(self.ServiceName, aboID))
+        self.AboLock.release()
+
+        # Aktualisierung der Abos
         self.refreshAbos()
 
     def isDataReady(self):
         """ Prüft ob Daten zum Versand anstehen """
         dataIsReady = False
-        if (len(self.__serviceAbos) > 0):
-            for serviceAbo in self.__serviceAbos.values():
+        if (len(self.ServiceAbos) > 0):
+            for serviceAbo in self.ServiceAbos.values():
                 if (serviceAbo.State == PartnerServiceAboState.IDLE and len(serviceAbo.DirtyData) > 0):
                     dataIsReady = True
                     break;
@@ -112,7 +138,7 @@ class VdvPartnerService():
     def refreshMappingData(self):
         """ Aktualisiert die Mapping-Daten in bestimmten Min-Intervallen """
         if self.__nextMappingDataRefresh <= datetime.datetime.now():
-            logger.info("{} => Aktualisieren der Mapping-Daten".format(self.__serviceName))
+            logger.info("{} => Aktualisieren der Mapping-Daten".format(self.ServiceName))
             self.__vdvMapper.refreshMappingData()
             self.__nextMappingDataRefresh = datetime.datetime.now() + datetime.timedelta(minutes=self.RefreshMappingDataIntervalMin)
 
@@ -139,6 +165,7 @@ class VdvPartnerServiceAbo():
         self.__nextAboRefresh = datetime.datetime.now()
         self.__dirtyData = list()
         self.__state = PartnerServiceAboState.IDLE
+        self.__stateLock = Lock()
 
     @property
     def AboID(self): return self.__aboID
@@ -157,7 +184,10 @@ class VdvPartnerServiceAbo():
     @NextAboRefresh.setter
     def NextAboRefresh(self, v): self.__nextAboRefresh = v
     @State.setter
-    def State(self, v): self.__state = v
+    def State(self, v):
+        self.__stateLock.acquire()
+        self.__state = v
+        self.__stateLock.release()
 
     def isEqual(self, other):
         """ Vergleich von 2 VDVPartnerServiceAbos """
