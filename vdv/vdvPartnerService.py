@@ -138,9 +138,16 @@ class VdvPartnerService():
     def refreshMappingData(self):
         """ Aktualisiert die Mapping-Daten in bestimmten Min-Intervallen """
         if self.__nextMappingDataRefresh <= datetime.datetime.now():
-            logger.info("{} => Aktualisieren der Mapping-Daten".format(self.ServiceName))
-            self.__vdvMapper.refreshMappingData()
-            self.__nextMappingDataRefresh = datetime.datetime.now() + datetime.timedelta(minutes=self.RefreshMappingDataIntervalMin)
+            doRefresh = True
+            for serviceAbo in self.ServiceAbos.values():
+                if (serviceAbo.State == PartnerServiceAboState.REFRESH_DATA):
+                    logger.info("{} => Wegen laufender Datenaufbereitung, wird der Refresh der Mappingdaten ausgesetzt".format(self.ServiceName))
+                    doRefresh = False
+                    break
+            if doRefresh:
+                logger.info("{} => Aktualisieren der Mapping-Daten".format(self.ServiceName))
+                self.__vdvMapper.refreshMappingData()
+                self.__nextMappingDataRefresh = datetime.datetime.now() + datetime.timedelta(minutes=self.RefreshMappingDataIntervalMin)
 
     def currentEckdatenId(self):
         """ Liefert die aktuell gültige EckdatenId """
