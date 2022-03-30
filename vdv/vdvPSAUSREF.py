@@ -113,12 +113,14 @@ class VdvPSAUSREF(VdvPartnerService):
 
     def __buildFahrlplaeneSQL(self, serviceAbo, lineno, directionshort, operationalno, eckdatenId):
         """ Erzeugt das SQL-Statement für die einzelnen Fahrpläne eines Linienfahrplans des angegebenen serviceAbos """
+
+        # Der letzte Halt einer Fahrt hat keine Abfahrtszeit gesetzt, daher wird die arrdatetime übernommen
         sql_stmt = "SELECT tripident, operatingday, "\
                    "       stoppointident, stoppointname, arrstoppointtext, depstoppointtext, arrdatetime, depdatetime, noentry, noexit, directiontext, stopname as fromdirectiontext, categorycode, classno, categoryno, "\
                    "       fk_eckdatenid, infotextcode, infotext_de, lineno "\
                    "  FROM HRDF.HRDF_DailyTimetable_TAB "\
                    " WHERE CASE WHEN array_position(infotextcode, 'RN') IS NULL THEN coalesce(lineno, cast(tripno as varchar)) ELSE infotext_de[array_position(infotextcode, 'RN')] END = %s "\
-                   "   AND coalesce(directionshort, 'H') = %s and operationalno = %s and depdatetime between %s and %s  and fk_eckdatenid = %s"\
+                   "   AND coalesce(directionshort, 'H') = %s and operationalno = %s and coalesce(depdatetime, arrdatetime) between %s and %s  and fk_eckdatenid = %s"\
                    " ORDER BY lineno, coalesce(directionshort, 'H'), operationalno, tripident, stopsequenceno"
         curFahrplan = self.vdvDB.connection.cursor()
         curFahrplan.execute(sql_stmt, (lineno, directionshort, operationalno, VDV.vdvUTCToLocal(serviceAbo.GueltigVon), VDV.vdvUTCToLocal(serviceAbo.GueltigBis), eckdatenId))
