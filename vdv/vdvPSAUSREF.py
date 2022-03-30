@@ -199,12 +199,12 @@ class VdvPSAUSREF(VdvPartnerService):
                             serviceAbo.DirtyData.append(hash(linienfahrplan))
                             serviceAbo.addVDVLinienfahrplan(linienfahrplan)
 
-                    # Refresh des Abos abgeschlossen
-                    
-                    logger.info("{} => Abo {}: Prüfung/Übernahme der Linienfahrplaene abgeschlossen. Naechste Prüfung => {}".format(self.ServiceName, serviceAbo.AboID, serviceAbo.NextAboRefresh))
+                    # Refresh des Abos abgeschlossen                    
                     if (serviceAbo.State == PartnerServiceAboState.REFRESH_DATA):
                        serviceAbo.NextAboRefresh = datetime.datetime.now() + datetime.timedelta(minutes=self.RefreshAboIntervalMin)
                        serviceAbo.State = PartnerServiceAboState.IDLE
+                       logger.info("{} => Abo {}: Prüfung/Übernahme der Linienfahrplaene abgeschlossen. Naechste Prüfung => {}".format(self.ServiceName, serviceAbo.AboID, serviceAbo.NextAboRefresh))
+
 
     def createDatenAbrufenAntwort(self, datensatzAlle):
         """ Erzeugt eine DatenAbrufenAntwort dienstspezifisch """
