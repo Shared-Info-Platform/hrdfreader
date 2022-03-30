@@ -348,8 +348,8 @@ class VdvPSAboAUSREF(VdvPartnerServiceAbo):
     def addLinienFilter(self, linienID, richtungsID, vdvMapper):
         self.__linienFilter.append((linienID,richtungsID))
         # die Linienangaben sind RV-Konform (85:827:10). Für die weitere Verarbeitung muss dies auf HRDF gemappt werden
-        lineno = vdvMapper.mapLineno(linienID)
-        self.__linienFilterHRDF.append((lineno,richtungsID))
+        operationalLineno = vdvMapper.mapOperationalLineno(linienID)
+        self.__linienFilterHRDF.append((operationalLineno,richtungsID))
 
     def addBetreiberFilter(self, betreiberID, vdvMapper):
         self.__betreiberFilter.append(betreiberID)
@@ -379,11 +379,15 @@ class VdvPSAboAUSREF(VdvPartnerServiceAbo):
         if (len(self.__linienFilterHRDF) > 0):
             linienSQL = ""
             cnt = 1
-            for linienRichtung in self.__linienFilterHRDF:
-                # linienRichtung => tuple von linienID und richtungsID
+            for operationalLineDirection in self.__linienFilterHRDF:
+                # linienRichtung => tuple von ((operationalno, lineno), richtungsID)
+                operationalno = operationalLineDirection[0][0]
+                linienno = operationalLineDirection[0][1]
+                directionshort = operationalLineDirection[1]
                 if cnt > 1: linienSQL += " or "
-                linienSQL += "(CASE WHEN array_position(infotextcode, 'RN') IS NULL THEN coalesce(lineno, cast(tripno as varchar)) ELSE infotext_de[array_position(infotextcode, 'RN')] END='"+linienRichtung[0]+"'"
-                if (linienRichtung[1] is not None): linienSQL += " and coalesce(directionshort, 'H') = '"+linienRichtung[1]+"'"
+                linienSQL += "(CASE WHEN array_position(infotextcode, 'RN') IS NULL THEN coalesce(lineno, cast(tripno as varchar)) ELSE infotext_de[array_position(infotextcode, 'RN')] END='"+linienno+"'"
+                linienSQL += " AND operationalno = '"+operationalno+"'"
+                if (directionshort is not None): linienSQL += " AND coalesce(directionshort, 'H') = '"+directionshort+"'"
                 linienSQL += ")"
                 cnt += 1
             return linienSQL
