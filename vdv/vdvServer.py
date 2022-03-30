@@ -99,36 +99,43 @@ class VdvServer(threading.Thread):
         """ Bearbeitet den eingehenden VDV-Request """
         responseData = "Bad request"
         httpStatusCode = HTTPStatus.BAD_REQUEST
-
+        
         serviceUrl = vdvRequest.vdvServiceUrl()
         vdvPartnerService = self.__partnerServices.get(serviceUrl)
-        if (vdvPartnerService is None):
-            responseData = "The requested service '{}' is not registered".format(serviceUrl)
-            httpStatusCode = HTTPStatus.NOT_FOUND
-        else:
-            content_length = int(vdvRequest.headers['Content-Length']) # <--- Gets the size of data
-            xmlString = vdvRequest.rfile.read(content_length) # <--- Gets the data itself
-            logger.info("{}: incoming request {}\n{}".format(vdvPartnerService.ServiceName, vdvRequest.path, xmlString.decode('utf-8')))
-            # Auswerten der POST-Daten verteilen
-            if (vdvRequest.vdvRequestIdent() == VDVRequestIdent.status.name):
-                statusAntwort = self.__handleStatusAnfrage(xmlString, vdvPartnerService)
-                responseData = '<?xml version="1.0" encoding="ISO-8859-1"?>'
-                responseData += statusAntwort.toXMLString();
-                httpStatusCode = HTTPStatus.OK
 
-            elif (vdvRequest.vdvRequestIdent() == VDVRequestIdent.aboverwalten.name):
-                aboAntwort = self.__handleAboAnfrage(xmlString, vdvPartnerService)
-                responseData = '<?xml version="1.0" encoding="ISO-8859-1"?>'
-                responseData += aboAntwort.toXMLString()
-                httpStatusCode = HTTPStatus.OK
+        try:
+            if (vdvPartnerService is None):
+                responseData = "The requested service '{}' is not registered".format(serviceUrl)
+                httpStatusCode = HTTPStatus.NOT_FOUND
+            else:
+                content_length = int(vdvRequest.headers['Content-Length']) # <--- Gets the size of data
+                xmlString = vdvRequest.rfile.read(content_length) # <--- Gets the data itself
+                logger.info("{}: incoming request {}\n{}".format(vdvPartnerService.ServiceName, vdvRequest.path, xmlString.decode('utf-8')))
+                # Auswerten der POST-Daten verteilen
+                if (vdvRequest.vdvRequestIdent() == VDVRequestIdent.status.name):
+                    statusAntwort = self.__handleStatusAnfrage(xmlString, vdvPartnerService)
+                    responseData = '<?xml version="1.0" encoding="ISO-8859-1"?>'
+                    responseData += statusAntwort.toXMLString();
+                    httpStatusCode = HTTPStatus.OK
 
-            elif (vdvRequest.vdvRequestIdent() == VDVRequestIdent.datenabrufen.name):
-                datenAbrufenAntwort = self.__handleDatenAbrufenAnfrage(xmlString, vdvPartnerService)
-                responseData = '<?xml version="1.0" encoding="ISO-8859-1"?>'
-                responseData += datenAbrufenAntwort.toXMLString()
-                httpStatusCode = HTTPStatus.OK
+                elif (vdvRequest.vdvRequestIdent() == VDVRequestIdent.aboverwalten.name):
+                    aboAntwort = self.__handleAboAnfrage(xmlString, vdvPartnerService)
+                    responseData = '<?xml version="1.0" encoding="ISO-8859-1"?>'
+                    responseData += aboAntwort.toXMLString()
+                    httpStatusCode = HTTPStatus.OK
 
-            logger.info("{}: outgoing response {}\n{}".format(vdvPartnerService.ServiceName, vdvRequest.path, responseData))
+                elif (vdvRequest.vdvRequestIdent() == VDVRequestIdent.datenabrufen.name):
+                    datenAbrufenAntwort = self.__handleDatenAbrufenAnfrage(xmlString, vdvPartnerService)
+                    responseData = '<?xml version="1.0" encoding="ISO-8859-1"?>'
+                    responseData += datenAbrufenAntwort.toXMLString()
+                    httpStatusCode = HTTPStatus.OK
+
+                logger.info("{}: outgoing response {}\n{}".format(vdvPartnerService.ServiceName, vdvRequest.path, responseData))
+
+        except Exception as e:
+            responseData = "Interner Server-Fehler aufgetreten"
+            httpStatusCode = HTTPStatus.INTERNAL_SERVER_ERROR
+            logger.info("{}: outgoing response {}\n{}: {}".format(vdvPartnerService.ServiceName, vdvRequest.path, responseData, e))
 
         vdvRequest.sendResponse(httpStatusCode, responseData)
 
