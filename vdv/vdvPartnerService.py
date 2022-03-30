@@ -95,7 +95,7 @@ class VdvPartnerService():
 
     def deleteAllAbos(self):
         """ Loeschen aller Abos dieses PartnerService """
-        for serviceAbo in self.ServiceAbos:
+        for serviceAbo in self.ServiceAbos.values():
             serviceAbo.State = PartnerServiceAboState.DELETED
             logger.info("{} => Abo {} zum Löschen vorgemerkt".format(self.ServiceName, serviceAbo.AboID))
 
