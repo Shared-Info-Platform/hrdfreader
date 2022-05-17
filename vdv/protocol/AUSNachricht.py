@@ -143,8 +143,8 @@ class SollHalt():
         ownRoot = ET.Element('SollHalt')
         if (self.HaltID is not None): ET.SubElement(ownRoot, 'HaltID').text = self.HaltID
         if (self.HaltestellenName is not None): ET.SubElement(ownRoot, 'HaltestellenName').text = self.HaltestellenName
-        if (self.Abfahrtszeit is not None): ET.SubElement(ownRoot, 'Abfahrtszeit').text = self.Abfahrtszeit.strftime("%Y-%m-%dT%H:%M:%SZ")
-        if (self.Ankunftszeit is not None): ET.SubElement(ownRoot, 'Ankunftszeit').text = self.Ankunftszeit.strftime("%Y-%m-%dT%H:%M:%SZ")
+        if (self.Abfahrtszeit is not None): ET.SubElement(ownRoot, 'Abfahrtszeit').text = self.Abfahrtszeit.astimezone().strftime("%Y-%m-%dT%H:%M:%S%z")
+        if (self.Ankunftszeit is not None): ET.SubElement(ownRoot, 'Ankunftszeit').text = self.Ankunftszeit.astimezone().strftime("%Y-%m-%dT%H:%M:%S%z")
         if (self.AbfahrtssteigText is not None): ET.SubElement(ownRoot, 'AbfahrtssteigText').text = self.AbfahrtssteigText
         if (self.AnkunftssteigText is not None): ET.SubElement(ownRoot, 'AnkunftssteigText').text = self.AnkunftssteigText
         if (self.AbfahrtsSektorenText is not None): ET.SubElement(ownRoot, 'AbfahrtsSektorenText').text = self.AbfahrtsSektorenText
