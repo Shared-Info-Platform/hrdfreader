@@ -270,11 +270,9 @@ class HrdfTTGCache:
 		# Lookup für Richtungstexte der Fahrten
 		logger.info("Lookup für Richtungstexte der Fahrten aufbauen")
 		sql_selRData = "SELECT a.directionshort, fromstop, tostop, deptimefrom, arrtimeto, b.directiontext, fk_fplanfahrtid "\
-					   "  FROM HRDF_FPlanFahrtR_TAB a, "\
-					   "       HRDF_Richtung_TAB b "\
+					   "  FROM HRDF_FPlanFahrtR_TAB a "\
+					   "       LEFT OUTER JOIN HRDF_Richtung_TAB b ON b.fk_eckdatenid = a.fk_eckdatenid AND a.directioncode = b.directioncode"\
 					   " WHERE a.fk_eckdatenid = %s "\
-					   "   AND a.fk_eckdatenid = b.fk_eckdatenid "\
-					   "   AND b.directioncode = a.directioncode "\
 					   " ORDER BY a.fk_fplanfahrtid, a.id"
 		curR = self.__hrdfdb.connection.cursor()
 		curR.execute(sql_selRData, (eckdatenid,))
