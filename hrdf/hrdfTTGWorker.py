@@ -406,14 +406,21 @@ class HrdfTTGWorker(Thread):
 		if (fromStop is None and toStop is None):
 			stopSequenceList = newTripStops.keys()
 		else:
+			# Erste sequenceNo in newTripStops ermitteln, um bei verkürzten Laufwegen den richtigen Start zu finden.
+			relevantFromStop = fromStop
+			firstSeq = next(iter(newTripStops))
+			fromSeq = self.getStopSequenceNo(fromStop)
+			relevantFromStop = fromStop
+			if fromSeq < firstSeq: relevantFromStop = newTripStops[firstSeq]["stop"][0]
+
 			bTakeStop = False
 			for sequenceNo in newTripStops:
 				# ist deptimefrom belegt muss auch die deptime des Stops passen
 				if (deptimeFrom is None):
-					if (newTripStops[sequenceNo]["stop"][0] == fromStop):
+					if (newTripStops[sequenceNo]["stop"][0] == relevantFromStop):
 						bTakeStop = True
 				else:
-					if (newTripStops[sequenceNo]["stop"][0] == fromStop and newTripStops[sequenceNo]["stop"][4] == deptimeFrom):
+					if (newTripStops[sequenceNo]["stop"][0] == relevantFromStop and newTripStops[sequenceNo]["stop"][4] == deptimeFrom):
 						bTakeStop = True
 				# ist arrtimeto belegt muss auch die arrtime des Stops passen
 				if (arrtimeTo is None):
