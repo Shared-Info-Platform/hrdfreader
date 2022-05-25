@@ -36,7 +36,7 @@ class VdvPartnerService():
         self.__refreshAboIntervalMin = int(self.__vdvConfig[partnerConfigName]['refreshAboIntervalMin'])
         self.__refreshMappingDataIntervalMin = int(self.__vdvConfig[partnerConfigName]['refreshAboIntervalMin'])
         self.__nextMappingDataRefresh = datetime.datetime.now()
-        self.__startTime = datetime.datetime.utcnow()
+        self.__startTime = VDV.vdvLocalToUTC(datetime.datetime.now())
         self.__datenVersionID = None
         self.__XSDVersionID = self.__vdvConfig[partnerConfigName]['XSDVersionID']
         self.__maxTripsPerAbo = int(self.__vdvConfig[partnerConfigName]['maxTripsPerAbo'])

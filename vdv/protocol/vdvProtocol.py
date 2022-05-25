@@ -43,10 +43,25 @@ def vdvStrToDateTimeUTC(strDateTime):
 def vdvUTCToLocal(utcDateTime):
 	""" Wandelt UTC in LocalTime um """
 	if (utcDateTime is not None):
-		utcTimeStamp = utcDateTime.timestamp()
-		localT = datetime.datetime.fromtimestamp(utcTimeStamp)
-		return localT
+		epoch = time.mktime(utcDateTime.timetuple())
+		offset = datetime.datetime.fromtimestamp(epoch) - datetime.datetime.utcfromtimestamp(epoch)
+		localT = utcDateTime + offset
+		return localT	
+	else:
+		return None
 
+def vdvLocalToUTC(localDateTime):
+	""" Wandelt LocalTime in UTC um """
+	if (localDateTime is not None):		
+		localTimeStamp = localDateTime.timestamp()
+		utcT = datetime.datetime.fromtimestamp(localTimeStamp, tz=timezone.utc)
+		return utcT
+	else:
+		return None
+
+def vdvDateTimeFormat(dateTime):
+	if (dateTime is not None):
+		return dateTime.astimezone().isoformat()
 	else:
 		return None
 

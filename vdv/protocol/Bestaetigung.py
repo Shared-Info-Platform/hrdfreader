@@ -1,6 +1,7 @@
 import datetime
 import time
 import enum
+import vdv.protocol.vdvProtocol as VDV
 import xml.etree.ElementTree as ET
 
 class Fehlernummer(enum.Enum):
@@ -25,7 +26,7 @@ class Bestaetigung():
 
     def __init__(self):
         # Attribute
-        self.__Zst = datetime.datetime.utcnow()
+        self.__Zst = VDV.vdvLocalToUTC(datetime.datetime.now())
         self.__Ergebnis = "ok"
         self.__Fehlernummer = Fehlernummer.OK.value
         # Elemente
@@ -80,7 +81,7 @@ class Bestaetigung():
 
     def toXMLElement(self):
         """ Liefert die Bestätigung als XML """
-        ownRoot = ET.Element('Bestaetigung', {"Zst": self.Zst.strftime("%Y-%m-%dT%H:%M:%SZ"), "Ergebnis": self.Ergebnis, "Fehlernummer": str(self.Fehlernummer)})
+        ownRoot = ET.Element('Bestaetigung', {"Zst": VDV.vdvDateTimeFormat(self.Zst), "Ergebnis": self.Ergebnis, "Fehlernummer": str(self.Fehlernummer)})
         if (self.Fehlertext is not None): ET.SubElement(ownRoot, 'Fehlertext').text = self.Fehlertext
         if (self.DatenGueltigAb is not None): ET.SubElement(ownRoot, "DatenGueltigAb").text = self.DatenGueltigAb.strftime("%Y-%m-%dT%H:%M:%SZ")
         if (self.DatenGueltigBis is not None): ET.SubElement(ownRoot, "DatenGueltigBis").text = self.DatenGueltigBis.strftime("%Y-%m-%dT%H:%M:%SZ")

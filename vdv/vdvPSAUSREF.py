@@ -106,7 +106,7 @@ class VdvPSAUSREF(VdvPartnerService):
         sql_stmt += " GROUP BY lineno, coalesce(directionshort, 'H'), operationalno, (array_position(infotextcode, 'RN') IS NULL), coalesce(lineno, cast(tripno as varchar)), infotext_de[array_position(infotextcode, 'RN')] "\
 					" ORDER BY lineno, coalesce(directionshort, 'H'), operationalno "
         curLinienfahrplan = self.vdvDB.connection.cursor()
-        curLinienfahrplan.execute(sql_stmt, (VDV.vdvUTCToLocal(serviceAbo.GueltigVon), VDV.vdvUTCToLocal(serviceAbo.GueltigBis), eckdatenId))
+        curLinienfahrplan.execute(sql_stmt, (serviceAbo.GueltigVon, serviceAbo.GueltigBis, eckdatenId))
         linienFahrplaene = curLinienfahrplan.fetchall()
         curLinienfahrplan.close()
         return linienFahrplaene
@@ -123,7 +123,7 @@ class VdvPSAUSREF(VdvPartnerService):
                    "   AND coalesce(directionshort, 'H') = %s and operationalno = %s and coalesce(depdatetime, arrdatetime) between %s and %s  and fk_eckdatenid = %s"\
                    " ORDER BY lineno, coalesce(directionshort, 'H'), operationalno, tripident, stopsequenceno"
         curFahrplan = self.vdvDB.connection.cursor()
-        curFahrplan.execute(sql_stmt, (lineno, directionshort, operationalno, VDV.vdvUTCToLocal(serviceAbo.GueltigVon), VDV.vdvUTCToLocal(serviceAbo.GueltigBis), eckdatenId))
+        curFahrplan.execute(sql_stmt, (lineno, directionshort, operationalno, serviceAbo.GueltigVon, serviceAbo.GueltigBis, eckdatenId))
         fahrplaene = curFahrplan.fetchall()
         curFahrplan.close()
         return fahrplaene
@@ -177,8 +177,8 @@ class VdvPSAUSREF(VdvPartnerService):
                             sollHalt.HaltestellenName = sqlFahrplan[3]
                             sollHalt.AnkunftssteigText = sqlFahrplan[4]
                             sollHalt.AbfahrtssteigText = sqlFahrplan[5]
-                            sollHalt.Ankunftszeit = sqlFahrplan[6]
-                            sollHalt.Abfahrtszeit = sqlFahrplan[7]
+                            sollHalt.Ankunftszeit = VDV.vdvLocalToUTC(sqlFahrplan[6])
+                            sollHalt.Abfahrtszeit = VDV.vdvLocalToUTC(sqlFahrplan[7])
                             sollHalt.Einsteigeverbot = sqlFahrplan[8]
                             sollHalt.Aussteigeverbot = sqlFahrplan[9]
                             if (sqlFahrplan[10] != sollFahrt.RichtungsText): sollHalt.RichtungsText = sqlFahrplan[10]

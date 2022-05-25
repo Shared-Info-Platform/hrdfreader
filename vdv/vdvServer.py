@@ -145,7 +145,7 @@ class VdvServer(threading.Thread):
             xmlString - erwartete StatusAnfrage als xmlString
             vdvPartnerService - Service an den diese StatusAnfrage gerichtet ist
         """        
-        statusAntwort = StatusAntwort(datetime.datetime.utcnow(), vdvPartnerService.StartTime )
+        statusAntwort = StatusAntwort(VDV.vdvLocalToUTC(datetime.datetime.now()), vdvPartnerService.StartTime )
 
         try:
             statusAnfrage = StatusAnfrage(xmlString)

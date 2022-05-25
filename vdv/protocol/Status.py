@@ -47,9 +47,9 @@ class StatusAntwort():
     def toXMLString(self):
         """ Liefert die StatusAntwort als XML """
         root = ET.Element('StatusAntwort')
-        ET.SubElement(root, 'Status', {"Zst": self.Zst.strftime("%Y-%m-%dT%H:%M:%SZ"), "Ergebnis": self.Ergebnis})
+        ET.SubElement(root, 'Status', {"Zst": VDV.vdvDateTimeFormat(self.Zst), "Ergebnis": self.Ergebnis})
         ET.SubElement(root, "DatenBereit").text = str(self.DatenBereit).lower()
-        ET.SubElement(root, "StartDienstZst").text = self.StartDienstZst.strftime("%Y-%m-%dT%H:%M:%SZ")
+        ET.SubElement(root, "StartDienstZst").text = VDV.vdvDateTimeFormat(self.StartDienstZst) #.strftime("%Y-%m-%dT%H:%M:%SZ")
         if (self.DatenVersionID is not None):
             ET.SubElement(root, "DatenVersionID").text = self.DatenVersionID
 
@@ -60,7 +60,7 @@ class StatusAnfrage():
     """Beschreibt die VDV-StatusAnfrage"""
     def __init__(self, xmlString):
         self.__Sender = '??'
-        self.__Zst = datetime.datetime.utcnow()
+        self.__Zst = VDV.vdvLocalToUTC(datetime.datetime.now())
         self.__fromXMLString(xmlString)
 
     @property

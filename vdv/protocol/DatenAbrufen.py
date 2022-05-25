@@ -9,7 +9,7 @@ class DatenAbrufenAnfrage():
     """ Beschreibt die VDV-DatenAbrufenAnfrage """
     def __init__(self, xmlString):
         self.__Sender = '??'
-        self.__Zst = datetime.datetime.utcnow()
+        self.__Zst = VDV.vdvDateTimeFormat(datetime.datetime.now())
         self.__DatensatzAlle = None
         self.__fromXMLString(xmlString)
 

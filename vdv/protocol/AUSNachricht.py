@@ -143,8 +143,8 @@ class SollHalt():
         ownRoot = ET.Element('SollHalt')
         if (self.HaltID is not None): ET.SubElement(ownRoot, 'HaltID').text = self.HaltID
         if (self.HaltestellenName is not None): ET.SubElement(ownRoot, 'HaltestellenName').text = self.HaltestellenName
-        if (self.Abfahrtszeit is not None): ET.SubElement(ownRoot, 'Abfahrtszeit').text = self.Abfahrtszeit.astimezone().isoformat()
-        if (self.Ankunftszeit is not None): ET.SubElement(ownRoot, 'Ankunftszeit').text = self.Ankunftszeit.astimezone().isoformat()
+        if (self.Abfahrtszeit is not None): ET.SubElement(ownRoot, 'Abfahrtszeit').text = VDV.vdvDateTimeFormat(self.Abfahrtszeit)
+        if (self.Ankunftszeit is not None): ET.SubElement(ownRoot, 'Ankunftszeit').text = VDV.vdvDateTimeFormat(self.Ankunftszeit)
         if (self.AbfahrtssteigText is not None): ET.SubElement(ownRoot, 'AbfahrtssteigText').text = self.AbfahrtssteigText
         if (self.AnkunftssteigText is not None): ET.SubElement(ownRoot, 'AnkunftssteigText').text = self.AnkunftssteigText
         if (self.AbfahrtsSektorenText is not None): ET.SubElement(ownRoot, 'AbfahrtsSektorenText').text = self.AbfahrtsSektorenText
@@ -166,7 +166,7 @@ class SollFahrt():
     betriebstag - Betriebstag der Fahrt
     """
     def __init__(self, fahrtBezeichner, betriebstag):
-        self.__Zst = datetime.datetime.utcnow()
+        self.__Zst = VDV.vdvLocalToUTC(datetime.datetime.now())
         self.__FahrtBezeichner = fahrtBezeichner
         self.__Betriebstag = betriebstag
         self.__SollHalt = list()
@@ -318,7 +318,7 @@ class SollFahrt():
 
     def toXMLElement(self):
         """ Liefert eine SollFahrt als XML-Element """
-        ownRoot = ET.Element('SollFahrt', {"Zst": self.Zst.strftime("%Y-%m-%dT%H:%M:%SZ")})
+        ownRoot = ET.Element('SollFahrt', {"Zst": VDV.vdvDateTimeFormat(self.Zst)}) #self.Zst.strftime("%Y-%m-%dT%H:%M:%SZ")})
         fahrtID = ET.SubElement(ownRoot, 'FahrtID')
         if (self.FahrtBezeichner is not None): ET.SubElement(fahrtID, 'FahrtBezeichner').text = self.__FahrtBezeichner
         if (self.Betriebstag is not None): ET.SubElement(fahrtID, 'Betriebstag').text = self.__Betriebstag.strftime("%Y-%m-%d")
