@@ -552,6 +552,7 @@ class HrdfReader:
 		strAttributeCodes = "";
 		attributeCodeList = list();
 		stopMemberList = list();
+		groupDict = dict(); 
 		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
 			line = line.decode(self.__charset).replace('\r\n', '')
 			
@@ -587,10 +588,15 @@ class HrdfReader:
 					stopMemberList.append(line[nextMemberStart:nextMemberStart+7])
 					nextMemberStart = nextMemberStart+9
 				if (len(stopMemberList) > 0): strStopMember = "{" + ",".join(map(str,stopMemberList)) + "}"
-				metabhfHG_strIO.write(self.__fkdict['fk_eckdatenid']+';'
-								+line[10:17]+';'
-								+strStopMember
-							+'\n')
+				strStopGroupNo = line[10:17]
+				if (strStopGroupNo in groupDict):
+					pass
+				else:
+					groupDict[strStopGroupNo] = strStopMember
+					metabhfHG_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+									+strStopGroupNo+';'
+									+strStopMember
+								+'\n')
 
 			else:
 				# 1. Zeile einer Übergangsbeziehung
@@ -802,15 +808,18 @@ class HrdfReader:
 													+line[30:36].strip()+
 													'\n')
 				elif line[:2] == "*A":
-					self.__fplanFahrtA_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
-													+self.__fkdict["fk_fplanfahrtid"]+';'
-													+line[3:5].strip()+';'
-													+line[6:13].strip()+';'
-													+line[14:21].strip()+';'
-													+line[22:28].strip()+';'
-													+line[29:35].strip()+';'
-													+line[36:42].strip()+
-													'\n')
+					if self.__AVE_type == "*Z" or self.__AVE_type == "*T":
+						self.__fplanFahrtA_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
+														+self.__fkdict["fk_fplanfahrtid"]+';'
+														+line[3:5].strip()+';'
+														+line[6:13].strip()+';'
+														+line[14:21].strip()+';'
+														+line[22:28].strip()+';'
+														+line[29:35].strip()+';'
+														+line[36:42].strip()+
+														'\n')
+					else:
+						logger.warning("*A Zeile gehört zu nicht unterstützter "+self.__AVE_type+"-Zeile und wird nicht verarbeitet")
 
 				elif line[:2] == "*R":
 					self.__fplanFahrtR_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
