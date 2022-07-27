@@ -126,6 +126,8 @@
     <Content Include="db\create\hrdf-schema.sql" />
     <Content Include="db\create\hrdf-tables.sql" />
     <Content Include="db\create\hrdf-views.sql" />
+    <Content Include="db\update\update_2.4-5.sql" />
+    <Content Include="db\update\update_2.4-4.sql" />
     <Content Include="db\update\update_2.4-1.sql" />
     <Content Include="db\update\update_2.4-0.sql" />
     <Content Include="db\update\update-hrdf.sh" />

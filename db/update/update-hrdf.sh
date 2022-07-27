@@ -36,6 +36,7 @@ else
 	#psql -h $1 -d $2 -p $3 -U $4 -f update_2.4-1.sql
 	#psql -h $1 -d $2 -p $3 -U $4 -f update_2.4-2.sql
 	#psql -h $1 -d $2 -p $3 -U $4 -f update_2.4-3.sql
-	psql -h $1 -d $2 -p $3 -U $4 -f update_2.4-4.sql
+	#psql -h $1 -d $2 -p $3 -U $4 -f update_2.4-4.sql
+	psql -h $1 -d $2 -p $3 -U $4 -f update_2.4-5.sql
 
 fi

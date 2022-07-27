@@ -16,3 +16,4 @@ INSERT INTO HRDF.HRDF_UpdateHistory_TAB (databaseversion, scriptname, scriptvers
 INSERT INTO HRDF.HRDF_UpdateHistory_TAB (databaseversion, scriptname, scriptversion, description) VALUES ('2.4-2', 'update_2.4-2.sql', '1', 'Neue VDV-Mapping-Tabellen');
 INSERT INTO HRDF.HRDF_UpdateHistory_TAB (databaseversion, scriptname, scriptversion, description) VALUES ('2.4-3', 'update_2.4-3.sql', '1', 'Anpassung LinienMapping für PostAuto');
 INSERT INTO HRDF.HRDF_UpdateHistory_TAB (databaseversion, scriptname, scriptversion, description) VALUES ('2.4-4', 'update_2.4-4.sql', '1', 'Neue View hrdf_bahnhofgleis_view');
+INSERT INTO HRDF.HRDF_UpdateHistory_TAB (databaseversion, scriptname, scriptversion, description) VALUES ('2.4-5', 'update_2.4-5.sql', '1', 'Neue Indizes für BahnhofGleis-View');
