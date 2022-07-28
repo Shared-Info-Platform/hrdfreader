@@ -122,17 +122,20 @@ class HrdfReader:
  		# spezifisch für SBB-Version sind die Trenner in der Bezeichnung, die hier in separate Felder geschrieben werden
 		bezeichnung,exportdatum,hrdfversion,lieferant = lines[2].split('$')
 		cur = self.__hrdfdb.connection.cursor()
-		sql_string = "INSERT INTO HRDF_ECKDATEN_TAB (importFileName, importDateTime, validFrom, validTo, descriptionhrdf, description, creationdatetime, hrdfversion, exportsystem) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id;" 
-		importFileName = os.path.basename(self.__hrdfzip.filename)
-		importDateTime = str(datetime.now())
-		validFrom = str(datetime.strptime(lines[0], '%d.%m.%Y').date())
-		validTo = str(datetime.strptime(lines[1], '%d.%m.%Y').date())
-		exportdatum = str(datetime.strptime(exportdatum, '%d.%m.%Y %H:%M:%S'))
-		cur.execute(sql_string, (importFileName, importDateTime, validFrom, validTo, lines[2], bezeichnung, exportdatum, hrdfversion, lieferant))
-		self.__fkdict["fk_eckdatenid"] = str(cur.fetchone()[0])
-		self.__hrdfdb.connection.commit()
-		self.__eckdaten_validFrom = datetime.strptime(lines[0], '%d.%m.%Y').date()
-		self.__eckdaten_validTo = datetime.strptime(lines[1], '%d.%m.%Y').date()
+		try: # Absichern des DB-Cursor
+			sql_string = "INSERT INTO HRDF_ECKDATEN_TAB (importFileName, importDateTime, validFrom, validTo, descriptionhrdf, description, creationdatetime, hrdfversion, exportsystem) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id;" 
+			importFileName = os.path.basename(self.__hrdfzip.filename)
+			importDateTime = str(datetime.now())
+			validFrom = str(datetime.strptime(lines[0], '%d.%m.%Y').date())
+			validTo = str(datetime.strptime(lines[1], '%d.%m.%Y').date())
+			exportdatum = str(datetime.strptime(exportdatum, '%d.%m.%Y %H:%M:%S'))
+			cur.execute(sql_string, (importFileName, importDateTime, validFrom, validTo, lines[2], bezeichnung, exportdatum, hrdfversion, lieferant))
+			self.__fkdict["fk_eckdatenid"] = str(cur.fetchone()[0])
+			self.__hrdfdb.connection.commit()
+			self.__eckdaten_validFrom = datetime.strptime(lines[0], '%d.%m.%Y').date()
+			self.__eckdaten_validTo = datetime.strptime(lines[1], '%d.%m.%Y').date()
+		except Exception as e:
+			logger.error('Fehler beim Lesen und Verarbeiten der Datei ECKDATEN aufgetreten {}'.format(e))
 		cur.close()
 
 	def determine_linesperstop(self):
@@ -147,9 +150,12 @@ class HrdfReader:
 					"WHERE fahrt.fk_eckdatenid = %s)"
 
 		curLookup = self.__hrdfdb.connection.cursor()
-		curLookup.execute(sql_stopsLookup, (self.__fkdict['fk_eckdatenid'],))
-		self.__hrdfdb.connection.commit()
-		logger.debug('LinesPerStop: {} eingefügte Datensätze'.format(curLookup.rowcount))
+		try: # Absichern des DB-Cursor
+			curLookup.execute(sql_stopsLookup, (self.__fkdict['fk_eckdatenid'],))
+			self.__hrdfdb.connection.commit()
+			logger.debug('LinesPerStop: {} eingefügte Datensätze'.format(curLookup.rowcount))
+		except Exception as e:
+			logger.error('Fehler beim Ermitteln der Linien pro Halt aufgetreten {}'.format(e))
 		curLookup.close()
 
 	def determine_tripcount(self):
@@ -168,9 +174,12 @@ class HrdfReader:
 					"  GROUP BY fahrt.fk_eckdatenid, fahrt.operationalno, line.lineno, cat.categorycode)"
 
 		curLookup = self.__hrdfdb.connection.cursor()
-		curLookup.execute(sql_tripsLookup, (self.__fkdict['fk_eckdatenid'],))
-		self.__hrdfdb.connection.commit()
-		logger.debug('TripCountPerOperator: {} eingefügte Datensätze'.format(curLookup.rowcount))
+		try: # Absichern des DB-Cursor
+			curLookup.execute(sql_tripsLookup, (self.__fkdict['fk_eckdatenid'],))
+			self.__hrdfdb.connection.commit()
+			logger.debug('TripCountPerOperator: {} eingefügte Datensätze'.format(curLookup.rowcount))
+		except Exception as e:
+			logger.error('Fehler beim Ermitteln der Anzahl Fahrten (Linien/Kategorie) pro Verwaltung aufgetreten {}'.format(e))
 		curLookup.close()
 
 	def read_bitfeld(self, filename):
@@ -202,9 +211,12 @@ class HrdfReader:
 										+'\n')
 		bitfeld_strIO.seek(0)
 		cur = self.__hrdfdb.connection.cursor()
-		cur.copy_expert("COPY HRDF_BITFELD_TAB (fk_eckdatenid,bitfieldno,bitfield,bitfieldextend,bitfieldarray) FROM STDIN USING DELIMITERS ';' NULL AS ''",bitfeld_strIO)
-		self.__hrdfdb.connection.commit()
-		logger.debug('BitField: {} eingefügte Datensätze'.format(cur.rowcount))
+		try: # Absichern des DB-Cursor
+			cur.copy_expert("COPY HRDF_BITFELD_TAB (fk_eckdatenid,bitfieldno,bitfield,bitfieldextend,bitfieldarray) FROM STDIN USING DELIMITERS ';' NULL AS ''",bitfeld_strIO)
+			self.__hrdfdb.connection.commit()
+			logger.debug('BitField: {} eingefügte Datensätze'.format(cur.rowcount))
+		except Exception as e:
+			logger.error('Fehler beim Lesen und Verarbeiten der Datei BITFELD aufgetreten {}'.format(e))
 		cur.close()
 		bitfeld_strIO.close()
 
@@ -239,9 +251,12 @@ class HrdfReader:
 										+'\n')
 		bahnhof_strIO.seek(0)
 		cur = self.__hrdfdb.connection.cursor()
-		cur.copy_expert("COPY HRDF_BAHNHOF_TAB (fk_eckdatenid,stopno,transportUnion,stopname,stopnamelong,stopnameshort,stopnamealias) FROM STDIN USING DELIMITERS ';' NULL AS ''", bahnhof_strIO)
-		self.__hrdfdb.connection.commit()
-		logger.debug('Bahnhof: {} eingefügte Datensätze'.format(cur.rowcount))
+		try: # Absichern des DB-Cursor
+			cur.copy_expert("COPY HRDF_BAHNHOF_TAB (fk_eckdatenid,stopno,transportUnion,stopname,stopnamelong,stopnameshort,stopnamealias) FROM STDIN USING DELIMITERS ';' NULL AS ''", bahnhof_strIO)
+			self.__hrdfdb.connection.commit()
+			logger.debug('Bahnhof: {} eingefügte Datensätze'.format(cur.rowcount))
+		except Exception as e:
+			logger.error('Fehler beim Lesen und Verarbeiten der Datei BAHNHOF aufgetreten {}'.format(e))
 		cur.close()
 		bahnhof_strIO.close()
 
@@ -292,9 +307,12 @@ class HrdfReader:
 
 		gleis_strIO.seek(0)
 		cur = self.__hrdfdb.connection.cursor()
-		cur.copy_expert("COPY HRDF_GLEIS_TAB (fk_eckdatenid,stopno,tripno,operationalno,stoppointtext,stoppointtime,bitfieldno) FROM STDIN USING DELIMITERS ';' NULL AS ''", gleis_strIO)
-		self.__hrdfdb.connection.commit()
-		logger.debug('Gleis: {} eingefügte Datensätze'.format(cur.rowcount))
+		try: # Absichern des DB-Cursor
+			cur.copy_expert("COPY HRDF_GLEIS_TAB (fk_eckdatenid,stopno,tripno,operationalno,stoppointtext,stoppointtime,bitfieldno) FROM STDIN USING DELIMITERS ';' NULL AS ''", gleis_strIO)
+			self.__hrdfdb.connection.commit()
+			logger.debug('Gleis: {} eingefügte Datensätze'.format(cur.rowcount))
+		except Exception as e:
+			logger.error('Fehler beim Lesen und Verarbeiten der Datei GLEIS aufgetreten {}'.format(e))
 		cur.close()
 		gleis_strIO.close()
 
@@ -310,9 +328,12 @@ class HrdfReader:
 										+'\n')
 		richtung_strIO.seek(0)
 		cur = self.__hrdfdb.connection.cursor()
-		cur.copy_expert("COPY HRDF_RICHTUNG_TAB (fk_eckdatenid,directioncode, directiontext) FROM STDIN USING DELIMITERS ';' NULL AS ''", richtung_strIO)
-		self.__hrdfdb.connection.commit()
-		logger.debug('Richtung: {} eingefügte Datensätze'.format(cur.rowcount))
+		try:
+			cur.copy_expert("COPY HRDF_RICHTUNG_TAB (fk_eckdatenid,directioncode, directiontext) FROM STDIN USING DELIMITERS ';' NULL AS ''", richtung_strIO)
+			self.__hrdfdb.connection.commit()
+			logger.debug('Richtung: {} eingefügte Datensätze'.format(cur.rowcount))
+		except Exception as e:
+			logger.error('Fehler beim Lesen und Verarbeiten der Datei RICHTUNG aufgetreten {}'.format(e))
 		cur.close()
 		richtung_strIO.close()
 
@@ -363,16 +384,19 @@ class HrdfReader:
 		zugartoption_strIO.seek(0)
 
 		cur = self.__hrdfdb.connection.cursor()
-		cur.copy_expert("COPY HRDF_ZUGART_TAB (fk_eckdatenid,categorycode,classno,tariffgroup,outputcontrol,categorydesc,extracharge,flags,categoryimage,categoryno) FROM STDIN USING DELIMITERS ';' NULL AS ''", zugart_strIO)
-		zugartRows = cur.rowcount
-		cur.copy_expert("COPY HRDF_ZUGARTKategorie_TAB (fk_eckdatenid,categoryno,languagecode,categorytext) FROM STDIN USING DELIMITERS ';' NULL AS ''",zugartcategory_strIO)
-		zugartKatRows = cur.rowcount
-		cur.copy_expert("COPY HRDF_ZUGARTKlasse_TAB (fk_eckdatenid,classno,languagecode,classtext) FROM STDIN USING DELIMITERS ';' NULL AS ''",zugartclass_strIO)
-		zugartClassRows = cur.rowcount
-		cur.copy_expert("COPY HRDF_ZUGARTOption_TAB (fk_eckdatenid,optionno,languagecode,optiontext) FROM STDIN USING DELIMITERS ';' NULL AS ''",zugartoption_strIO)
-		zugartOptRows = cur.rowcount
-		self.__hrdfdb.connection.commit()
-		logger.debug('Zugart: {} ZugartKategorie: {} ZugartKlasse: {} ZuartOption: {} eingefügte Datensätze'.format(zugartRows, zugartKatRows, zugartClassRows, zugartOptRows))
+		try:
+			cur.copy_expert("COPY HRDF_ZUGART_TAB (fk_eckdatenid,categorycode,classno,tariffgroup,outputcontrol,categorydesc,extracharge,flags,categoryimage,categoryno) FROM STDIN USING DELIMITERS ';' NULL AS ''", zugart_strIO)
+			zugartRows = cur.rowcount
+			cur.copy_expert("COPY HRDF_ZUGARTKategorie_TAB (fk_eckdatenid,categoryno,languagecode,categorytext) FROM STDIN USING DELIMITERS ';' NULL AS ''",zugartcategory_strIO)
+			zugartKatRows = cur.rowcount
+			cur.copy_expert("COPY HRDF_ZUGARTKlasse_TAB (fk_eckdatenid,classno,languagecode,classtext) FROM STDIN USING DELIMITERS ';' NULL AS ''",zugartclass_strIO)
+			zugartClassRows = cur.rowcount
+			cur.copy_expert("COPY HRDF_ZUGARTOption_TAB (fk_eckdatenid,optionno,languagecode,optiontext) FROM STDIN USING DELIMITERS ';' NULL AS ''",zugartoption_strIO)
+			zugartOptRows = cur.rowcount
+			self.__hrdfdb.connection.commit()
+			logger.debug('Zugart: {} ZugartKategorie: {} ZugartKlasse: {} ZuartOption: {} eingefügte Datensätze'.format(zugartRows, zugartKatRows, zugartClassRows, zugartOptRows))
+		except Exception as e:
+			logger.error('Fehler beim Lesen und Verarbeiten der Datei Zugart aufgetreten {}'.format(e))
 		cur.close()
 		zugart_strIO.close()
 		zugartcategory_strIO.close()
@@ -422,9 +446,12 @@ class HrdfReader:
 		
 		attribute_strIO.seek(0)
 		cur = self.__hrdfdb.connection.cursor()
-		cur.copy_expert("COPY HRDF_ATTRIBUT_TAB (fk_eckdatenid,attributecode,languagecode,stopcontext,outputprio,outputpriosort,attributetext,outputforsection,outputforcomplete) FROM STDIN USING DELIMITERS ';' NULL AS ''", attribute_strIO)
-		self.__hrdfdb.connection.commit()
-		logger.debug('Attribute: {} eingefügte Datensätze'.format(cur.rowcount))
+		try:
+			cur.copy_expert("COPY HRDF_ATTRIBUT_TAB (fk_eckdatenid,attributecode,languagecode,stopcontext,outputprio,outputpriosort,attributetext,outputforsection,outputforcomplete) FROM STDIN USING DELIMITERS ';' NULL AS ''", attribute_strIO)
+			self.__hrdfdb.connection.commit()
+			logger.debug('Attribute: {} eingefügte Datensätze'.format(cur.rowcount))
+		except Exception as e:
+			logger.error('Fehler beim Lesen und Verarbeiten der Datei {} aufgetreten {}'.format(filename, e))
 		cur.close()
 		attribute_strIO.close()
 
@@ -450,9 +477,12 @@ class HrdfReader:
 		
 		infotext_strIO.seek(0) 
 		cur = self.__hrdfdb.connection.cursor()
-		cur.copy_expert("COPY HRDF_INFOTEXT_TAB (fk_eckdatenid,infotextno,languagecode,infotext) FROM STDIN USING DELIMITERS ';' NULL AS ''", infotext_strIO)
-		self.__hrdfdb.connection.commit()
-		logger.debug('InfoText: {} eingefügte Datensätze'.format(cur.rowcount))
+		try:
+			cur.copy_expert("COPY HRDF_INFOTEXT_TAB (fk_eckdatenid,infotextno,languagecode,infotext) FROM STDIN USING DELIMITERS ';' NULL AS ''", infotext_strIO)
+			self.__hrdfdb.connection.commit()
+			logger.debug('InfoText: {} eingefügte Datensätze'.format(cur.rowcount))
+		except Exception as e:
+			logger.error('Fehler beim Lesen und Verarbeiten der Datei {} aufgetreten {}'.format(filename, e))
 		cur.close()
 		infotext_strIO.close()
 
@@ -475,9 +505,12 @@ class HrdfReader:
 										+'\n')
 		durchbi_strIO.seek(0)
 		cur = self.__hrdfdb.connection.cursor()
-		cur.copy_expert("COPY HRDF_DURCHBI_TAB (fk_eckdatenid,tripno1,operationalno1,laststopno1,tripno2,operationalno2,bitfieldno,firststopno2,attribute,comment) FROM STDIN USING DELIMITERS ';' NULL AS ''", durchbi_strIO)
-		self.__hrdfdb.connection.commit()
-		logger.debug('Durchbindung: {} eingefügte Datensätze'.format(cur.rowcount))
+		try:
+			cur.copy_expert("COPY HRDF_DURCHBI_TAB (fk_eckdatenid,tripno1,operationalno1,laststopno1,tripno2,operationalno2,bitfieldno,firststopno2,attribute,comment) FROM STDIN USING DELIMITERS ';' NULL AS ''", durchbi_strIO)
+			self.__hrdfdb.connection.commit()
+			logger.debug('Durchbindung: {} eingefügte Datensätze'.format(cur.rowcount))
+		except Exception as e:
+			logger.error('Fehler beim Lesen und Verarbeiten der Datei DURCHBI aufgetreten {}'.format(e))
 		cur.close()
 		durchbi_strIO.close()
 
@@ -495,9 +528,12 @@ class HrdfReader:
 										+'\n')
 		bfkoordgeo_strIO.seek(0)
 		cur = self.__hrdfdb.connection.cursor()
-		cur.copy_expert("COPY HRDF_BFKOORD_TAB (fk_eckdatenid,stopno,longitude_geo,latitude_geo,altitude_geo) FROM STDIN USING DELIMITERS ';' NULL AS ''", bfkoordgeo_strIO)
-		self.__hrdfdb.connection.commit()
-		logger.debug('BFKoord_WGS: {} eingefügte Datensätze'.format(cur.rowcount))
+		try:
+			cur.copy_expert("COPY HRDF_BFKOORD_TAB (fk_eckdatenid,stopno,longitude_geo,latitude_geo,altitude_geo) FROM STDIN USING DELIMITERS ';' NULL AS ''", bfkoordgeo_strIO)
+			self.__hrdfdb.connection.commit()
+			logger.debug('BFKoord_WGS: {} eingefügte Datensätze'.format(cur.rowcount))
+		except Exception as e:
+			logger.error('Fehler beim Lesen und Verarbeiten der Datei BFKOORD_WGS aufgetreten {}'.format(e))
 		cur.close()
 		bfkoordgeo_strIO.close()
 
@@ -514,9 +550,12 @@ class HrdfReader:
 										+'\n')
 		umsteigb_strIO.seek(0)
 		cur = self.__hrdfdb.connection.cursor()
-		cur.copy_expert("COPY HRDF_UMSTEIGB_TAB (fk_eckdatenid,stopno,transfertime1,transfertime2) FROM STDIN USING DELIMITERS ';' NULL AS ''", umsteigb_strIO)
-		self.__hrdfdb.connection.commit()
-		logger.debug('UmsteigB: {} eingefügte Datensätze'.format(cur.rowcount))
+		try:
+			cur.copy_expert("COPY HRDF_UMSTEIGB_TAB (fk_eckdatenid,stopno,transfertime1,transfertime2) FROM STDIN USING DELIMITERS ';' NULL AS ''", umsteigb_strIO)
+			self.__hrdfdb.connection.commit()
+			logger.debug('UmsteigB: {} eingefügte Datensätze'.format(cur.rowcount))
+		except Exception as e:
+			logger.error('Fehler beim Lesen und Verarbeiten der Datei UMSTEIGB aufgetreten {}'.format(e))
 		cur.close()
 		umsteigb_strIO.close()
 
@@ -532,9 +571,12 @@ class HrdfReader:
 										+'\n')
 		bfprios_strIO.seek(0)
 		cur = self.__hrdfdb.connection.cursor()
-		cur.copy_expert("COPY HRDF_BFPRIOS_TAB (fk_eckdatenid,stopno,transferprio) FROM STDIN USING DELIMITERS ';' NULL AS ''", bfprios_strIO)
-		self.__hrdfdb.connection.commit()
-		logger.debug('BFPRIOS: {} eingefügte Datensätze'.format(cur.rowcount))
+		try:
+			cur.copy_expert("COPY HRDF_BFPRIOS_TAB (fk_eckdatenid,stopno,transferprio) FROM STDIN USING DELIMITERS ';' NULL AS ''", bfprios_strIO)
+			self.__hrdfdb.connection.commit()
+			logger.debug('BFPRIOS: {} eingefügte Datensätze'.format(cur.rowcount))
+		except Exception as e:
+			logger.error('Fehler beim Lesen und Verarbeiten der Datei BFPRIOS aufgetreten {}'.format(e))
 		cur.close()
 		bfprios_strIO.close()
 
@@ -621,19 +663,22 @@ class HrdfReader:
 				previousUB = True
 
 		metabhfUB_strIO.seek(0)
-		curUB = self.__hrdfdb.connection.cursor()
-		curUB.copy_expert("COPY HRDF_METABHF_TAB (fk_eckdatenid,stopnofrom,stopnoto,transfertimemin,transfertimesec,attributecode) FROM STDIN USING DELIMITERS ';' NULL AS ''", metabhfUB_strIO)
-		self.__hrdfdb.connection.commit()
-		logger.debug('METABHF: {} eingefügte Datensätze'.format(curUB.rowcount))
-		curUB.close()
-		metabhfUB_strIO.close()
-
 		metabhfHG_strIO.seek(0)
+		curUB = self.__hrdfdb.connection.cursor()
 		curHG = self.__hrdfdb.connection.cursor()
-		curHG.copy_expert("COPY HRDF_METABHFGRUPPE_TAB (fk_eckdatenid,stopgroupno,stopmember) FROM STDIN USING DELIMITERS ';' NULL AS ''", metabhfHG_strIO)
-		self.__hrdfdb.connection.commit()
-		logger.debug('METABHFGRUPPE: {} eingefügte Datensätze'.format(curHG.rowcount))
+		try: # Absichern der DB-Cursor
+			curUB.copy_expert("COPY HRDF_METABHF_TAB (fk_eckdatenid,stopnofrom,stopnoto,transfertimemin,transfertimesec,attributecode) FROM STDIN USING DELIMITERS ';' NULL AS ''", metabhfUB_strIO)
+			self.__hrdfdb.connection.commit()
+			logger.debug('METABHF: {} eingefügte Datensätze'.format(curUB.rowcount))
+
+			curHG.copy_expert("COPY HRDF_METABHFGRUPPE_TAB (fk_eckdatenid,stopgroupno,stopmember) FROM STDIN USING DELIMITERS ';' NULL AS ''", metabhfHG_strIO)
+			self.__hrdfdb.connection.commit()
+			logger.debug('METABHFGRUPPE: {} eingefügte Datensätze'.format(curHG.rowcount))
+		except Exception as e:
+			logger.error('Fehler beim Lesen und Verarbeiten der Datei METABHF aufgetreten {}'.format(e))
+		curUB.close()
 		curHG.close()
+		metabhfUB_strIO.close()
 		metabhfHG_strIO.close()
 
 
@@ -643,32 +688,37 @@ class HrdfReader:
 		self.__fplanFahrtAVE_strIO.seek(0)
 		self.__fplanFahrtLauf_strIO.seek(0)
 		cur = self.__hrdfdb.connection.cursor()
-		cur.copy_expert("COPY HRDF_FPLANFahrtG_TAB (fk_eckdatenid,fk_fplanfahrtid,categorycode,fromStop,toStop,deptimeFrom,arrtimeTo) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtG_strIO)
-		cur.copy_expert("COPY HRDF_FPLANFahrtVE_TAB (fk_eckdatenid,fk_fplanfahrtid,fromStop,toStop,bitfieldno,deptimeFrom,arrtimeTo) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtAVE_strIO)
-		cur.copy_expert("COPY HRDF_FPLANFahrtLaufweg_TAB (fk_eckdatenid,fk_fplanfahrtid,stopno,stopname,sequenceno,arrtime,deptime,tripno,operationalno,ontripsign) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtLauf_strIO)
-		if self.__fplanFahrtA_strIO.tell() > 0:
-			self.__fplanFahrtA_strIO.seek(0)
-			cur.copy_expert("COPY HRDF_FPLANFahrtA_TAB (fk_eckdatenid,fk_fplanfahrtid,attributecode,fromStop,toStop,bitfieldno,deptimeFrom,arrtimeTo) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtA_strIO)
-		if self.__fplanFahrtR_strIO.tell() > 0:
-			self.__fplanFahrtR_strIO.seek(0)
-			cur.copy_expert("COPY HRDF_FPLANFahrtR_TAB (fk_eckdatenid,fk_fplanfahrtid,directionshort,directioncode,fromStop,toStop,deptimeFrom,arrtimeTo) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtR_strIO)
-		if self.__fplanFahrtI_strIO.tell() > 0:
-			self.__fplanFahrtI_strIO.seek(0)
-			cur.copy_expert("COPY HRDF_FPLANFahrtI_TAB (fk_eckdatenid,fk_fplanfahrtid,infotextcode,infotextno,fromStop,toStop,bitfieldno,deptimeFrom,arrtimeTo) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtI_strIO)
-		if self.__fplanFahrtL_strIO.tell() > 0:
-			self.__fplanFahrtL_strIO.seek(0)
-			cur.copy_expert("COPY HRDF_FPLANFahrtL_TAB (fk_eckdatenid,fk_fplanfahrtid,lineno,fromStop,toStop,deptimeFrom,arrtimeTo) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtL_strIO)
-		if self.__fplanFahrtSH_strIO.tell() > 0:
-			self.__fplanFahrtSH_strIO.seek(0)
-			cur.copy_expert("COPY HRDF_FPLANFahrtSH_TAB (fk_eckdatenid,fk_fplanfahrtid,stop,bitfieldno,deptimeFrom) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtSH_strIO)
-		if self.__fplanFahrtC_strIO.tell() > 0:
-			self.__fplanFahrtC_strIO.seek(0)
-			cur.copy_expert("COPY HRDF_FPLANFahrtC_TAB (fk_eckdatenid,fk_fplanfahrtid,checkintime,checkouttime,fromStop,toStop,deptimeFrom,arrtimeTo) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtC_strIO)
-		if self.__fplanFahrtGR_strIO.tell() > 0:
-			self.__fplanFahrtGR_strIO.seek(0)
-			cur.copy_expert("COPY HRDF_FPLANFahrtGR_TAB (fk_eckdatenid,fk_fplanfahrtid,borderStop,prevStop,nextStop,deptimePrev,arrtimeNext) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtGR_strIO)
+		try: # Absichern des DB-Cursor
+			cur.copy_expert("COPY HRDF_FPLANFahrtG_TAB (fk_eckdatenid,fk_fplanfahrtid,categorycode,fromStop,toStop,deptimeFrom,arrtimeTo) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtG_strIO)
+			cur.copy_expert("COPY HRDF_FPLANFahrtVE_TAB (fk_eckdatenid,fk_fplanfahrtid,fromStop,toStop,bitfieldno,deptimeFrom,arrtimeTo) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtAVE_strIO)
+			cur.copy_expert("COPY HRDF_FPLANFahrtLaufweg_TAB (fk_eckdatenid,fk_fplanfahrtid,stopno,stopname,sequenceno,arrtime,deptime,tripno,operationalno,ontripsign) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtLauf_strIO)
+			if self.__fplanFahrtA_strIO.tell() > 0:
+				self.__fplanFahrtA_strIO.seek(0)
+				cur.copy_expert("COPY HRDF_FPLANFahrtA_TAB (fk_eckdatenid,fk_fplanfahrtid,attributecode,fromStop,toStop,bitfieldno,deptimeFrom,arrtimeTo) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtA_strIO)
+			if self.__fplanFahrtR_strIO.tell() > 0:
+				self.__fplanFahrtR_strIO.seek(0)
+				cur.copy_expert("COPY HRDF_FPLANFahrtR_TAB (fk_eckdatenid,fk_fplanfahrtid,directionshort,directioncode,fromStop,toStop,deptimeFrom,arrtimeTo) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtR_strIO)
+			if self.__fplanFahrtI_strIO.tell() > 0:
+				self.__fplanFahrtI_strIO.seek(0)
+				cur.copy_expert("COPY HRDF_FPLANFahrtI_TAB (fk_eckdatenid,fk_fplanfahrtid,infotextcode,infotextno,fromStop,toStop,bitfieldno,deptimeFrom,arrtimeTo) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtI_strIO)
+			if self.__fplanFahrtL_strIO.tell() > 0:
+				self.__fplanFahrtL_strIO.seek(0)
+				cur.copy_expert("COPY HRDF_FPLANFahrtL_TAB (fk_eckdatenid,fk_fplanfahrtid,lineno,fromStop,toStop,deptimeFrom,arrtimeTo) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtL_strIO)
+			if self.__fplanFahrtSH_strIO.tell() > 0:
+				self.__fplanFahrtSH_strIO.seek(0)
+				cur.copy_expert("COPY HRDF_FPLANFahrtSH_TAB (fk_eckdatenid,fk_fplanfahrtid,stop,bitfieldno,deptimeFrom) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtSH_strIO)
+			if self.__fplanFahrtC_strIO.tell() > 0:
+				self.__fplanFahrtC_strIO.seek(0)
+				cur.copy_expert("COPY HRDF_FPLANFahrtC_TAB (fk_eckdatenid,fk_fplanfahrtid,checkintime,checkouttime,fromStop,toStop,deptimeFrom,arrtimeTo) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtC_strIO)
+			if self.__fplanFahrtGR_strIO.tell() > 0:
+				self.__fplanFahrtGR_strIO.seek(0)
+				cur.copy_expert("COPY HRDF_FPLANFahrtGR_TAB (fk_eckdatenid,fk_fplanfahrtid,borderStop,prevStop,nextStop,deptimePrev,arrtimeNext) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtGR_strIO)
 		
-		self.__hrdfdb.connection.commit()
+			self.__hrdfdb.connection.commit()
+		except Exception as e:
+			logger.error('Fehler beim Sichern der aktuellen Fahrt aufgetreten {}'.format(e))
+		cur.close()
+
 		# Schließen der StringIOs und anschließendes neu anlegen soll performanter sein als truncate(0)
 		self.__fplanFahrtG_strIO.close()
 		self.__fplanFahrtAVE_strIO.close()
@@ -698,187 +748,188 @@ class HrdfReader:
 		"""Lesen der Datei FPLAN"""
 		logger.info('lesen und verarbeiten der Datei FPLAN')
 		curIns = self.__hrdfdb.connection.cursor()
+		try: # Absichern des DB-Cursors (wird für *Z und *T Zeilen verwendet)
+			bDataLinesRead = False
+			iSequenceCnt = 0
+			iNumberFplanFahrt = 0
+			for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
+				line = line.decode(self.__charset).replace('\r\n','')
 
-		bDataLinesRead = False
-		iSequenceCnt = 0
-		iNumberFplanFahrt = 0
-		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
-			line = line.decode(self.__charset).replace('\r\n','')
+				if line[:1] == '*':
+					if bDataLinesRead:
+						# Datenzeilen wurden gelesen, wir sind jetzt wieder beim nächsten Zug und schreiben den Vorgänger erstmal in die DB
+						self.save_currentFplanFahrt()
+						iNumberFplanFahrt += 1
+						bDataLinesRead = False
+						iSequenceCnt = 0
 
-			if line[:1] == '*':
-				if bDataLinesRead:
-					# Datenzeilen wurden gelesen, wir sind jetzt wieder beim nächsten Zug und schreiben den Vorgänger erstmal in die DB
-					self.save_currentFplanFahrt()
-					iNumberFplanFahrt += 1
-					bDataLinesRead = False
-					iSequenceCnt = 0
-
-				# Attribut-Zeilen (!! längste Attribut-Kennung zuerst abfragen, dann weiter absteigend !!)
-				if line[:5] == "*A VE":
-					if self.__AVE_type == "*Z" or self.__AVE_type == "*T":
-						self.__fplanFahrtAVE_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
-													  +self.__fkdict["fk_fplanfahrtid"]+';'
-													  +line[6:13].strip()+';'
-													  +line[14:21].strip()+';'
-													  +line[22:28].strip()+';'
-													  +line[29:35].strip()+';'
-													  +line[36:42].strip()+
-													  '\n')
-					else:
-						logger.warning("*A VE-Zeile gehört zu nicht unterstützter "+self.__AVE_type+"-Zeile und wird nicht verarbeitet")
+					# Attribut-Zeilen (!! längste Attribut-Kennung zuerst abfragen, dann weiter absteigend !!)
+					if line[:5] == "*A VE":
+						if self.__AVE_type == "*Z" or self.__AVE_type == "*T":
+							self.__fplanFahrtAVE_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
+														  +self.__fkdict["fk_fplanfahrtid"]+';'
+														  +line[6:13].strip()+';'
+														  +line[14:21].strip()+';'
+														  +line[22:28].strip()+';'
+														  +line[29:35].strip()+';'
+														  +line[36:42].strip()+
+														  '\n')
+						else:
+							logger.warning("*A VE-Zeile gehört zu nicht unterstützter "+self.__AVE_type+"-Zeile und wird nicht verarbeitet")
 						
-				elif line[:4] == "*KWZ":
-					self.__AVE_type = line[:4]
-					logger.warning("Zeile "+line[:4]+" wird derzeit nicht unterstützt")
+					elif line[:4] == "*KWZ":
+						self.__AVE_type = line[:4]
+						logger.warning("Zeile "+line[:4]+" wird derzeit nicht unterstützt")
 
-				elif line[:3] == "*KW" or line[:3] == "*TT":
-					self.__AVE_type = line[:3]
-					logger.warning("Zeile "+line[:3]+" wird derzeit nicht unterstützt")
+					elif line[:3] == "*KW" or line[:3] == "*TT":
+						self.__AVE_type = line[:3]
+						logger.warning("Zeile "+line[:3]+" wird derzeit nicht unterstützt")
 
-				elif line[:3] == "*SH":
-					self.__fplanFahrtSH_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
-													+self.__fkdict["fk_fplanfahrtid"]+';'
-													+line[4:11].strip()+';'
-													+line[12:18].strip()+';'
-													+line[19:25].strip()+
-													'\n')
-
-				elif line[:3] == "*GR":
-					self.__fplanFahrtGR_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
-													+self.__fkdict["fk_fplanfahrtid"]+';'
-													+line[4:11].strip()+';'
-													+line[12:19].strip()+';'
-													+line[20:27].strip()+';'
-													+line[28:34].strip()+';'
-													+line[35:41].strip()+
-													'\n')
-
-
-				elif line[:2] == "*B" or line[:2] == "*E":
-					logger.warning("Zeile "+line[:2]+" wird derzeit nicht unterstützt")
-
-				elif line[:2] == "*Z":
-					self.__AVE_type = line[:2]
-					sql_string = "INSERT INTO HRDF_FPLANFahrt_TAB (fk_eckdatenid,triptype,tripno,operationalno,tripversion,cyclecount,cycletimemin) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id;"
-					cyclecount = line[23:26].strip()
-					cycletimemin = line[27:30].strip()
-					if not cyclecount:
-						cyclecount = None
-					if not cycletimemin:
-						cycletimemin = None
-					curIns.execute(sql_string, (self.__fkdict['fk_eckdatenid'], line[1:2], line[3:9], line[10:16], line[17:22], cyclecount, cycletimemin))
-					self.__fkdict["fk_fplanfahrtid"] = str(curIns.fetchone()[0])
-
-				elif line[:2] == "*T":
-					self.__AVE_type = line[:2]
-					sql_string = "INSERT INTO HRDF_FPLANFahrt_TAB (fk_eckdatenid,triptype,tripno,operationalno,triptimemin,cycletimesec) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id;"
-					triptimemin = line[16:20].strip()
-					cycletimesec = line[21:25].strip()
-					if not triptimemin:
-						triptimemin = None
-					if not cycletimesec:
-						cycletimesec = None
-					curIns.execute(sql_string, (self.__fkdict['fk_eckdatenid'], line[1:2], line[3:8], line[9:15], triptimemin, cycletimesec))
-					self.__fkdict["fk_fplanfahrtid"] = str(curIns.fetchone()[0])
-
-				elif line[:2] == "*C":
-					checkinTime = '';
-					checkoutTime = '';
-					if line[:3] == "*CI":
-						checkinTime = line[4:8].strip();
-					if line[:3] == "*CO":
-						checkoutTime = line[4:8].strip();
-					self.__fplanFahrtC_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
-													+self.__fkdict["fk_fplanfahrtid"]+';'
-													+checkinTime+';'
-													+checkoutTime+';'
-													+line[9:16].strip()+';'
-													+line[17:24].strip()+';'
-													+line[25:31].strip()+';'
-													+line[32:38].strip()+
-													'\n')
-
-				elif line[:2] == "*G":
-					self.__fplanFahrtG_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
-													+self.__fkdict["fk_fplanfahrtid"]+';'
-													+line[3:6].strip()+';'
-													+line[7:14].strip()+';'
-													+line[15:22].strip()+';'
-													+line[23:29].strip()+';'
-													+line[30:36].strip()+
-													'\n')
-				elif line[:2] == "*A":
-					if self.__AVE_type == "*Z" or self.__AVE_type == "*T":
-						self.__fplanFahrtA_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
+					elif line[:3] == "*SH":
+						self.__fplanFahrtSH_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
 														+self.__fkdict["fk_fplanfahrtid"]+';'
-														+line[3:5].strip()+';'
-														+line[6:13].strip()+';'
-														+line[14:21].strip()+';'
-														+line[22:28].strip()+';'
+														+line[4:11].strip()+';'
+														+line[12:18].strip()+';'
+														+line[19:25].strip()+
+														'\n')
+
+					elif line[:3] == "*GR":
+						self.__fplanFahrtGR_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
+														+self.__fkdict["fk_fplanfahrtid"]+';'
+														+line[4:11].strip()+';'
+														+line[12:19].strip()+';'
+														+line[20:27].strip()+';'
+														+line[28:34].strip()+';'
+														+line[35:41].strip()+
+														'\n')
+
+
+					elif line[:2] == "*B" or line[:2] == "*E":
+						logger.warning("Zeile "+line[:2]+" wird derzeit nicht unterstützt")
+
+					elif line[:2] == "*Z":
+						self.__AVE_type = line[:2]
+						sql_string = "INSERT INTO HRDF_FPLANFahrt_TAB (fk_eckdatenid,triptype,tripno,operationalno,tripversion,cyclecount,cycletimemin) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id;"
+						cyclecount = line[23:26].strip()
+						cycletimemin = line[27:30].strip()
+						if not cyclecount:
+							cyclecount = None
+						if not cycletimemin:
+							cycletimemin = None
+						curIns.execute(sql_string, (self.__fkdict['fk_eckdatenid'], line[1:2], line[3:9], line[10:16], line[17:22], cyclecount, cycletimemin))
+						self.__fkdict["fk_fplanfahrtid"] = str(curIns.fetchone()[0])
+
+					elif line[:2] == "*T":
+						self.__AVE_type = line[:2]
+						sql_string = "INSERT INTO HRDF_FPLANFahrt_TAB (fk_eckdatenid,triptype,tripno,operationalno,triptimemin,cycletimesec) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id;"
+						triptimemin = line[16:20].strip()
+						cycletimesec = line[21:25].strip()
+						if not triptimemin:
+							triptimemin = None
+						if not cycletimesec:
+							cycletimesec = None
+						curIns.execute(sql_string, (self.__fkdict['fk_eckdatenid'], line[1:2], line[3:8], line[9:15], triptimemin, cycletimesec))
+						self.__fkdict["fk_fplanfahrtid"] = str(curIns.fetchone()[0])
+
+					elif line[:2] == "*C":
+						checkinTime = '';
+						checkoutTime = '';
+						if line[:3] == "*CI":
+							checkinTime = line[4:8].strip();
+						if line[:3] == "*CO":
+							checkoutTime = line[4:8].strip();
+						self.__fplanFahrtC_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
+														+self.__fkdict["fk_fplanfahrtid"]+';'
+														+checkinTime+';'
+														+checkoutTime+';'
+														+line[9:16].strip()+';'
+														+line[17:24].strip()+';'
+														+line[25:31].strip()+';'
+														+line[32:38].strip()+
+														'\n')
+
+					elif line[:2] == "*G":
+						self.__fplanFahrtG_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
+														+self.__fkdict["fk_fplanfahrtid"]+';'
+														+line[3:6].strip()+';'
+														+line[7:14].strip()+';'
+														+line[15:22].strip()+';'
+														+line[23:29].strip()+';'
+														+line[30:36].strip()+
+														'\n')
+					elif line[:2] == "*A":
+						if self.__AVE_type == "*Z" or self.__AVE_type == "*T":
+							self.__fplanFahrtA_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
+															+self.__fkdict["fk_fplanfahrtid"]+';'
+															+line[3:5].strip()+';'
+															+line[6:13].strip()+';'
+															+line[14:21].strip()+';'
+															+line[22:28].strip()+';'
+															+line[29:35].strip()+';'
+															+line[36:42].strip()+
+															'\n')
+						else:
+							logger.warning("*A Zeile gehört zu nicht unterstützter "+self.__AVE_type+"-Zeile und wird nicht verarbeitet")
+
+					elif line[:2] == "*R":
+						self.__fplanFahrtR_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
+														+self.__fkdict["fk_fplanfahrtid"]+';'
+														+line[3:4].strip()+';'
+														+line[5:12].strip()+';'
+														+line[13:20].strip()+';'
+														+line[21:28].strip()+';'
 														+line[29:35].strip()+';'
 														+line[36:42].strip()+
 														'\n')
-					else:
-						logger.warning("*A Zeile gehört zu nicht unterstützter "+self.__AVE_type+"-Zeile und wird nicht verarbeitet")
-
-				elif line[:2] == "*R":
-					self.__fplanFahrtR_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
-													+self.__fkdict["fk_fplanfahrtid"]+';'
-													+line[3:4].strip()+';'
-													+line[5:12].strip()+';'
-													+line[13:20].strip()+';'
-													+line[21:28].strip()+';'
-													+line[29:35].strip()+';'
-													+line[36:42].strip()+
-													'\n')
-				elif line[:2] == "*I":
-					self.__fplanFahrtI_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
-													+self.__fkdict["fk_fplanfahrtid"]+';'
-													+line[3:5].strip()+';'
-													+line[29:38].strip()+';'
-													+line[6:13].strip()+';'
-													+line[14:21].strip()+';'
-													+line[22:28].strip()+';'
-													+line[39:45].strip()+';'
-													+line[46:52].strip()+
-													'\n')
-
-				elif line[:2] == "*L":
-					self.__fplanFahrtL_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
-													+self.__fkdict["fk_fplanfahrtid"]+';'
-													+line[3:11].strip()+';'
-													+line[12:19].strip()+';'
-													+line[20:27].strip()+';'
-													+line[28:34].strip()+';'
-													+line[35:41].strip()+
-													'\n')
-
-			else:
-				# Laufwegszeilen
-				bDataLinesRead = True
-				if (line[:1] == "+"):
-					logger.warning("Laufwegsdaten mit Regionen werden nicht unterstützt")
-				else:
-					self.__fplanFahrtLauf_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
+					elif line[:2] == "*I":
+						self.__fplanFahrtI_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
 														+self.__fkdict["fk_fplanfahrtid"]+';'
-														+line[:7].strip()+';'
-														+line[8:29].strip()+';'
-														+str(iSequenceCnt)+';'
-														+line[29:35].strip()+';'
-														+line[36:42].strip()+';'
-														+line[43:48].strip()+';'
-														+line[49:55].strip()+';'
-														+line[56:57].strip()+
+														+line[3:5].strip()+';'
+														+line[29:38].strip()+';'
+														+line[6:13].strip()+';'
+														+line[14:21].strip()+';'
+														+line[22:28].strip()+';'
+														+line[39:45].strip()+';'
+														+line[46:52].strip()+
 														'\n')
-					iSequenceCnt += 1
 
+					elif line[:2] == "*L":
+						self.__fplanFahrtL_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
+														+self.__fkdict["fk_fplanfahrtid"]+';'
+														+line[3:11].strip()+';'
+														+line[12:19].strip()+';'
+														+line[20:27].strip()+';'
+														+line[28:34].strip()+';'
+														+line[35:41].strip()+
+														'\n')
 
-		# Nach dem Durchlauf der Schleife muss der letzte Zug noch gespeichert werden
-		if bDataLinesRead:
-			self.save_currentFplanFahrt()
-			iNumberFplanFahrt += 1
-			bDataLinesRead = False
-			iSequenceCnt = 0
+				else:
+					# Laufwegszeilen
+					bDataLinesRead = True
+					if (line[:1] == "+"):
+						logger.warning("Laufwegsdaten mit Regionen werden nicht unterstützt")
+					else:
+						self.__fplanFahrtLauf_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
+															+self.__fkdict["fk_fplanfahrtid"]+';'
+															+line[:7].strip()+';'
+															+line[8:29].strip()+';'
+															+str(iSequenceCnt)+';'
+															+line[29:35].strip()+';'
+															+line[36:42].strip()+';'
+															+line[43:48].strip()+';'
+															+line[49:55].strip()+';'
+															+line[56:57].strip()+
+															'\n')
+						iSequenceCnt += 1
 
-		logger.debug('FplanFahrt: {} eingefügte Datensätze'.format(iNumberFplanFahrt))
+			# Nach dem Durchlauf der Schleife muss der letzte Zug noch gespeichert werden
+			if bDataLinesRead:
+				self.save_currentFplanFahrt()
+				iNumberFplanFahrt += 1
+				bDataLinesRead = False
+				iSequenceCnt = 0
+
+			logger.debug('FplanFahrt: {} eingefügte Datensätze'.format(iNumberFplanFahrt))
+		except Exception as e:
+			logger.error('Fehler beim Lesen und Verarbeiten der Datei FPLAN aufgetreten {}'.format(e))
 		curIns.close()

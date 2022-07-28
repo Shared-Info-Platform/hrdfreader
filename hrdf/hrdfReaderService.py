@@ -53,7 +53,7 @@ class HrdfReaderService:
             self.checkVDVMappingTables()
 
         except Exception as e:
-            logger.info("Der HRDF-Import wurde mit Fehler abgebrochen {}".format(e))
+            logger.error("Der HRDF-Import wurde mit Fehler abgebrochen {}".format(e))
 
     def checkForNewImportFile(self):
         """ Lädt die aktuelle HRDF-Import-Datei über den PermalLink und legt die Datei in das entsprechende Verzeichnis """
