@@ -1,4 +1,4 @@
-# hrdfreader [![Current Version](https://img.shields.io/badge/version-2.1.1-green.svg)](https://github.com/BERNMOBIL/hrdfreader)
+# hrdfreader [![Current Version](https://img.shields.io/badge/version-2.1.2-green.svg)](https://github.com/BERNMOBIL/hrdfreader)
 
 > parse hafas rohdaten format files into a postgres db
 
@@ -42,6 +42,8 @@ Configuration is done in hrdfconfig.config
 
 ## Version History
 
+* 2.1.2
+    * ADD: View for stop point identification
 * 2.1.1
     * ADD: VDV454 AUSRef Server
     * ADD: tables for conversion from HRDF formats to PT CH specific VDV formats 
