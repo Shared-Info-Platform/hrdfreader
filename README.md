@@ -18,6 +18,7 @@ clone repository
 prepare database using ./db/create/create-hrdf.sh
 
 customize settings in hrdfconfig.config
+customize settings in vdvconfig.conf, if VDV server is needed
 
 ## How to use
 
