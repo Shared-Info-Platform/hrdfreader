@@ -14,7 +14,7 @@ class HrdfTTG:
 	Die Klasse generiert einen Tagesfahrplan für einen gewünschten Zeitraum
 
 	"""
-	modulVersion = "2.1.1"
+	modulVersion = "2.1.2"
 	hrdfFormats = ["5.40.41"]
 	def __init__(self, db):
 		"""
