@@ -169,8 +169,8 @@ class VdvPSAUSREF(VdvPartnerService):
                                 firstCategoryNo = sqlFahrplan[14]
                                 firstLineNo = sqlFahrplan[18] # nicht gewandelte linieno der Fahrt (kann auch NULL sein) für korrekten LinienText
                                 linienfahrplan.VerkehrsmittelText = str(firstCategoryCode)
-                                linienfahrplan.ProduktID = self.VdvMapper.mapProduktID(firstCategoryNo, 'de', sqlFahrplan[15])
-                                linienfahrplan.LinienText = self.VdvMapper.mapLinieText(operationalno, lineno, firstCategoryNo, firstCategoryCode, firstLineNo)
+                                linienfahrplan.ProduktID = self.VdvMapper.mapProduktID(firstCategoryCode, 'de', sqlFahrplan[15])
+                                linienfahrplan.LinienText = self.VdvMapper.mapLinieText(operationalno, lineno, firstCategoryCode, firstLineNo)
                                 linienfahrplan.addSollFahrt(sollFahrt)
                             # Halte erstellen
                             sollHalt = SollHalt(self.VdvMapper.mapHaltID(sqlFahrplan[2], self.ExtendHaltID7To9))
@@ -183,7 +183,7 @@ class VdvPSAUSREF(VdvPartnerService):
                             sollHalt.Aussteigeverbot = sqlFahrplan[9]
                             if (sqlFahrplan[10] != sollFahrt.RichtungsText): sollHalt.RichtungsText = sqlFahrplan[10]
                             if (sqlFahrplan[12] != firstCategoryCode): sollFahrt.VerkehrsmittelText = str(sqlFahrplan[12])
-                            if (sqlFahrplan[14] != firstCategoryNo): sollFahrt.ProduktID = self.VdvMapper.mapProduktID(firstCategoryNo, 'de', sqlFahrplan[15])
+                            if (sqlFahrplan[14] != firstCategoryNo): sollFahrt.ProduktID = self.VdvMapper.mapProduktID(firstCategoryCode, 'de', sqlFahrplan[15])
                             sollFahrt.addSollHalt(sollHalt)
 
                         # Vor dem Einfügen des Linienfahrplans ins Abo muss geprüft werden ob dieser evtl. schon existiert und ob diese identisch sind

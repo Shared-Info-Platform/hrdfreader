@@ -16,16 +16,16 @@ class VdvPartnerMapper(object):
         self.__produktTextLookUp = dict()
         self.__produktIDLookUp = dict()
         # Verkehrsmittelkategorien Zusammenfassung nach KategorieNr (HRDF_ZugartKategorie_tab)
-        self.__catZug = tuple((9,11,15,16,17,18,21,22,24,25,26,27,28,30,32,34,35))
-        self.__catTram = tuple((33,))
-        self.__catMetro = tuple((20,))
-        self.__catZahnradbahn = tuple((8,))
-        self.__catBus = tuple((2,4,5,6,7,10,19,29,36,37))
-        self.__catStandSeilbahn = tuple((13,))
-        self.__catKabinenbahn = tuple((14,23))
-        self.__catSesselbahn = tuple((31,))
-        self.__catAufzug = tuple((1,))
-        self.__catSchiff = tuple((3,12))
+        self.__catZug = tuple(('EC','EN','IC','IR','IRE','RE','R','S','SN','PE','ATZ','EXT','ICE','TGV','RJ','RJX','TE2','TER','RB','IRE','MAT','NJ'))
+        self.__catTram = tuple(('T','TN'))
+        self.__catMetro = tuple(('M',))
+        self.__catZahnradbahn = tuple(('CC',))
+        self.__catBus = tuple(('B','BN','BP','CAR','CAX','EXB','RUB','KB','TX'))
+        self.__catStandSeilbahn = tuple(('FUN',))
+        self.__catKabinenbahn = tuple(('PB','GB'))
+        self.__catSesselbahn = tuple(('SL',))
+        self.__catAufzug = tuple(('ASC',))
+        self.__catSchiff = tuple(('BAT','FAE'))
         # Verkehrsmittelkategorien für spezielles Verhalten
         self.__catForSpecialLinienText = self.__catZug + self.__catSchiff
 
@@ -34,7 +34,11 @@ class VdvPartnerMapper(object):
         # ProduktText und ProduktID-Mapping
         self.__produktTextLookUp.clear()
         self.__produktIDLookUp.clear()
-        sql_produktLookUp = "SELECT distinct fk_eckdatenid, categoryno, languagecode, categorytext FROM hrdf.hrdf_zugartkategorie_tab ORDER BY languagecode, categoryno"
+        sql_produktLookUp = "SELECT distinct a.fk_eckdatenid, b.categorycode, a.languagecode, a.categorytext "\
+                            "  FROM hrdf.hrdf_zugartkategorie_tab a, hrdf.hrdf_zugart_tab b "\
+                            " WHERE a.fk_eckdatenid = b.fk_eckdatenid "\
+                            "   AND a.categoryno = b.categoryno "\
+                            " ORDER BY a.fk_eckdatenid, b.categorycode, a.languagecode"
         curProdukt = self.__vdvDB.connection.cursor()
         curProdukt.execute(sql_produktLookUp)
         produkte = curProdukt.fetchall()
@@ -119,11 +123,11 @@ class VdvPartnerMapper(object):
         if linienHash in self.__linienLookUp: linienID = self.__linienLookUp[linienHash][0]
         return betreiberID+":"+linienID
 
-    def mapLinieText(self, operationalno, lineno, firstCategoryno, firstCategorycode, firstLineNo):
+    def mapLinieText(self, operationalno, lineno, firstCategorycode, firstLineNo):
         """ Mapped die HRDF-Linienno in einen VDV-LinienText
             Spezialität für Verkehrsmittelkategorie Zug/Schiff (siehe __init__())
         """
-        if firstCategoryno in self.__catForSpecialLinienText:
+        if firstCategorycode in self.__catForSpecialLinienText:
             if firstLineNo is None: linienText = firstCategorycode
             else: linienText = firstCategorycode+firstLineNo
         else:
@@ -132,10 +136,10 @@ class VdvPartnerMapper(object):
             if linienHash in self.__linienLookUp: linienText = self.__linienLookUp[linienHash][1]
         return linienText
 
-    def mapProduktID(self, categoryno, languagecode, eckdatenid):
-        """ Mapped die HRDF-Zugart-Kategorienummer in eine VDV-ProduktID """
-        produktID = str(categoryno)
-        produktHash = hash((eckdatenid, categoryno, languagecode))
+    def mapProduktID(self, categorycode, languagecode, eckdatenid):
+        """ Mapped den HRDF-Zugart-Kategoriecode in eine VDV-ProduktID """
+        produktID = str(categorycode)
+        produktHash = hash((eckdatenid, categorycode, languagecode))
         if produktHash in self.__produktIDLookUp: produktID = self.__produktIDLookUp[produktHash]
         # ProduktID muss einer Verkehrsmittelkategorie entsprechen siehe Doku (Harmonisierung...)
         # daher wir hier nicht auf self.__produktTextLookUp zugegriffen
