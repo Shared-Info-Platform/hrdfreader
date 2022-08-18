@@ -70,7 +70,7 @@ if __name__ == '__main__':
 	configFile = 'hrdfconfig.config'
 
 	if (paraCnt < 2):
-		print("\nAufruf: hrdfgenerateStats.py <eckdatenId> <generateFrom> <generateTo>\n")
+		print("\nAufruf: hrdfgenerateStats.py <eckdatenId> [<generateFrom> <generateTo>]\n")
 		print("eckdatenId\tId des zu betrachtenden HRDF-Import")
 		print("generateFrom\tBeginn des Zeitbereichs, für den der Tagesfahrlan analysiert wird (String-Format '%d.%m.%Y') (default => heute)")
 		print("generateTo\tEnde des Zeitbereichs, für den der Tagesfahrplan analysiert wird (String-Format '%d.%m.%Y') (default => heute)")
