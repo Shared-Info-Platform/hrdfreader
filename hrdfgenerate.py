@@ -34,6 +34,8 @@ def generate_timetable_from_hrdf(eckdatenId, generateFrom, generateTo, dbname, h
 			iErrorCnt = ttGenerator.generateTT()
 			if ( iErrorCnt == 0):
 				logger.info("Der Tagesfahrplan für den Zeitraum von {:%d.%m.%Y} bis {:%d.%m.%Y} wurde erfolgreich generiert".format(dtGenerateFrom, dtGenerateTo))
+				# Auswerten der Haltbelegung zu Erstellung von Statistikdaten
+				ttGenerator.createStopTripStats(eckdatenId, dtGenerateFrom, dtGenerateTo)
 			else:
 				logger.warning("Der Tagesfahrplan für den Zeitraum von {:%d.%m.%Y} bis {:%d.%m.%Y} konnte nicht vollständig generiert werden. {} fehlerhafte Fahrten".format(dtGenerateFrom, dtGenerateTo, iErrorCnt))
 		else:

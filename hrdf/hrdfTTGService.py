@@ -63,6 +63,9 @@ class HrdfTTGService:
                                 iErrorCnt = self.__ttGenerator.generateTT()
                                 if ( iErrorCnt == 0):
                                     logger.info("Der Tagesfahrplan für den Zeitraum von {:%d.%m.%Y} bis {:%d.%m.%Y} wurde erfolgreich generiert".format(dtGenerateFrom, dtGenerateTo))
+
+                                    # Auswerten der Haltbelegung zu Erstellung von Statistikdaten
+                                    self.__ttGenerator.createStopTripStats(eckdatenId, dtGenerateFrom, dtGenerateTo)
                                 else:
                                     logger.warning("Der Tagesfahrplan für den Zeitraum von {:%d.%m.%Y} bis {:%d.%m.%Y} konnte nicht vollständig generiert werden. {} fehlerhafte Fahrten".format(dtGenerateFrom, dtGenerateTo, iErrorCnt))
                             else:
@@ -139,7 +142,6 @@ class HrdfTTGService:
         curSelEckdaten.close()
         return generationList
 
-
     def cleanupDailyTimetable(self, previewDays):
         """ Aufräumen der alten Tagesfahrplandaten
             Es werden folgende Tagesfahrpläne gelöscht:
@@ -196,4 +198,6 @@ class HrdfTTGService:
                     except Exception as e:
                         logger.info("Betriebstag {:%d.%m.%Y}-{} => Fehler beim Löschen des Tagesfahrplans => {}".format(currentDate, futureTT[0], e))
             i += 1
-        curSelFutureTT.close()
+        curSelFutureTT.close()    
+
+            

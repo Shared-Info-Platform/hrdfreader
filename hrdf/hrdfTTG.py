@@ -249,3 +249,54 @@ class HrdfTTG:
 		self.__lock.acquire()
 		self.__numOfCurrentDBThreads -= 1
 		self.__lock.release()
+
+	def createStopTripStats(self, eckdatenId, dtGenerateFrom, dtGenerateTo):
+		""" Erstellen von tagesaktuellen Haltestellen-Statistikdaten
+
+		eckdatenId - Id aus der Tabelle HRDF_ECKDATEN_TAB
+		generateFrom -- Beginn des Zeitbereichs, für den die Haltestellen-Statistikdaten generiert werden
+		generateTo -- Ende des Zeitbereichs, für den die Haltestellen-Statistikdaten generiert werden
+        """
+		logger.info("Es werden Haltestellen-Statistikdaten für den Zeitraum {:%d.%m.%Y} bis {:%d.%m.%Y} generiert/festgehalten...".format(dtGenerateFrom, dtGenerateTo))
+		sql_selMetaBhf = "SELECT distinct stopgroupno FROM HRDF.HRDF_METABHFGRUPPE_TAB WHERE fk_eckdatenid = %s ORDER BY stopgroupno"
+		curMetaBhf = self.__hrdfdb.connection.cursor()
+		curMetaBhf.execute(sql_selMetaBhf, (eckdatenId,))
+		metaBhfs = curMetaBhf.fetchall()
+		curMetaBhf.close()
+		dayCnt = (dtGenerateTo - dtGenerateFrom).days
+		i=0
+		rowsDeleted=0
+		rowInserted=0
+		while (i<=dayCnt):
+			generationDay = dtGenerateFrom + timedelta(days=i)
+			curDelStats = self.__hrdfdb.connection.cursor();
+			curInsStats = self.__hrdfdb.connection.cursor()
+			try:
+                # Löschen bestehender Daten für den Tag
+				curDelStats.execute("DELETE FROM HRDF.HRDF_StopTripCountStats_TAB WHERE operatingday::date = %s::date", (str(generationDay),))
+				rowsDeleted = curDelStats.rowcount
+
+                # Einfügen neuer Daten für den Tag
+				rowInserted = 0
+				sql_insertStats = "INSERT INTO HRDF.HRDF_StopTripCountStats_TAB (operatingday, stopgroupno, stopident, stopname, departureCnt) "\
+                                "(SELECT a.operatingday, b.stopgroupno, a.stopident, a.stopname, count(1) as departureCnt "\
+                                "  FROM HRDF.HRDF_Dailytimetable_TAB a,"\
+                                "       (select fk_eckdatenid, stopgroupno, unnest(stopmember)::varchar as stopident from HRDF.HRDF_MetabhfGruppe_TAB) b"\
+                                " WHERE a.depdatetime is not null "\
+                                "   and a.fk_eckdatenid = b.fk_eckdatenid "\
+                                "   and a.fk_eckdatenid = %s "\
+                                "   and a.operatingday::date = %s::date "\
+                                "   and b.stopgroupno = %s "\
+                                "   and a.stopident = b.stopident "\
+                                " GROUP BY a.operatingday, b.stopgroupno, a.stopident, a.stopname)"
+				for stopgroupno in metaBhfs:
+					curInsStats.execute(sql_insertStats, (eckdatenId, str(generationDay), stopgroupno[0]))
+					rowInserted += curInsStats.rowcount
+				self.__hrdfdb.connection.commit()
+			except Exception as e:
+				logger.error("\tHaltestatistikdaten für {:%d.%m.%Y} => Fehler beim Aktualisieren der Daten {}".format(generationDay, e))
+			
+			curDelStats.close()
+			curInsStats.close()
+			logger.info("\tHaltestatistikdaten für {:%d.%m.%Y} => {} Datensätze gelöscht und {} Datensätze hinzugefügt".format(generationDay, rowsDeleted, rowInserted))
+			i += 1

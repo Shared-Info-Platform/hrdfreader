@@ -77,5 +77,3 @@ AS SELECT
    coalesce(array_length(b.stoppoints,1),0) as stoppointcnt
    FROM hrdf_bahnhof_tab a
         LEFT OUTER JOIN (SELECT fk_eckdatenid, stopno, array_agg(distinct stoppointtext order by stoppointtext) stoppoints FROM hrdf_gleis_tab GROUP BY fk_eckdatenid, stopno) b ON a.stopno = b.stopno AND a.fk_eckdatenid = b.fk_eckdatenid;
-
-     
