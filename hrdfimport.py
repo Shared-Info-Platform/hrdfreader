@@ -104,6 +104,6 @@ if __name__ == '__main__':
 				user = hrdfConfig['DATABASE']['user']
 				pwd = hrdfConfig['DATABASE']['pwd']
 
-				load_hrdfzipfile(zipfilename, dbname, host, user, pwd)
+				load_hrdfzipfile(zipfilename, dbname, host, port, user, pwd)
 			else:
 				print("HRDF-Konfigurationsdatei {} existiert nicht".format(configFile))
