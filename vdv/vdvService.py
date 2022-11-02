@@ -1,4 +1,4 @@
-import psycopg2
+import psycopg2-binary
 import time
 from datetime import datetime, date, timedelta, time
 from io import StringIO
