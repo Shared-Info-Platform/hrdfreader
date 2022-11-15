@@ -1,4 +1,4 @@
-import psycopg2-binary
+import psycopg2
 
 class VdvDB:
 	"""
