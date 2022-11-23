@@ -966,6 +966,7 @@ COMMENT ON COLUMN HRDF_StopTripCountStats_TAB.departureCnt IS 'Anzahl der Abfahr
 
 
 /* ---------------------------------------------- Tabellen für den HRDF-VDVService -----------------------
+*/
 /*
 \brief  table for VDV Linien-Mapping
 */
