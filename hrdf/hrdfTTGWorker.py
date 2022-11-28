@@ -319,7 +319,7 @@ class HrdfTTGWorker(Thread):
 							arrstoppointtext = ""
 							depstoppointtext = ""
 							arrstoppointtext = self.__ttgcache.lookupGleisText(tripStop[8], generationDay)
-							if ( arrstoppointtext is not ""):
+							if ( arrstoppointtext != ""):
 								depstoppointtext = arrstoppointtext
 							else:
 								arrstoppointtext = self.__ttgcache.lookupGleisText(tripStop[9], generationDay)
