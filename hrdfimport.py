@@ -46,6 +46,22 @@ def load_hrdfzipfile(filename, dbname, host, port, user, pwd):
 	else:
 		logger.error("Es konnte keine Verbindung zur Datenbank aufgebaut werden")
 
+def testFunction(filename, dbname, host, port, user, pwd):
+	""" Funktion zum Testen verschiedener Reader-Funktionen, ohne unbedingt Import durchzuführen """
+	hrdf_db = HrdfDB(dbname, host, port, user, pwd)
+	if hrdf_db.connect():
+
+		# ZipFile öffnen und zu lesende Dateien bestimmen
+		hrdfzip = zipfile.ZipFile(filename, 'r')
+		hrdffiles = ['ECKDATEN','BITFELD','RICHTUNG','BAHNHOF','GLEIS','ZUGART','ATTRIBUT','INFOTEXT','DURCHBI','BFKOORD_WGS','UMSTEIGB','BFPRIOS','METABHF','FPLAN']
+		
+		# Initialisierung des HRDF-Readers und lesen der gewünschten HRDF-Dateien
+		reader = HrdfReader(hrdfzip, hrdf_db, hrdffiles)
+		eckdatenId = sys.argv[3]
+		reader.determine_linesperstop(eckdatenId)
+		hrdfzip.close()
+	else:
+		logger.error("Es konnte keine Verbindung zur Datenbank aufgebaut werden")
 
 def initialize_logging(loglevel, logfile):
 	"""Initialisiert den Logger
@@ -86,8 +102,6 @@ if __name__ == '__main__':
 			print("HRDF-Formate: {}".format(HrdfReader.hrdfFormats))
 		else:
 			if (os.path.exists(configFile)):
-				zipfilename = sys.argv[1]
-
 				hrdfConfig = configparser.ConfigParser()
 				hrdfConfig.read(configFile)
 
@@ -103,7 +117,12 @@ if __name__ == '__main__':
 				port = hrdfConfig['DATABASE']['port']
 				user = hrdfConfig['DATABASE']['user']
 				pwd = hrdfConfig['DATABASE']['pwd']
+				zipfilename = sys.argv[1]
 
-				load_hrdfzipfile(zipfilename, dbname, host, port, user, pwd)
+				if (len(sys.argv) > 2):
+					if (sys.argv[2] == "-t"):
+						testFunction(zipfilename, dbname, host, port, user, pwd)
+				else:					
+					load_hrdfzipfile(zipfilename, dbname, host, port, user, pwd)
 			else:
 				print("HRDF-Konfigurationsdatei {} existiert nicht".format(configFile))
