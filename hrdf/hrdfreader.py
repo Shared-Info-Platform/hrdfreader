@@ -94,8 +94,8 @@ class HrdfReader:
 					logger.error("Das Lesen der Datei ["+filename+"] wird nicht unterstützt")
 
 			# Aufbereitung und Verdichtung der importierten Daten
-			self.determine_linesperstop()
-			self.determine_tripcount()
+			self.determine_linesperstop(self.__fkdict['fk_eckdatenid'])
+			self.determine_tripcount(self.__fkdict['fk_eckdatenid'])
 
 			readFilesOk = True
 			logger.info("Der HRDF-Import <{}> wurde eingearbeitet".format(self.__hrdfzip.filename))
@@ -138,27 +138,49 @@ class HrdfReader:
 			logger.error('Fehler beim Lesen und Verarbeiten der Datei ECKDATEN aufgetreten {}'.format(e))
 		cur.close()
 
-	def determine_linesperstop(self):
+	def determine_linesperstop(self, fk_eckdatenid):
 		"""Ermitteln und Schreiben der Linien, die in der aktuellen Fahrplanperiode an einem Halt vorkommen"""
 		logger.info('ermitteln der Linien pro Halt')
-		sql_stopsLookup = "INSERT INTO HRDF.HRDF_LINESPERSTOP_TAB (fk_eckdatenid, stopno, operationalno, lineno, categorycode) "\
-					"(SELECT DISTINCT fahrt.fk_eckdatenid, flw.stopno, fahrt.operationalno, line.lineno, cat.categorycode "\
+		#"INSERT INTO HRDF.HRDF_LINESPERSTOP_TAB (fk_eckdatenid, stopno, operationalno, lineno, categorycode) "\
+		sql_stopsLookup = "(SELECT DISTINCT fahrt.fk_eckdatenid, flw.stopno, fahrt.operationalno, line.lineno, cat.categorycode "\
 					"FROM hrdf.hrdf_fplanfahrtlaufweg_tab flw "\
-					"LEFT OUTER JOIN hrdf.hrdf_fplanfahrt_tab fahrt on flw.fk_fplanfahrtid = fahrt.id and flw.fk_eckdatenid = fahrt.fk_eckdatenid "\
+					"INNER JOIN hrdf.hrdf_fplanfahrt_tab fahrt on flw.fk_fplanfahrtid = fahrt.id and flw.fk_eckdatenid = fahrt.fk_eckdatenid "\
+					"INNER JOIN hrdf.hrdf_fplanfahrtg_tab cat on cat.fk_fplanfahrtid = fahrt.id and cat.fk_eckdatenid = fahrt.fk_eckdatenid "\
 					"LEFT OUTER JOIN hrdf.hrdf_fplanfahrtl_tab line on line.fk_fplanfahrtid = fahrt.id and line.fk_eckdatenid = fahrt.fk_eckdatenid "\
-					"LEFT OUTER JOIN hrdf.hrdf_fplanfahrtg_tab cat on cat.fk_fplanfahrtid = fahrt.id and cat.fk_eckdatenid = fahrt.fk_eckdatenid "\
 					"WHERE fahrt.fk_eckdatenid = %s)"
 
 		curLookup = self.__hrdfdb.connection.cursor()
 		try: # Absichern des DB-Cursor
-			curLookup.execute(sql_stopsLookup, (self.__fkdict['fk_eckdatenid'],))
-			self.__hrdfdb.connection.commit()
-			logger.debug('LinesPerStop: {} eingefügte Datensätze'.format(curLookup.rowcount))
+			curLookup.execute(sql_stopsLookup, (fk_eckdatenid,))
+			allLinesPerStop = curLookup.fetchall()
+			curLookup.close()
+			# Aufbereiten des Ergebnis, um es per COPY in die Tabelle zu schreiben. COPY erzeugt keinen Exclusive-Lock
+			linesPerStop_strIO = StringIO()
+			for linePerStop in allLinesPerStop:
+				lineNo = linePerStop[3]
+				if ( lineNo is None): lineNo = ''
+
+				linesPerStop_strIO.write(str(linePerStop[0])+';'
+							+str(linePerStop[1])+';'
+							+linePerStop[2]+';'
+							+lineNo+';'
+							+linePerStop[4]
+							+'\n')
+			allLinesPerStop.clear()
+			linesPerStop_strIO.seek(0)
+			cur = self.__hrdfdb.connection.cursor()
+			try: # Absichern des DB-Cursor
+				cur.copy_expert("COPY HRDF.HRDF_LINESPERSTOP_TAB (fk_eckdatenid, stopno, operationalno, lineno, categorycode) FROM STDIN USING DELIMITERS ';' NULL AS ''",linesPerStop_strIO)
+				self.__hrdfdb.connection.commit()
+				logger.debug('LinesPerStop: {} eingefügte Datensätze'.format(curLookup.rowcount))
+			except Exception as e:
+				logger.error('Fehler beim Ermitteln der Linien pro Halt aufgetreten {}'.format(e))
+			cur.close()						
 		except Exception as e:
 			logger.error('Fehler beim Ermitteln der Linien pro Halt aufgetreten {}'.format(e))
-		curLookup.close()
+			curLookup.close()
 
-	def determine_tripcount(self):
+	def determine_tripcount(self, fk_eckdatenid):
 		"""Ermitteln und Schreiben der Anzahl Fahrten (Linien/Kategorie) pro Verwaltungsnummer - Taktdefinitionen mit eingeschlossen"""
 		logger.info('ermitteln der Anzahl Fahrten (Linien/Kategorie) pro Verwaltung')
 
@@ -175,7 +197,7 @@ class HrdfReader:
 
 		curLookup = self.__hrdfdb.connection.cursor()
 		try: # Absichern des DB-Cursor
-			curLookup.execute(sql_tripsLookup, (self.__fkdict['fk_eckdatenid'],))
+			curLookup.execute(sql_tripsLookup, (fk_eckdatenid,))
 			self.__hrdfdb.connection.commit()
 			logger.debug('TripCountPerOperator: {} eingefügte Datensätze'.format(curLookup.rowcount))
 		except Exception as e:
