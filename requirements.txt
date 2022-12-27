@@ -1,4 +1,4 @@
 bitstring==3.1.9
 pip==21.3.1
 psycopg2==2.9.2
-setuptools==59.4.0
+setuptools==65.5.1
