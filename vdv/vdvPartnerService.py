@@ -34,7 +34,7 @@ class VdvPartnerService():
         self.__serviceName = self.__vdvConfig[partnerConfigName]['serviceName']
         self.__serviceType = PartnerServiceType[self.__vdvConfig[partnerConfigName]['serviceType']]
         self.__refreshAboIntervalMin = int(self.__vdvConfig[partnerConfigName]['refreshAboIntervalMin'])
-        self.__refreshMappingDataIntervalMin = int(self.__vdvConfig[partnerConfigName]['refreshAboIntervalMin'])
+        self.__refreshMappingDataIntervalMin = int(self.__vdvConfig[partnerConfigName]['refreshMappingDataIntervalMin'])
         self.__nextMappingDataRefresh = datetime.datetime.now()
         self.__startTime = VDV.vdvLocalToUTC(datetime.datetime.now())
         self.__datenVersionID = None
