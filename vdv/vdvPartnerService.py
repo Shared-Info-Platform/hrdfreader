@@ -153,7 +153,7 @@ class VdvPartnerService():
         """ Liefert die aktuell gültige EckdatenId """
         eckdatenId = -1
         sql_stmt = "SELECT id FROM HRDF.HRDF_ECKDATEN_TAB "\
-                   " WHERE importstatus = 'ok' AND (deleteflag IS NULL OR deleteflag = false) AND (inactive IS NULL OR inactive = false) "\
+                   " WHERE importstatus = 'ok' AND (deleteflag IS NULL OR deleteflag = false) AND (inactive IS NULL OR inactive = false) and array_length(ttgenerated, 1) is not NULL "\
                    " ORDER BY creationdatetime desc limit 1 "
         curEckdateId = self.vdvDB.connection.cursor()
         curEckdateId.execute(sql_stmt)
