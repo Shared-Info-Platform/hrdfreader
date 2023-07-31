@@ -33,7 +33,7 @@ Liefert true wenn eine Verbindung besteht/hergestellt werden konnte ansonsten fa
 			cur.execute('SELECT 1')
 			connected = True;
 		except:
-			connstring = 'host='+self.host+' dbname='+self.dbname+' port='+str(self.port) +' user='+self.user+' password='+self.password+' connect_timeout=800'
+			connstring = 'host='+self.host+' dbname='+self.dbname+' port='+str(self.port) +' user='+self.user+' password='+self.password+' connect_timeout=1200'
 			try:
 				self.connection = psycopg2.connect(connstring)
 				connected = True;
