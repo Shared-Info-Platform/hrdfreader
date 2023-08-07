@@ -185,7 +185,7 @@ class HrdfTTGCache:
 		while (i<=dayCnt):
 			generationDay = generateFrom + timedelta(days=i)
 			generationDatesArray.append(generationDay)
-
+		logger.debug("generationDatesArray contains: "+str(generationDatesArray))
 		sql_selGleisData = "SELECT distinct a.id, a.id::varchar||'-'||stopno::varchar||coalesce('-'||stoppointtime::varchar,'') as key, stoppointtext, b.bitfieldno "\
 						   "  FROM HRDF_FPlanFahrt_TAB a, HRDF_GLEIS_TAB b, HRDF_BITFELD_TAB c "\
 						   " WHERE a.fk_eckdatenid = %s "\
@@ -194,7 +194,7 @@ class HrdfTTGCache:
 						   "   AND b.tripno = a.tripno "\
 						   "   AND b.operationalno = a.operationalno "\
 						   "   AND b.bitfieldno = c.bitfieldno "\
-						   "   AND c.bitfieldarray && array%s "
+						   "   AND c.bitfieldarray && array%s::date[] "
 		curGleis = self.__hrdfdb.connection.cursor()
 		curGleis.execute(sql_selGleisData, (eckdatenid, generationDatesArray,))
 		allGleise = curGleis.fetchall()
