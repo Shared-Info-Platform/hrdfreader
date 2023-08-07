@@ -186,7 +186,7 @@ class HrdfTTGCache:
 			generationDay = generateFrom + timedelta(days=i)
 			generationDatesArray.append(generationDay)
 
-		sql_selGleisData = "SELECT distinct a.id, a.id::varchar||'-'||stopno::varchar||coalesce('-'||stoppointtime::varchar,'') as key, stoppointtext, bitfieldno "\
+		sql_selGleisData = "SELECT distinct a.id, a.id::varchar||'-'||stopno::varchar||coalesce('-'||stoppointtime::varchar,'') as key, stoppointtext, b.bitfieldno "\
 						   "  FROM HRDF_FPlanFahrt_TAB a, HRDF_GLEIS_TAB b, HRDF_BITFELD_TAB c "\
 						   " WHERE a.fk_eckdatenid = %s "\
 						   "   AND a.fk_eckdatenid = b.fk_eckdatenid "\
