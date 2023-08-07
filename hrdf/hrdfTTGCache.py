@@ -179,14 +179,24 @@ class HrdfTTGCache:
 		# Lookup für Haltepositionstexte aufbauen (a.id zu beginn ist schneller als es wegzulassen oder am Ende zu stellen)
 		# key => <FahrtId>-<StopNo>[-<StopPointTime>]
 		logger.info("Lookup für Haltepositionstexte aufbauen")
+		# Um das SQL-Script zu optimieren (185M rows), prüfen wir, ob einer der zu generierenden Tage im Bitfieldarray enthalten ist
+		logger.debug("Erzeugen eines Datums-Arrays der relevanten Tage für optimiertes SELECT-Statement")
+		generationDatesArray = []
+		while (i<=dayCnt):
+			generationDay = generateFrom + timedelta(days=i)
+			generationDatesArray.append(generationDay)
+
 		sql_selGleisData = "SELECT distinct a.id, a.id::varchar||'-'||stopno::varchar||coalesce('-'||stoppointtime::varchar,'') as key, stoppointtext, bitfieldno "\
-						   "  FROM HRDF_FPlanFahrt_TAB a, HRDF_GLEIS_TAB b "\
+						   "  FROM HRDF_FPlanFahrt_TAB a, HRDF_GLEIS_TAB b, HRDF_BITFELD_TAB c "\
 						   " WHERE a.fk_eckdatenid = %s "\
 						   "   AND a.fk_eckdatenid = b.fk_eckdatenid "\
+						   "   AND a.fk_eckdatenid = c.fk_eckdatenid "\
 						   "   AND b.tripno = a.tripno "\
-						   "   AND b.operationalno = a.operationalno "
+						   "   AND b.operationalno = a.operationalno "\
+						   "   AND b.bitfieldno = c.bitfieldno "\
+						   "   AND c.bitfieldarray && %s"
 		curGleis = self.__hrdfdb.connection.cursor()
-		curGleis.execute(sql_selGleisData, (eckdatenid,))
+		curGleis.execute(sql_selGleisData, (eckdatenid, generationDatesArray,))
 		allGleise = curGleis.fetchall()
 		curGleis.close()
 		logger.debug("Es werden {} Haltepositionstexte analysiert".format(len(allGleise)))
