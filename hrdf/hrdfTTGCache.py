@@ -182,6 +182,7 @@ class HrdfTTGCache:
 		# Um das SQL-Script zu optimieren (185M rows), prüfen wir, ob einer der zu generierenden Tage im Bitfieldarray enthalten ist
 		logger.debug("Erzeugen eines Datums-Arrays der relevanten Tage für optimiertes SELECT-Statement")
 		generationDatesArray = []
+		i = 0
 		while (i<=dayCnt):
 			generationDay = generateFrom + timedelta(days=i)
 			generationDatesArray.append(generationDay)
