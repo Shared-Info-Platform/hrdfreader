@@ -194,7 +194,7 @@ class HrdfTTGCache:
 						   "   AND b.tripno = a.tripno "\
 						   "   AND b.operationalno = a.operationalno "\
 						   "   AND b.bitfieldno = c.bitfieldno "\
-						   "   AND c.bitfieldarray && array%s::date[] "
+						   "   AND c.bitfieldarray && %s::date[] "
 		curGleis = self.__hrdfdb.connection.cursor()
 		curGleis.execute(sql_selGleisData, (eckdatenid, generationDatesArray,))
 		allGleise = curGleis.fetchall()
