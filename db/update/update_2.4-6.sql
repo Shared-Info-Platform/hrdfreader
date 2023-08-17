@@ -28,7 +28,7 @@ COMMENT ON COLUMN HRDF_LINIE_TAB.name_short_index IS 'Index für Kurzname';
 COMMENT ON COLUMN HRDF_LINIE_TAB.name_long IS 'Langname';
 COMMENT ON COLUMN HRDF_LINIE_TAB.name_long_index IS 'Index für Langname';
 
-\echo '=> Neue Indizes für BahnhofGleis-View'
+\echo '=> Neue Indizes'
 CREATE INDEX IDX01_HRDF_LINIE_TAB ON HRDF_LINIE_TAB (fk_eckdatenid, line_key) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX02_HRDF_LINIE_TAB ON HRDF_LINIE_TAB (fk_eckdatenid, name_short) TABLESPACE :TBSINDEXNAME;
 

@@ -426,7 +426,7 @@ class HrdfReader:
 		zugartoption_strIO.close()
 
 
-	def read_linie(self, filename)
+	def read_linie(self, filename):
 		"""Lesen der Datei LINIE"""
 		logger.info('lesen und verarbeiten der Datei LINIE')
 		linie_strIO = StringIO()
