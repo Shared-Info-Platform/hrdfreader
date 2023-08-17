@@ -475,7 +475,7 @@ class HrdfReader:
 
 		for lineK, lineV in linienDict.items():
 			logger.debug('Add Linie to strIO')
-			logger.debug('Linie :'+lineV.get('line_key', 'fail'))
+			logger.debug('Linie: '+lineV['line_key'])
 			linie_strIO.write(self.__fkdict['fk_eckdatenid']+';'
 									+lineV.get('line_key', None)+';'
 									+lineV.get('number_intern', None)+';'
