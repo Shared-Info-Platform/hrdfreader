@@ -472,7 +472,9 @@ class HrdfReader:
 					bTextblock = True
 			elif line[0] == '<':
 				languagecode = line[1:3].lower()
+
 		for line in linienDict:
+			logger.debug('Add Linie to strIO')
 			logger.debug('Linie :'+line.get('line_key', 'fail'))
 			linie_strIO.write(self.__fkdict['fk_eckdatenid']+';'
 									+line.get('line_key', None)+';'
