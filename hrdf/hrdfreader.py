@@ -444,30 +444,30 @@ class HrdfReader:
 			if not bTextblock:
 				# solange das nicht der Fall ist, sollen die Daten als Zugarten weiter eingearbeitet werden
 				if line != '<text>':
-					curLinienId = line[:6]
+					curLinienId = line[:7]
 					logger.debug('Zeile für LinienId '+curLinienId)
 					# Jede LinienID wird durch ein Dict im LinienDict aufgenommen
 					if curLinienId not in linienDict:
 						linienDict[curLinienId] = dict();
 					# Behandeln der einzelnen Zeilentypen und Auffüllen des LinienDict
-					if line[8] == 'K':
+					if line[9] == 'K':
 						linienDict[curLinienId]['line_key'] = line[10:].strip()
-					elif line[8] == 'W':
+					elif line[9] == 'W':
 						linienDict[curLinienId]['number_intern'] = line[10:].strip()
-					elif line[8] == 'N':
-						if line[11] == 'T':
+					elif line[9] == 'N':
+						if line[12] == 'T':
 							linienDict[curLinienId]['name_short'] = line[12:].strip()
-						elif line[11] == 'I':
-							linienDict[curLinienId]['name_short_index'] = line[12:15]
-					elif line[8] == 'L':
-						if line[10] == 'T':
+						elif line[12] == 'I':
+							linienDict[curLinienId]['name_short_index'] = line[12:16]
+					elif line[9] == 'L':
+						if line[11] == 'T':
 							linienDict[curLinienId]['name_long'] = line[12:].strip()
-						elif line[10] == 'I':
-							linienDict[curLinienId]['name_long_index'] = line[12:15]
-					elif line[8] == 'F':
-						linienDict[curLinienId]['color_font'] = line[10:12]+','+line[14:16]+','+line[18:20]
-					elif line[8] == 'B':
-						linienDict[curLinienId]['color_back'] = line[10:12]+','+line[14:16]+','+line[18:20]						
+						elif line[11] == 'I':
+							linienDict[curLinienId]['name_long_index'] = line[12:16]
+					elif line[9] == 'F':
+						linienDict[curLinienId]['color_font'] = line[10:13]+','+line[14:17]+','+line[18:21]
+					elif line[9] == 'B':
+						linienDict[curLinienId]['color_back'] = line[10:13]+','+line[14:17]+','+line[18:21]						
 				# sobald die Textangaben beginnen, werden die Daten sprachspezifisch in das jeweilige dictionary geschrieben
 				else:
 					bTextblock = True
