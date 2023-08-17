@@ -472,17 +472,17 @@ class HrdfReader:
 					bTextblock = True
 			elif line[0] == '<':
 				languagecode = line[1:3].lower()
-		
+		logger.debug('linienDict erstellt, schreibe linie_strIO')
 		for line in linienDict:
 			linie_strIO.write(self.__fkdict['fk_eckdatenid']+';'
-									+linienDict[line].get('line_key', None)+';'
-									+linienDict[line].get('number_intern', None)+';'
-									+linienDict[line].get('name_short', None)+';'
-									+linienDict[line].get('name_short_index', None)+';'
-									+linienDict[line].get('name_long', None)+';'
-									+linienDict[line].get('name_long_index', None)+';'
-									+linienDict[line].get('color_font', None)+';'
-									+linienDict[line].get('color_back', None)
+									+line.get('line_key', None)+';'
+									+line.get('number_intern', None)+';'
+									+line.get('name_short', None)+';'
+									+line.get('name_short_index', None)+';'
+									+line.get('name_long', None)+';'
+									+line.get('name_long_index', None)+';'
+									+line.get('color_font', None)+';'
+									+line.get('color_back', None)
 									+'\n')
 
 		linie_strIO.seek(0)
