@@ -64,6 +64,8 @@ class HrdfReader:
 					self.read_richtung(filename)
 				elif filename == "ZUGART":
 					self.read_zugart(filename)
+				elif filename == "LINIE":
+					self.read_linie(filename)
 				elif filename == "ATTRIBUT":
 					self.read_attribut(filename, "DE")
 					self.read_attribut(filename, "EN")

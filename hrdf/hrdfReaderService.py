@@ -127,7 +127,7 @@ class HrdfReaderService:
         """
         # ZipFile öffnen und zu lesende Dateien bestimmen
         hrdfzip = zipfile.ZipFile(importFile, 'r')
-        hrdffiles = ['ECKDATEN','BITFELD','RICHTUNG','BAHNHOF','GLEIS','ZUGART','ATTRIBUT','INFOTEXT','DURCHBI','BFKOORD_WGS','UMSTEIGB','BFPRIOS','METABHF','FPLAN']
+        hrdffiles = ['ECKDATEN','BITFELD','RICHTUNG','BAHNHOF','GLEIS','ZUGART','LINIE','ATTRIBUT','INFOTEXT','DURCHBI','BFKOORD_WGS','UMSTEIGB','BFPRIOS','METABHF','FPLAN']
 
         # Initialisierung des HRDF-Readers und lesen der gewünschten HRDF-Dateien
         reader = HrdfReader(hrdfzip, self.__hrdfdb, hrdffiles)
@@ -163,6 +163,7 @@ class HrdfReaderService:
                           "hrdf.hrdf_fplanfahrtve_tab",
                           "hrdf.hrdf_gleis_tab",
                           "hrdf.hrdf_infotext_tab",
+                          "hrdf.hrdf_linie_tab",
                           "hrdf.hrdf_metabhf_tab",
                           "hrdf.hrdf_metabhfgruppe_tab",
                           "hrdf.hrdf_richtung_tab",
