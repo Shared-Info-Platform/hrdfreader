@@ -448,6 +448,7 @@ class HrdfReader:
 					# Jede LinienID wird durch ein Dict im LinienDict aufgenommen
 					if curLinienId not in linienDict:
 						linienDict[curLinienId] = dict();
+						linienDict[curLinienId]['line_index'] = curLinienId
 					# Behandeln der einzelnen Zeilentypen und Auffüllen des LinienDict
 					if line[8] == 'K':
 						linienDict[curLinienId]['line_key'] = line[10:].strip()
@@ -475,6 +476,7 @@ class HrdfReader:
 
 		for line in linienDict:
 			linie_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+									+linienDict[line].get('line_index')+';'
 									+linienDict[line].get('line_key')+';'
 									+linienDict[line].get('number_intern','')+';'
 									+linienDict[line].get('name_short','')+';'
@@ -488,7 +490,7 @@ class HrdfReader:
 		linie_strIO.seek(0)
 		cur = self.__hrdfdb.connection.cursor()
 		try:
-			cur.copy_expert("COPY HRDF_LINIE_TAB (fk_eckdatenid,line_key,number_intern,name_short,name_short_index,name_long,name_long_index,color_font,color_back) FROM STDIN USING DELIMITERS ';' NULL AS ''", linie_strIO)
+			cur.copy_expert("COPY HRDF_LINIE_TAB (fk_eckdatenid,line_index,line_key,number_intern,name_short,name_short_index,name_long,name_long_index,color_font,color_back) FROM STDIN USING DELIMITERS ';' NULL AS ''", linie_strIO)
 			self.__hrdfdb.connection.commit()
 			logger.debug('Linien: {} eingefügte Datensätze'.format(cur.rowcount))
 		except Exception as e:
