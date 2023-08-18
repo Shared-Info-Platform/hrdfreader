@@ -449,24 +449,24 @@ class HrdfReader:
 					if curLinienId not in linienDict:
 						linienDict[curLinienId] = dict();
 					# Behandeln der einzelnen Zeilentypen und Auffüllen des LinienDict
-					if line[9] == 'K':
+					if line[8] == 'K':
 						linienDict[curLinienId]['line_key'] = line[10:].strip()
 						logger.debug('Add Linie '+curLinienId+' to dict')
-					elif line[9] == 'W':
+					elif line[8] == 'W':
 						linienDict[curLinienId]['number_intern'] = line[10:].strip()
-					elif line[9] == 'N':
-						if line[12] == 'T':
+					elif line[8] == 'N':
+						if line[11] == 'T':
 							linienDict[curLinienId]['name_short'] = line[12:].strip()
-						elif line[12] == 'I':
+						elif line[11] == 'I':
 							linienDict[curLinienId]['name_short_index'] = line[12:16]
-					elif line[9] == 'L':
+					elif line[8] == 'L':
 						if line[11] == 'T':
 							linienDict[curLinienId]['name_long'] = line[12:].strip()
 						elif line[11] == 'I':
 							linienDict[curLinienId]['name_long_index'] = line[12:16]
-					elif line[9] == 'F':
+					elif line[8] == 'F':
 						linienDict[curLinienId]['color_font'] = line[10:13]+','+line[14:17]+','+line[18:21]
-					elif line[9] == 'B':
+					elif line[8] == 'B':
 						linienDict[curLinienId]['color_back'] = line[10:13]+','+line[14:17]+','+line[18:21]						
 				# sobald die Textangaben beginnen, werden die Daten sprachspezifisch in das jeweilige dictionary geschrieben
 				else:
