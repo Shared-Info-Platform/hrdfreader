@@ -477,13 +477,13 @@ class HrdfReader:
 			logger.debug('Add Linie'+linienDict[line].get('line_key')+'to strIO')
 			logger.debug('Eckdaten: '+self.__fkdict['fk_eckdatenid']+', ')
 			logger.debug('line_key: '+linienDict[line].get('line_key')+', ')
-			logger.debug('number_intern: '+linienDict[line].get('number_intern', None)+', ')
-			logger.debug('name_short: '+linienDict[line].get('name_short', None)+', ')
-			logger.debug('name_short_index: '+linienDict[line].get('name_short_index', None)+', ')
-			logger.debug('name_long: '+linienDict[line].get('name_long', None)+', ')
-			logger.debug('name_long_index: '+linienDict[line].get('name_long_index', None)+', ')
-			logger.debug('color_font: '+linienDict[line].get('color_font', None)+', ')
-			logger.debug('color_back: '+linienDict[line].get('color_back', None)+', ')
+			logger.debug('number_intern: '+linienDict[line].get('number_intern')+', ')
+			logger.debug('name_short: '+linienDict[line].get('name_short')+', ')
+			logger.debug('name_short_index: '+linienDict[line].get('name_short_index')+', ')
+			logger.debug('name_long: '+linienDict[line].get('name_long')+', ')
+			logger.debug('name_long_index: '+linienDict[line].get('name_long_index')+', ')
+			logger.debug('color_font: '+linienDict[line].get('color_font')+', ')
+			logger.debug('color_back: '+linienDict[line].get('color_back')+', ')
 
 			linie_strIO.write(self.__fkdict['fk_eckdatenid']+';'
 									+linienDict[line].get('line_key')+';'
