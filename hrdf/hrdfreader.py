@@ -454,14 +454,14 @@ class HrdfReader:
 					elif line[8] == 'W':
 						linienDict[curLinienId]['number_intern'] = line[10:].strip()
 					elif line[8] == 'N':
-						if line[11] == 'T':
+						if line[10] == 'T':
 							linienDict[curLinienId]['name_short'] = line[12:].strip()
-						elif line[11] == 'I':
+						elif line[10] == 'I':
 							linienDict[curLinienId]['name_short_index'] = line[12:16]
 					elif line[8] == 'L':
-						if line[11] == 'T':
+						if line[10] == 'T':
 							linienDict[curLinienId]['name_long'] = line[12:].strip()
-						elif line[11] == 'I':
+						elif line[10] == 'I':
 							linienDict[curLinienId]['name_long_index'] = line[12:16]
 					elif line[8] == 'F':
 						linienDict[curLinienId]['color_font'] = line[10:13]+','+line[14:17]+','+line[18:21]
