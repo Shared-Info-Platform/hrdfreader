@@ -14,7 +14,9 @@ CREATE TABLE HRDF_LINIE_TAB
   name_short		varchar(256) NULL,
   name_short_index		varchar(128)	NULL,
   name_long	varchar(256) NULL,
-  name_long_index varchar(256) NULL
+  name_long_index varchar(256) NULL,
+  color_font varchar(20) NULL,
+  color_back varchar(20) NULL
 )
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
@@ -27,6 +29,8 @@ COMMENT ON COLUMN HRDF_LINIE_TAB.name_short IS 'Kurzname';
 COMMENT ON COLUMN HRDF_LINIE_TAB.name_short_index IS 'Index für Kurzname';
 COMMENT ON COLUMN HRDF_LINIE_TAB.name_long IS 'Langname';
 COMMENT ON COLUMN HRDF_LINIE_TAB.name_long_index IS 'Index für Langname';
+COMMENT ON COLUMN HRDF_LINIE_TAB.color_font IS 'Schriftfarbe';
+COMMENT ON COLUMN HRDF_LINIE_TAB.color_back IS 'Hintergrundfarbe';
 
 \echo '=> Neue Indizes'
 CREATE INDEX IDX01_HRDF_LINIE_TAB ON HRDF_LINIE_TAB (fk_eckdatenid, line_key) TABLESPACE :TBSINDEXNAME;

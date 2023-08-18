@@ -745,38 +745,6 @@ COMMENT ON COLUMN HRDF_FPLANFahrtC_TAB.arrtimeTo is 'Ankunftszeitpunkt der Bis-H
 CREATE INDEX IDX01_HRDF_FPLANFahrtC_TAB ON HRDF_FPLANFahrtC_TAB (fk_fplanfahrtid) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX02_HRDF_FPLANFahrtC_TAB ON HRDF_FPLANFahrtC_TAB (fk_eckdatenid) TABLESPACE :TBSINDEXNAME;
 
-/*
-\brief	table for file LINIE
-*/
-CREATE TABLE HRDF_LINIE_TAB
-(
-  id 			SERIAL			NOT NULL,
-  fk_eckdatenid	integer	NOT NULL,
-  line_key varchar(256) NOT NULL,
-  number_intern	varchar(256) NULL,
-  name_short		varchar(256) NULL,
-  name_short_index		varchar(20)	NULL,
-  name_long	varchar(256) NULL,
-  name_long_index varchar(20) NULL,
-  color_font varchar(20) NULL,
-  color_back varchar(20) NULL
-)
-WITH ( OIDS=FALSE )
-TABLESPACE :TBSDATANAME;
-ALTER TABLE HRDF_LINIE_TAB ADD CONSTRAINT PK_HRDF_LINIE_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
-ALTER SEQUENCE IF EXISTS hrdf_linie_tab_id_seq CYCLE;
-COMMENT ON TABLE HRDF_LINIE_TAB IS 'Erweiterte Liniendaten';
-COMMENT ON COLUMN HRDF_LINIE_TAB.line_key IS 'Linienschluessel';
-COMMENT ON COLUMN HRDF_LINIE_TAB.number_intern IS 'Interne Liniennummer';
-COMMENT ON COLUMN HRDF_LINIE_TAB.name_short IS 'Kurzname';
-COMMENT ON COLUMN HRDF_LINIE_TAB.name_short_index IS 'Index für Kurzname';
-COMMENT ON COLUMN HRDF_LINIE_TAB.name_long IS 'Langname';
-COMMENT ON COLUMN HRDF_LINIE_TAB.name_long_index IS 'Index für Langname';
-COMMENT ON COLUMN HRDF_LINIE_TAB.color_font IS 'Schriftfarbe';
-COMMENT ON COLUMN HRDF_LINIE_TAB.color_back IS 'Hintergrundfarbe';
-CREATE INDEX IDX01_HRDF_LINIE_TAB ON HRDF_LINIE_TAB (fk_eckdatenid, line_key) TABLESPACE :TBSINDEXNAME;
-CREATE INDEX IDX02_HRDF_LINIE_TAB ON HRDF_LINIE_TAB (fk_eckdatenid, name_short) TABLESPACE :TBSINDEXNAME;
-
 
 /*
 \brief	table for file FPLAN data-lines
@@ -810,6 +778,39 @@ COMMENT ON COLUMN HRDF_FPLANFahrtLaufweg_TAB.operationalno IS 'VerwaltungsNr. ab
 COMMENT ON COLUMN HRDF_FPLANFahrtLaufweg_TAB.ontripsign IS 'Anzeige der Haltestelle auf dem Laufschild';
 CREATE INDEX IDX01_HRDF_FPLANFahrtLaufweg_TAB ON HRDF_FPLANFahrtLaufweg_TAB (fk_fplanfahrtid, sequenceno) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX02_HRDF_FPLANFahrtLaufweg_TAB ON HRDF_FPLANFahrtLaufweg_TAB (fk_eckdatenid, fk_fplanfahrtid, sequenceno) TABLESPACE :TBSINDEXNAME;
+
+
+/*
+\brief	table for file LINIE
+*/
+CREATE TABLE HRDF_LINIE_TAB
+(
+  id 			SERIAL			NOT NULL,
+  fk_eckdatenid	integer	NOT NULL,
+  line_key varchar(256) NOT NULL,
+  number_intern	varchar(256) NULL,
+  name_short		varchar(256) NULL,
+  name_short_index		varchar(20)	NULL,
+  name_long	varchar(256) NULL,
+  name_long_index varchar(20) NULL,
+  color_font varchar(20) NULL,
+  color_back varchar(20) NULL
+)
+WITH ( OIDS=FALSE )
+TABLESPACE :TBSDATANAME;
+ALTER TABLE HRDF_LINIE_TAB ADD CONSTRAINT PK_HRDF_LINIE_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_linie_tab_id_seq CYCLE;
+COMMENT ON TABLE HRDF_LINIE_TAB IS 'Erweiterte Liniendaten';
+COMMENT ON COLUMN HRDF_LINIE_TAB.line_key IS 'Linienschluessel';
+COMMENT ON COLUMN HRDF_LINIE_TAB.number_intern IS 'Interne Liniennummer';
+COMMENT ON COLUMN HRDF_LINIE_TAB.name_short IS 'Kurzname';
+COMMENT ON COLUMN HRDF_LINIE_TAB.name_short_index IS 'Index für Kurzname';
+COMMENT ON COLUMN HRDF_LINIE_TAB.name_long IS 'Langname';
+COMMENT ON COLUMN HRDF_LINIE_TAB.name_long_index IS 'Index für Langname';
+COMMENT ON COLUMN HRDF_LINIE_TAB.color_font IS 'Schriftfarbe';
+COMMENT ON COLUMN HRDF_LINIE_TAB.color_back IS 'Hintergrundfarbe';
+CREATE INDEX IDX01_HRDF_LINIE_TAB ON HRDF_LINIE_TAB (fk_eckdatenid, line_key) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX02_HRDF_LINIE_TAB ON HRDF_LINIE_TAB (fk_eckdatenid, name_short) TABLESPACE :TBSINDEXNAME;
 
 
 /*
