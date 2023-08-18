@@ -39,4 +39,9 @@ CREATE INDEX IDX01_HRDF_LINIE_TAB ON HRDF_LINIE_TAB (fk_eckdatenid, line_index) 
 CREATE INDEX IDX02_HRDF_LINIE_TAB ON HRDF_LINIE_TAB (fk_eckdatenid, line_key) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX03_HRDF_LINIE_TAB ON HRDF_LINIE_TAB (fk_eckdatenid, name_short) TABLESPACE :TBSINDEXNAME;
 
+\echo '=> Erweiterung der Tabelle HRDF_FPLANFAHRTL_TAB um die Spalte "lineindex"'
+ALTER TABLE HRDF.hrdf_fplanfahrtl_tab ADD COLUMN lineindex varchar(8) NULL;
+ALTER TABLE HRDF.hrdf_fplanfahrtl_tab ALTER COLUMN lineno DROP NOT NULL;
+COMMENT ON COLUMN HRDF_FPLANFAHRTL_TAB.lineindex is 'Index der Linie im LINIE-File';
+
 INSERT INTO HRDF.HRDF_UpdateHistory_TAB (databaseversion, scriptname, scriptversion, description) VALUES ('2.4-6', 'update_2.4-6.sql', '1', 'Neue Tabelle und Indizes für Linien-Informationen');

@@ -646,7 +646,8 @@ CREATE TABLE HRDF_FPLANFahrtL_TAB
   id				SERIAL		NOT NULL,
   fk_eckdatenid		integer		NOT NULL,
   fk_fplanfahrtid   integer		NOT NULL,
-  lineno			varchar(8)	NOT NULL,
+  lineno			varchar(8)	NULL,
+  lineindex varchar(8) NULL,
   fromStop			integer		NULL,
   toStop			integer		NULL,
   deptimeFrom		integer		NULL,
@@ -658,6 +659,7 @@ ALTER TABLE HRDF_FPLANFahrtL_TAB ADD CONSTRAINT PK_HRDF_FPLANFahrtL_TAB PRIMARY 
 ALTER SEQUENCE IF EXISTS hrdf_fplanfahrtl_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_FPLANFahrtL_TAB IS 'Einträge der FPLAN-Datei beginnend mit *L';
 COMMENT ON COLUMN HRDF_FPLANFahrtL_TAB.lineno is 'Liniennummer';
+COMMENT ON COLUMN HRDF_FPLANFAHRTL_TAB.lineindex is 'Index der Linie im LINIE-File';
 COMMENT ON COLUMN HRDF_FPLANFahrtL_TAB.fromStop is 'HaltestellenNr ab der die Linie gültig ist';
 COMMENT ON COLUMN HRDF_FPLANFahrtL_TAB.toStop is 'HaltestellenNr bis zu der die Linie gültig ist';
 COMMENT ON COLUMN HRDF_FPLANFahrtL_TAB.deptimeFrom is 'Abfahrtszeitpunkt der Ab-Haltestelle';

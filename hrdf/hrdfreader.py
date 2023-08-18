@@ -798,7 +798,7 @@ class HrdfReader:
 				cur.copy_expert("COPY HRDF_FPLANFahrtI_TAB (fk_eckdatenid,fk_fplanfahrtid,infotextcode,infotextno,fromStop,toStop,bitfieldno,deptimeFrom,arrtimeTo) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtI_strIO)
 			if self.__fplanFahrtL_strIO.tell() > 0:
 				self.__fplanFahrtL_strIO.seek(0)
-				cur.copy_expert("COPY HRDF_FPLANFahrtL_TAB (fk_eckdatenid,fk_fplanfahrtid,lineno,fromStop,toStop,deptimeFrom,arrtimeTo) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtL_strIO)
+				cur.copy_expert("COPY HRDF_FPLANFahrtL_TAB (fk_eckdatenid,fk_fplanfahrtid,lineno,lineindex,fromStop,toStop,deptimeFrom,arrtimeTo) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtL_strIO)
 			if self.__fplanFahrtSH_strIO.tell() > 0:
 				self.__fplanFahrtSH_strIO.seek(0)
 				cur.copy_expert("COPY HRDF_FPLANFahrtSH_TAB (fk_eckdatenid,fk_fplanfahrtid,stop,bitfieldno,deptimeFrom) FROM STDIN USING DELIMITERS ';' NULL AS ''", self.__fplanFahrtSH_strIO)
@@ -989,9 +989,19 @@ class HrdfReader:
 														'\n')
 
 					elif line[:2] == "*L":
+						# Handelt es sich um einen Verweis auf einen Index oder eine Liniennummer?
+						lineno = ''
+						lineindex = ''
+						if line[3] == '#':
+							lineno = ''
+							lineindex = line[3:11].strip()
+						else:
+							lineno = line[3:11].strip()
+							lineindex = ''
 						self.__fplanFahrtL_strIO.write(self.__fkdict["fk_eckdatenid"]+';'
 														+self.__fkdict["fk_fplanfahrtid"]+';'
-														+line[3:11].strip()+';'
+														+lineno+';'
+														+lineindex+';'
 														+line[12:19].strip()+';'
 														+line[20:27].strip()+';'
 														+line[28:34].strip()+';'
