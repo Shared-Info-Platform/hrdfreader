@@ -451,6 +451,7 @@ class HrdfReader:
 					# Behandeln der einzelnen Zeilentypen und Auffüllen des LinienDict
 					if line[9] == 'K':
 						linienDict[curLinienId]['line_key'] = line[10:].strip()
+						logger.debug('Add Linie '+curLinienId+' to dict')
 					elif line[9] == 'W':
 						linienDict[curLinienId]['number_intern'] = line[10:].strip()
 					elif line[9] == 'N':
