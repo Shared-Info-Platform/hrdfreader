@@ -457,16 +457,16 @@ class HrdfReader:
 						if line[11] == 'T':
 							linienDict[curLinienId]['name_short'] = line[12:].strip()
 						elif line[11] == 'I':
-							linienDict[curLinienId]['name_short_index'] = line[12:15]
+							linienDict[curLinienId]['name_short_index'] = line[12:16]
 					elif line[8] == 'L':
 						if line[11] == 'T':
 							linienDict[curLinienId]['name_long'] = line[12:].strip()
 						elif line[11] == 'I':
-							linienDict[curLinienId]['name_long_index'] = line[12:15]
+							linienDict[curLinienId]['name_long_index'] = line[12:16]
 					elif line[8] == 'F':
-						linienDict[curLinienId]['color_font'] = line[10:12]+','+line[14:16]+','+line[18:20]
+						linienDict[curLinienId]['color_font'] = line[10:13]+','+line[14:17]+','+line[18:21]
 					elif line[8] == 'B':
-						linienDict[curLinienId]['color_back'] = line[10:12]+','+line[14:16]+','+line[18:20]						
+						linienDict[curLinienId]['color_back'] = line[10:13]+','+line[14:17]+','+line[18:21]						
 				# sobald die Textangaben beginnen, werden die Daten sprachspezifisch in das jeweilige dictionary geschrieben
 				else:
 					bTextblock = True
@@ -487,13 +487,13 @@ class HrdfReader:
 
 			linie_strIO.write(self.__fkdict['fk_eckdatenid']+';'
 									+linienDict[line].get('line_key')+';'
-									+linienDict[line].get('number_intern', None)+';'
-									+linienDict[line].get('name_short', None)+';'
-									+linienDict[line].get('name_short_index', None)+';'
-									+linienDict[line].get('name_long', None)+';'
-									+linienDict[line].get('name_long_index', None)+';'
-									+linienDict[line].get('color_font', None)+';'
-									+linienDict[line].get('color_back', None)
+									+linienDict[line].get('number_intern','Null')+';'
+									+linienDict[line].get('name_short','Null')+';'
+									+linienDict[line].get('name_short_index','Null')+';'
+									+linienDict[line].get('name_long','Null')+';'
+									+linienDict[line].get('name_long_index','Null')+';'
+									+linienDict[line].get('color_font','Null')+';'
+									+linienDict[line].get('color_back','Null')
 									+'\n')
 
 		linie_strIO.seek(0)
