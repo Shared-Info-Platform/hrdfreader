@@ -476,13 +476,13 @@ class HrdfReader:
 		for line in linienDict:
 			linie_strIO.write(self.__fkdict['fk_eckdatenid']+';'
 									+linienDict[line].get('line_key')+';'
-									+linienDict[line].get('number_intern','Null')+';'
-									+linienDict[line].get('name_short','Null')+';'
-									+linienDict[line].get('name_short_index','Null')+';'
-									+linienDict[line].get('name_long','Null')+';'
-									+linienDict[line].get('name_long_index','Null')+';'
-									+linienDict[line].get('color_font','Null')+';'
-									+linienDict[line].get('color_back','Null')
+									+linienDict[line].get('number_intern','')+';'
+									+linienDict[line].get('name_short','')+';'
+									+linienDict[line].get('name_short_index','')+';'
+									+linienDict[line].get('name_long','')+';'
+									+linienDict[line].get('name_long_index','')+';'
+									+linienDict[line].get('color_font','')+';'
+									+linienDict[line].get('color_back','')
 									+'\n')
 
 		linie_strIO.seek(0)
