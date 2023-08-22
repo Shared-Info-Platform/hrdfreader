@@ -209,14 +209,15 @@ class HrdfReaderService:
 
         # Alle außer PostAuto
         sql_linienMapping = "INSERT INTO HRDF.HRDF_VDVLinienMapping_TAB (operationalno, lineno, linienid, linientext) "\
-                            "(SELECT distinct a.operationalno, coalesce(d.infotext, b.lineno), coalesce(d.infotext, b.lineno), b.lineno "\
+                            "(SELECT distinct a.operationalno, coalesce(d.infotext, b.lineno, e.name_short), coalesce(d.infotext, b.lineno, e.name_short), coalesce(b.lineno, e.name_short) "\
                             "   FROM HRDF_FPlanFahrt_TAB a "\
                             "	     INNER JOIN HRDF_FPlanFahrtl_TAB b ON b.fk_fplanfahrtid = a.id "\
 	                        "        LEFT OUTER JOIN HRDF_FPlanFahrtI_TAB c ON c.fk_fplanfahrtid = a.id AND c.infotextcode = 'RN' "\
 	                        "        LEFT OUTER JOIN HRDF_Infotext_TAB d ON d.fk_eckdatenid = c.fk_eckdatenid AND d.infotextno = c.infotextno AND d.languagecode = 'de' "\
-                            "  WHERE NOT EXISTS (SELECT 1 FROM HRDF.HRDF_VDVLinienMapping_TAB WHERE operationalno = a.operationalno AND lineno = coalesce(d.infotext, b.lineno)) "\
+                            "        LEFT OUTER JOIN HRDF_linie_tab e ON b.fk_eckdatenid = e.fk_eckdatenid AND ltrim(b.lineindex, '#') = e.line_index "\
+                            "  WHERE NOT EXISTS (SELECT 1 FROM HRDF.HRDF_VDVLinienMapping_TAB WHERE operationalno = a.operationalno AND lineno = coalesce(d.infotext, b.lineno, e.name_short)) "\
                             "    AND operationalno <> '000801' "\
-                            "  ORDER BY a.operationalno, coalesce(d.infotext, b.lineno)) "
+                            "  ORDER BY a.operationalno, coalesce(d.infotext, b.lineno, e.name_short)) "
         curLinien = self.__hrdfdb.connection.cursor()
         curLinien.execute(sql_linienMapping)        
         self.__hrdfdb.connection.commit()
@@ -224,14 +225,15 @@ class HrdfReaderService:
 
         # Nur PostAuto => da interne LinienNr fest 4 stellig mit führenden Nullen geliefert werden. Diese müssen für die LinienId ohne führende Nullen gewandelt werden.
         sql_linienMapping = "INSERT INTO HRDF.HRDF_VDVLinienMapping_TAB (operationalno, lineno, linienid, linientext) "\
-                            "(SELECT distinct a.operationalno, coalesce(d.infotext, b.lineno), cast(cast(coalesce(d.infotext, b.lineno) as integer) as varchar), b.lineno "\
+                            "(SELECT distinct a.operationalno, coalesce(d.infotext, b.lineno, e.name_short), cast(cast(coalesce(d.infotext, b.lineno, e.name_short) as integer) as varchar), coalesce(b.lineno, e.name_short) "\
                             "   FROM HRDF_FPlanFahrt_TAB a "\
                             "	     INNER JOIN HRDF_FPlanFahrtl_TAB b ON b.fk_fplanfahrtid = a.id "\
 	                        "        LEFT OUTER JOIN HRDF_FPlanFahrtI_TAB c ON c.fk_fplanfahrtid = a.id AND c.infotextcode = 'RN' "\
 	                        "        LEFT OUTER JOIN HRDF_Infotext_TAB d ON d.fk_eckdatenid = c.fk_eckdatenid AND d.infotextno = c.infotextno AND d.languagecode = 'de' "\
-                            "  WHERE NOT EXISTS (SELECT 1 FROM HRDF.HRDF_VDVLinienMapping_TAB WHERE operationalno = a.operationalno AND lineno = coalesce(d.infotext, b.lineno)) "\
+                            "        LEFT OUTER JOIN HRDF_linie_tab e ON b.fk_eckdatenid = e.fk_eckdatenid AND ltrim(b.lineindex, '#') = e.line_index "\
+                            "  WHERE NOT EXISTS (SELECT 1 FROM HRDF.HRDF_VDVLinienMapping_TAB WHERE operationalno = a.operationalno AND lineno = coalesce(d.infotext, b.lineno, e.name_short)) "\
                             "    AND operationalno = '000801' "\
-                            "  ORDER BY a.operationalno, coalesce(d.infotext, b.lineno)) "
+                            "  ORDER BY a.operationalno, coalesce(d.infotext, b.lineno, e.name_short)) "
         curLinien.execute(sql_linienMapping)
         self.__hrdfdb.connection.commit()
         curLinien.close()

@@ -186,16 +186,18 @@ class HrdfReader:
 		"""Ermitteln und Schreiben der Anzahl Fahrten (Linien/Kategorie) pro Verwaltungsnummer - Taktdefinitionen mit eingeschlossen"""
 		logger.info('ermitteln der Anzahl Fahrten (Linien/Kategorie) pro Verwaltung')
 
+		sql_operatorsLookup = "SELECT distinct operationalno FROM hrdf.hrdf_fplanfahrt_tab where fk_eckdatenid = %s "
 		sql_tripsLookup = "INSERT INTO HRDF.HRDF_TripCount_Operator_TAB (fk_eckdatenid, operationalno, lineno, categorycode, tripcount) "\
-					"(SELECT fahrt.fk_eckdatenid, fahrt.operationalno, line.lineno, cat.categorycode, sum(coalesce(array_length(bit.bitfieldarray, 1), eckdaten.maxdays)*coalesce(cyclecount+1,1)) "\
+					"(SELECT fahrt.fk_eckdatenid, fahrt.operationalno, coalesce(line.lineno, linedetail.name_short), cat.categorycode, sum(coalesce(array_length(bit.bitfieldarray, 1), eckdaten.maxdays)*coalesce(cyclecount+1,1)) "\
 					"   FROM hrdf.hrdf_fplanfahrt_tab fahrt "\
 					"        inner join (SELECT id, validto + 1 - validfrom as maxdays FROM hrdf.hrdf_eckdaten_tab) eckdaten on fahrt.fk_eckdatenid = eckdaten.id "\
 					"        LEFT OUTER JOIN hrdf.hrdf_fplanfahrtve_tab ve on fahrt.fk_eckdatenid = ve.fk_eckdatenid and fahrt.id = ve.fk_fplanfahrtid "\
 					"        LEFT OUTER JOIN hrdf.hrdf_bitfeld_tab bit on ve.bitfieldno = bit.bitfieldno and ve.fk_eckdatenid = bit.fk_eckdatenid "\
 					"        LEFT OUTER JOIN hrdf.hrdf_fplanfahrtl_tab line on line.fk_fplanfahrtid = fahrt.id and line.fk_eckdatenid = fahrt.fk_eckdatenid "\
+					"        LEFT OUTER JOIN hrdf.hrdf_linie_tab linedetail on line.fk_eckdatenid = linedetail.fk_eckdatenid and ltrim(line.lineindex, '#') = linedetail.line_index "\
 					"        LEFT OUTER JOIN hrdf.hrdf_fplanfahrtg_tab cat on cat.fk_fplanfahrtid = fahrt.id and cat.fk_eckdatenid = fahrt.fk_eckdatenid "\
 					"  WHERE fahrt.fk_eckdatenid = %s "\
-					"  GROUP BY fahrt.fk_eckdatenid, fahrt.operationalno, line.lineno, cat.categorycode)"
+					"  GROUP BY fahrt.fk_eckdatenid, fahrt.operationalno, coalesce(line.lineno, linedetail.name_short), cat.categorycode)"
 
 		curLookup = self.__hrdfdb.connection.cursor()
 		try: # Absichern des DB-Cursor
@@ -989,7 +991,7 @@ class HrdfReader:
 														'\n')
 
 					elif line[:2] == "*L":
-						# Handelt es sich um einen Verweis auf einen Index oder eine Liniennummer?
+						# Handelt es sich um einen Verweis auf einen Index oder um eine Liniennummer?
 						lineno = ''
 						lineindex = ''
 						if line[3] == '#':
