@@ -19,6 +19,7 @@ class HrdfTTGCache:
 		self.__allTripStopsLookup = dict()
 		self.__allVEsLookup = dict()
 		self.__fahrtLinienLookup = dict()
+		self.__fahrtLinienErweitertLookup = dict()
 		self.__fahrtRichtungLookup = dict()
 		self.__fahrtAttributLookup = dict()
 		self.__fahrtInfoLookup = dict()
@@ -264,7 +265,7 @@ class HrdfTTGCache:
 
 		# Lookup für Linieninformationen der Fahrten
 		logger.info("Lookup für Linieninformationen der Fahrten aufbauen")
-		sql_selLData = "SELECT lineno, fromstop, tostop, deptimefrom, arrtimeto, fk_fplanfahrtid FROM HRDF_FPlanFahrtL_TAB WHERE fk_eckdatenid = %s ORDER BY fk_fplanfahrtid, id"
+		sql_selLData = "SELECT lineno, fromstop, tostop, deptimefrom, arrtimeto, fk_fplanfahrtid, lineindex FROM HRDF_FPlanFahrtL_TAB WHERE fk_eckdatenid = %s ORDER BY fk_fplanfahrtid, id"
 		curL = self.__hrdfdb.connection.cursor()
 		curL.execute(sql_selLData, (eckdatenid,))
 		allLs = curL.fetchall()
@@ -277,6 +278,27 @@ class HrdfTTGCache:
 				LList = list()
 				LList.append(fahrtL)
 				self.__fahrtLinienLookup[fahrtL[5]] = LList
+		allLs.clear()
+
+		# Lookup für erweiterte Linieninformationen der Fahrten
+		logger.info("Lookup für Linieninformationen der Fahrten mit erweiterten Linieninformationen anreichern")
+		sql_selELData = "SELECT line_index, line_key, number_intern, name_short, name_short_index, name_long, name_long_index, color_font, color_back FROM HRDF_Linie_TAB WHERE fk_eckdatenid = %s ORDER BY id"
+		curEL = self.__hrdfdb.connection.cursor()
+		curEL.execute(sql_selELData, (eckdatenid,))
+		allELs = curEL.fetchall()
+		logger.debug("Es werden {} erweiterte Linieninformationen analysiert".format(len(allELs)))
+		curEL.close()
+		for fahrtEL in allELs:
+			if (fahrtEL[0] in self.__fahrtLinienErweitertLookup):
+				self.__fahrtLinienErweitertLookup[fahrtEL[0]].append(fahrtEL)
+			else:
+				ELList = list()
+				ELList.append(fahrtEL)
+				self.__fahrtLinienErweitertLookup[fahrtEL[0]] = ELList
+		for fahrtL in self.__fahrtLinienLookup:
+			if (fahrtL[6] is not None):
+				if (fahrtEL[fahrtL[6]] in self.__fahrtLinienErweitertLookup):
+					self.__fahrtLinienLookup[fahrtL[0]] = self.__fahrtLinienErweitertLookup[fahrtL[6]][3]
 		allLs.clear()
 
 		# Lookup für Richtungstexte der Fahrten

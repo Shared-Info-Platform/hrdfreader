@@ -225,7 +225,7 @@ class HrdfReaderService:
 
         # Nur PostAuto => da interne LinienNr fest 4 stellig mit führenden Nullen geliefert werden. Diese müssen für die LinienId ohne führende Nullen gewandelt werden.
         sql_linienMapping = "INSERT INTO HRDF.HRDF_VDVLinienMapping_TAB (operationalno, lineno, linienid, linientext) "\
-                            "(SELECT distinct a.operationalno, coalesce(d.infotext, b.lineno, e.name_short), cast(cast(coalesce(d.infotext, b.lineno, e.name_short) as integer) as varchar), coalesce(b.lineno, e.name_short) "\
+                            "(SELECT distinct a.operationalno, coalesce(d.infotext, b.lineno, e.name_short), coalesce(ltrim(d.infotext,'0'), b.lineno, e.name_short), coalesce(b.lineno, e.name_short) "\
                             "   FROM HRDF_FPlanFahrt_TAB a "\
                             "	     INNER JOIN HRDF_FPlanFahrtl_TAB b ON b.fk_fplanfahrtid = a.id "\
 	                        "        LEFT OUTER JOIN HRDF_FPlanFahrtI_TAB c ON c.fk_fplanfahrtid = a.id AND c.infotextcode = 'RN' "\
