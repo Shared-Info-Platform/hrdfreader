@@ -299,7 +299,7 @@ class HrdfTTGCache:
 		logger.debug("Erweiterte Linininformationen zusammengestellt, Linienlookup wird angereichert")
 		for fahrtL, listL in self.__fahrtLinienLookup.items():
 			fahrtLIdx = ''
-			if not listL[6]:
+			if not listL:
 				logger.debug("Leere Liste gefunden!")
 			else:
 				fahrtLIdx = listL[6]
