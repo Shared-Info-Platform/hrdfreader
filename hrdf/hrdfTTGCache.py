@@ -290,16 +290,22 @@ class HrdfTTGCache:
 		curEL.close()
 		for fahrtEL in allELs:
 			fahrtELindex = fahrtEL[0]
+			logger.debug("Bearbeite LinienIndex {}".format(fahrtELindex))
 			if (fahrtELindex in self.__fahrtLinienErweitertLookup):
+				logger.debug("LinienIndex {} bereits im EL-Lookup enthalten".format(fahrtELindex))
 				self.__fahrtLinienErweitertLookup[fahrtELindex].append(fahrtEL)
 			else:
+				logger.debug("Füge LinienIndex {} zu EL-Lookup hinzu".format(fahrtELindex))
 				ELList = list()
 				ELList.append(fahrtEL)
 				self.__fahrtLinienErweitertLookup[fahrtELindex] = ELList
+		logger.debug("EL-Lookup erstellt, merge in L-Lookup")
 		for fahrtL in self.__fahrtLinienLookup:
 			if (fahrtL[6] is not None):
 				fahrtLindex = fahrtL[6]
+				logger.debug("Bearbeite Index {}".format(fahrtLindex))
 				if (fahrtLindex in self.__fahrtLinienErweitertLookup):
+					logger.debug("Index {} in L-Lookup kommt in EL-Lookup vor. Merge.".format(fahrtLindex))
 					self.__fahrtLinienLookup[fahrtLindex] = self.__fahrtLinienErweitertLookup[fahrtLindex][3]
 		allLs.clear()
 
