@@ -265,7 +265,7 @@ class HrdfTTGCache:
 
 		# Lookup für Linieninformationen der Fahrten
 		logger.info("Lookup für Linieninformationen der Fahrten aufbauen")
-		sql_selLData = "SELECT lineno, fromstop, tostop, deptimefrom, arrtimeto, fk_fplanfahrtid, lineindex FROM HRDF_FPlanFahrtL_TAB WHERE fk_eckdatenid = %s ORDER BY fk_fplanfahrtid, id"
+		sql_selLData = "SELECT lineno, fromstop, tostop, deptimefrom, arrtimeto, fk_fplanfahrtid, ltrim(lineindex, '#') FROM HRDF_FPlanFahrtL_TAB WHERE fk_eckdatenid = %s ORDER BY fk_fplanfahrtid, id"
 		curL = self.__hrdfdb.connection.cursor()
 		curL.execute(sql_selLData, (eckdatenid,))
 		allLs = curL.fetchall()
@@ -289,16 +289,18 @@ class HrdfTTGCache:
 		logger.debug("Es werden {} erweiterte Linieninformationen analysiert".format(len(allELs)))
 		curEL.close()
 		for fahrtEL in allELs:
-			if (fahrtEL[0] in self.__fahrtLinienErweitertLookup):
-				self.__fahrtLinienErweitertLookup[fahrtEL[0]].append(fahrtEL)
+			fahrtELindex = fahrtEL[0]
+			if (fahrtELindex in self.__fahrtLinienErweitertLookup):
+				self.__fahrtLinienErweitertLookup[fahrtELindex].append(fahrtEL)
 			else:
 				ELList = list()
 				ELList.append(fahrtEL)
-				self.__fahrtLinienErweitertLookup[fahrtEL[0]] = ELList
+				self.__fahrtLinienErweitertLookup[fahrtELindex] = ELList
 		for fahrtL in self.__fahrtLinienLookup:
 			if (fahrtL[6] is not None):
-				if (fahrtEL[fahrtL[6]] in self.__fahrtLinienErweitertLookup):
-					self.__fahrtLinienLookup[fahrtL[0]] = self.__fahrtLinienErweitertLookup[fahrtL[6]][3]
+				fahrtLindex = fahrtL[6]
+				if (fahrtLindex in self.__fahrtLinienErweitertLookup):
+					self.__fahrtLinienLookup[fahrtLindex] = self.__fahrtLinienErweitertLookup[fahrtLindex][3]
 		allLs.clear()
 
 		# Lookup für Richtungstexte der Fahrten
