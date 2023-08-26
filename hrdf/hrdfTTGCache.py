@@ -280,7 +280,7 @@ class HrdfTTGCache:
 				self.__fahrtLinienLookup[fahrtL[5]] = LList
 		allLs.clear()
 
-		# Lookup für erweiterte Linieninformationen der Fahrten
+		# Lookup für erweiterte Linieninformationen der Fahrten und merge in Linienlookup
 		logger.info("Lookup für Linieninformationen der Fahrten mit erweiterten Linieninformationen anreichern")
 		sql_selELData = "SELECT line_index, line_key, number_intern, name_short, name_short_index, name_long, name_long_index, color_font, color_back FROM HRDF_Linie_TAB WHERE fk_eckdatenid = %s ORDER BY id"
 		curEL = self.__hrdfdb.connection.cursor()
@@ -290,23 +290,21 @@ class HrdfTTGCache:
 		curEL.close()
 		for fahrtEL in allELs:
 			fahrtELindex = fahrtEL[0]
-			logger.debug("Bearbeite LinienIndex {}".format(fahrtELindex))
 			if (fahrtELindex in self.__fahrtLinienErweitertLookup):
-				logger.debug("LinienIndex {} bereits im EL-Lookup enthalten".format(fahrtELindex))
+				logger.debug("LinienIndex {} bereits im EL-Lookup enthalten, überschreibe".format(fahrtELindex))
 				self.__fahrtLinienErweitertLookup[fahrtELindex].append(fahrtEL)
 			else:
-				logger.debug("Füge LinienIndex {} zu EL-Lookup hinzu".format(fahrtELindex))
 				ELList = list()
 				ELList.append(fahrtEL)
 				self.__fahrtLinienErweitertLookup[fahrtELindex] = ELList
-		logger.debug("EL-Lookup erstellt, merge in L-Lookup")
+		logger.debug("Erweiterte Linininformationen zusammengestellt, Linienlookup wird angereichert")
 		for fahrtL in self.__fahrtLinienLookup:
-			if (fahrtL[6] is not None):
-				fahrtLindex = fahrtL[6]
+			if (self.__fahrtLinienLookup[fahrtL][6] is not None):
+				fahrtLindex = self.__fahrtLinienLookup[fahrtL][6]
 				logger.debug("Bearbeite Index {}".format(fahrtLindex))
 				if (fahrtLindex in self.__fahrtLinienErweitertLookup):
 					logger.debug("Index {} in L-Lookup kommt in EL-Lookup vor. Merge.".format(fahrtLindex))
-					self.__fahrtLinienLookup[fahrtLindex] = self.__fahrtLinienErweitertLookup[fahrtLindex][3]
+					self.__fahrtLinienLookup[fahrtL][0] = self.__fahrtLinienErweitertLookup[fahrtLindex][3]
 		allLs.clear()
 
 		# Lookup für Richtungstexte der Fahrten
