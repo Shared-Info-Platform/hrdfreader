@@ -291,22 +291,22 @@ class HrdfTTGCache:
 		for fahrtEL in allELs:
 			fahrtELindex = fahrtEL[0]
 			if (fahrtELindex in self.__fahrtLinienErweitertLookup):
-				logger.debug("LinienIndex {} bereits im EL-Lookup enthalten, überschreibe".format(fahrtELindex))
 				self.__fahrtLinienErweitertLookup[fahrtELindex].append(fahrtEL)
 			else:
 				ELList = list()
 				ELList.append(fahrtEL)
 				self.__fahrtLinienErweitertLookup[fahrtELindex] = ELList
 		logger.debug("Erweiterte Linininformationen zusammengestellt, Linienlookup wird angereichert")
-		for fahrtL in self.__fahrtLinienLookup:
-			try:
-				fahrtLindex = self.__fahrtLinienLookup[fahrtL][6]
-				logger.debug("Bearbeite Index {}".format(fahrtLindex))
-				if (fahrtLindex in self.__fahrtLinienErweitertLookup):
-					logger.debug("Index {} in L-Lookup kommt in EL-Lookup vor. Merge.".format(fahrtLindex))
-					self.__fahrtLinienLookup[fahrtL][0] = self.__fahrtLinienErweitertLookup[fahrtLindex][3]
-			except:
-				pass
+		for fahrtL, listL in self.__fahrtLinienLookup.items():
+			fahrtLIdx = ''
+			if not listL[6]:
+				logger.debug("Leere Liste gefunden!")
+			else:
+				fahrtLIdx = listL[6]
+				logger.debug("Bearbeite Index {}".format(fahrtLIdx))
+				if (fahrtLIdx in self.__fahrtLinienErweitertLookup):
+					logger.debug("Index {} in L-Lookup kommt in EL-Lookup vor. Merge.".format(fahrtLIdx))
+					self.__fahrtLinienLookup[fahrtL][0] = self.__fahrtLinienErweitertLookup[fahrtLIdx][3]
 		allLs.clear()
 
 		# Lookup für Richtungstexte der Fahrten
