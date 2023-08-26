@@ -278,8 +278,6 @@ class HrdfTTGCache:
 				LList = list()
 				LList.append(fahrtL)
 				self.__fahrtLinienLookup[fahrtL[5]] = LList
-				logger.debug("New Entry has values: {}".format(str(LList)))
-		
 		allLs.clear()
 
 		# Lookup für erweiterte Linieninformationen der Fahrten und merge in Linienlookup
@@ -300,9 +298,9 @@ class HrdfTTGCache:
 				ELList.append(fahrtEL)
 				self.__fahrtLinienErweitertLookup[fahrtELindex] = ELList
 		logger.debug("Erweiterte Linininformationen zusammengestellt, Linienlookup wird angereichert")
-		for fahrtL in self.__fahrtLinienLookup:
-			if (fahrtL[6] is not None):
-				fahrtLindex = fahrtL[6]
+		for fahrtL, listL in self.__fahrtLinienLookup.items():
+			if (listL[6] is not None):
+				fahrtLindex = listL[6]
 				logger.debug("Bearbeite Index {}".format(fahrtLindex))
 				if (fahrtLindex in self.__fahrtLinienErweitertLookup):
 					logger.debug("Index {} in L-Lookup kommt in EL-Lookup vor. Merge.".format(fahrtLindex))
