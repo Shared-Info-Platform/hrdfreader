@@ -278,11 +278,8 @@ class HrdfTTGCache:
 				LList = list()
 				LList.append(fahrtL)
 				self.__fahrtLinienLookup[fahrtL[5]] = LList
-				# test for debugging
-				if (fahrtL[5] == '79989686'):
-					logger.debug("Liste für 79989686 ist: {}".format(str(LList)))
-				if (fahrtL[5] == '80739098'):
-					logger.debug("Liste für 80739098 ist: {}".format(str(LList)))		
+				logger.debug("New Entry has values: {}".format(str(LList)))
+		
 		allLs.clear()
 
 		# Lookup für erweiterte Linieninformationen der Fahrten und merge in Linienlookup
