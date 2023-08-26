@@ -299,13 +299,14 @@ class HrdfTTGCache:
 		logger.debug("Erweiterte Linininformationen zusammengestellt, Linienlookup wird angereichert")
 		for fahrtL, listL in self.__fahrtLinienLookup.items():
 			fahrtLIdx = ''
-			logger.debug("Aktuelle Liste: {}".format(listL))
 			if (listL[0][6] != None) :
 				fahrtLIdx = listL[0][6]
 				logger.debug("Bearbeite Index {}".format(fahrtLIdx))
 				if (fahrtLIdx in self.__fahrtLinienErweitertLookup):
 					logger.debug("Index {} in L-Lookup kommt in EL-Lookup vor. Merge.".format(fahrtLIdx))
-					self.__fahrtLinienLookup[fahrtL][0][0] = self.__fahrtLinienErweitertLookup[fahrtLIdx][0][3]
+					tmpList = self.__fahrtLinienLookup[fahrtL][0]
+					tmpList[0] = self.__fahrtLinienErweitertLookup[fahrtLIdx][0][3]
+					self.__fahrtLinienLookup[fahrtL] = tmpList
 		allLs.clear()
 
 		# Lookup für Richtungstexte der Fahrten
