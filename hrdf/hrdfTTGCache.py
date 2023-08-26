@@ -300,7 +300,7 @@ class HrdfTTGCache:
 		for fahrtL, listL in self.__fahrtLinienLookup.items():
 			fahrtLIdx = ''
 			logger.debug("Aktuelle Liste: {}".format(listL))
-			if (listL[6] !== None) :
+			if (listL[6] != None) :
 				fahrtLIdx = listL[6]
 				logger.debug("Bearbeite Index {}".format(fahrtLIdx))
 				if (fahrtLIdx in self.__fahrtLinienErweitertLookup):
