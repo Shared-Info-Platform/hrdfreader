@@ -619,9 +619,9 @@ class HrdfReader:
 			line = line.decode(self.__charset).replace('\r\n', '')
 			bfkoordgeo_strIO.write(self.__fkdict['fk_eckdatenid']+';'
 										 +line[:7]+';'
-										 +line[8:18]+';'
-										 +line[19:29]+';'
-										 +line[30:36]
+										 +line[8:19]+';'
+										 +line[20:31]+';'
+										 +line[32:38]
 										+'\n')
 		bfkoordgeo_strIO.seek(0)
 		cur = self.__hrdfdb.connection.cursor()
