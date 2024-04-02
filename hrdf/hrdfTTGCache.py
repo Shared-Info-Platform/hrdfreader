@@ -19,6 +19,7 @@ class HrdfTTGCache:
 		self.__allTripStopsLookup = dict()
 		self.__allVEsLookup = dict()
 		self.__fahrtLinienLookup = dict()
+		self.__fahrtLinienErweitertLookup = dict()
 		self.__fahrtRichtungLookup = dict()
 		self.__fahrtAttributLookup = dict()
 		self.__fahrtInfoLookup = dict()
@@ -41,7 +42,7 @@ class HrdfTTGCache:
 	def lookupBahnhof(self, stopno):
 		""" Lookup auf die Bahnhofs-Informationen für die Fahrt """
 		if (stopno in self.__bahnhofLookup):
-			self.__bahnhofLookup[stopno]
+			return self.__bahnhofLookup[stopno]			
 		else:
 			return None
 
@@ -179,12 +180,9 @@ class HrdfTTGCache:
 		# Lookup für Haltepositionstexte aufbauen (a.id zu beginn ist schneller als es wegzulassen oder am Ende zu stellen)
 		# key => <FahrtId>-<StopNo>[-<StopPointTime>]
 		logger.info("Lookup für Haltepositionstexte aufbauen")
-		sql_selGleisData = "SELECT distinct a.id, a.id::varchar||'-'||stopno::varchar||coalesce('-'||stoppointtime::varchar,'') as key, stoppointtext, bitfieldno "\
-						   "  FROM HRDF_FPlanFahrt_TAB a, HRDF_GLEIS_TAB b "\
-						   " WHERE a.fk_eckdatenid = %s "\
-						   "   AND a.fk_eckdatenid = b.fk_eckdatenid "\
-						   "   AND b.tripno = a.tripno "\
-						   "   AND b.operationalno = a.operationalno "
+		sql_selGleisData = "SELECT distinct a.id, a.id::varchar||'-'||stopno::varchar||coalesce('-'||stoppointtime::varchar,'') as key, stoppointtext, b.bitfieldno "\
+						   "  FROM HRDF_FPlanFahrt_TAB a inner join HRDF_GLEIS_TAB b on a.fk_eckdatenid = b.fk_eckdatenid and a.tripno = b.tripno and a.operationalno = b.operationalno "\
+						   " WHERE a.fk_eckdatenid = %s "
 		curGleis = self.__hrdfdb.connection.cursor()
 		curGleis.execute(sql_selGleisData, (eckdatenid,))
 		allGleise = curGleis.fetchall()
@@ -252,7 +250,7 @@ class HrdfTTGCache:
 
 		# Lookup für Linieninformationen der Fahrten
 		logger.info("Lookup für Linieninformationen der Fahrten aufbauen")
-		sql_selLData = "SELECT lineno, fromstop, tostop, deptimefrom, arrtimeto, fk_fplanfahrtid FROM HRDF_FPlanFahrtL_TAB WHERE fk_eckdatenid = %s ORDER BY fk_fplanfahrtid, id"
+		sql_selLData = "SELECT lineno, fromstop, tostop, deptimefrom, arrtimeto, fk_fplanfahrtid, ltrim(lineindex, '#') FROM HRDF_FPlanFahrtL_TAB WHERE fk_eckdatenid = %s ORDER BY fk_fplanfahrtid, id"
 		curL = self.__hrdfdb.connection.cursor()
 		curL.execute(sql_selLData, (eckdatenid,))
 		allLs = curL.fetchall()
@@ -267,14 +265,46 @@ class HrdfTTGCache:
 				self.__fahrtLinienLookup[fahrtL[5]] = LList
 		allLs.clear()
 
+		# Lookup für erweiterte Linieninformationen der Fahrten und merge in Linienlookup
+		logger.info("Lookup für Linieninformationen der Fahrten mit erweiterten Linieninformationen anreichern")
+		sql_selELData = "SELECT line_index, line_key, number_intern, name_short, name_short_index, name_long, name_long_index, color_font, color_back FROM HRDF_Linie_TAB WHERE fk_eckdatenid = %s ORDER BY id"
+		curEL = self.__hrdfdb.connection.cursor()
+		curEL.execute(sql_selELData, (eckdatenid,))
+		allELs = curEL.fetchall()
+		logger.debug("Es werden {} erweiterte Linieninformationen analysiert".format(len(allELs)))
+		curEL.close()
+		for fahrtEL in allELs:
+			fahrtELindex = fahrtEL[0]
+			if (fahrtELindex in self.__fahrtLinienErweitertLookup):
+				self.__fahrtLinienErweitertLookup[fahrtELindex].append(fahrtEL)
+			else:
+				ELList = list()
+				ELList.append(fahrtEL)
+				self.__fahrtLinienErweitertLookup[fahrtELindex] = ELList
+		logger.debug("Erweiterte Linininformationen zusammengestellt, Linienlookup wird angereichert")
+		for fahrtL, listL in self.__fahrtLinienLookup.items():
+			fahrtLIdx = ''
+			if (listL[0][6] != None) :
+				fahrtLIdx = listL[0][6]
+				logger.debug("Bearbeite Index {}".format(fahrtLIdx))
+				if (fahrtLIdx in self.__fahrtLinienErweitertLookup):
+					logger.debug("Index {} in L-Lookup kommt in EL-Lookup vor. Merge.".format(fahrtLIdx))
+					tmpList = list()
+					tmpList.append(self.__fahrtLinienErweitertLookup[fahrtLIdx][0][3])
+					i = 1
+					while i < len(listL[0]):
+						tmpList.append(listL[0][i])
+						i += 1
+					self.__fahrtLinienLookup[fahrtL][0] = tmpList
+					logger.debug("Neuer Eintrag: {}".format(self.__fahrtLinienLookup[fahrtL][0]))
+		allLs.clear()
+
 		# Lookup für Richtungstexte der Fahrten
 		logger.info("Lookup für Richtungstexte der Fahrten aufbauen")
 		sql_selRData = "SELECT a.directionshort, fromstop, tostop, deptimefrom, arrtimeto, b.directiontext, fk_fplanfahrtid "\
-					   "  FROM HRDF_FPlanFahrtR_TAB a, "\
-					   "       HRDF_Richtung_TAB b "\
+					   "  FROM HRDF_FPlanFahrtR_TAB a "\
+					   "       LEFT OUTER JOIN HRDF_Richtung_TAB b ON b.fk_eckdatenid = a.fk_eckdatenid AND a.directioncode = b.directioncode"\
 					   " WHERE a.fk_eckdatenid = %s "\
-					   "   AND a.fk_eckdatenid = b.fk_eckdatenid "\
-					   "   AND b.directioncode = a.directioncode "\
 					   " ORDER BY a.fk_fplanfahrtid, a.id"
 		curR = self.__hrdfdb.connection.cursor()
 		curR.execute(sql_selRData, (eckdatenid,))

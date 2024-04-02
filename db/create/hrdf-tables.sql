@@ -6,6 +6,27 @@
 \set TBSINDEXNAME tbs_ :DBNAME _index
 
 /*
+\brief	table that holds the update history of database
+*/
+CREATE TABLE HRDF_UPDATEHISTORY_TAB
+(
+  id				SERIAL			NOT NULL,
+  databaseVersion varchar(10) NOT NULL,
+  scriptName	varchar(100)	NOT NULL,
+  scriptVersion varchar(10)   NOT NULL,
+  description   varchar       NULL
+)
+WITH ( OIDS=FALSE )
+TABLESPACE :TBSDATANAME;
+ALTER TABLE HRDF_UPDATEHISTORY_TAB ADD CONSTRAINT PK_HRDF_UPDATEHISTORY_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_updatehistory_tab_id_seq CYCLE;
+COMMENT ON TABLE HRDF_UPDATEHISTORY_TAB IS 'Update Historie der Datenbank';
+COMMENT ON COLUMN HRDF_UPDATEHISTORY_TAB.databaseVersion is 'Dateiname der Importdatei';
+COMMENT ON COLUMN HRDF_UPDATEHISTORY_TAB.scriptName is 'Name des Script, das ausgeführt wurde';
+COMMENT ON COLUMN HRDF_UPDATEHISTORY_TAB.scriptVersion is 'Version des Script, das ausgeführt wurde';
+COMMENT ON COLUMN HRDF_UPDATEHISTORY_TAB.description is 'Beschreibung der Änderungen';
+
+/*
 \brief	table for file ECKDATEN (with extensions)
 */
 CREATE TABLE HRDF_ECKDATEN_TAB
@@ -22,11 +43,13 @@ CREATE TABLE HRDF_ECKDATEN_TAB
   exportsystem		varchar(20)		NULL,
   deleteFlag		bool			NULL,
   inactive		bool			NULL,
-  ttgenerated		date[]			NULL
+  ttgenerated		date[]			NULL,
+  importstatus		varchar(20)		NULL
 )
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_ECKDATEN_TAB ADD CONSTRAINT PK_HRDF_ECKDATEN_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_eckdaten_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_ECKDATEN_TAB IS 'Eckdaten der Fahrplanperiode';
 COMMENT ON COLUMN HRDF_ECKDATEN_TAB.importFileName is '+ Dateiname der Importdatei';
 COMMENT ON COLUMN HRDF_ECKDATEN_TAB.importDateTime is '+ Startzeitpunkt des Imports';
@@ -40,6 +63,7 @@ COMMENT ON COLUMN HRDF_ECKDATEN_TAB.exportsystem is '+ System von dem die HRDF-D
 COMMENT ON COLUMN HRDF_ECKDATEN_TAB.deleteFlag is '+ Markierung, dass die Daten gelöscht werden sollen';
 COMMENT ON COLUMN HRDF_ECKDATEN_TAB.inactive is 'Markierung, dass die Daten nicht verwendet werden sollen';
 COMMENT ON COLUMN HRDF_ECKDATEN_TAB.ttgenerated is 'Array mit den Tagen, für die die Tagesfahrpläne bereits generiert wurden';
+COMMENT ON COLUMN HRDF_ECKDATEN_TAB.importstatus is 'Status des Imports dieser Daten (ok,running,error)';
 
 /*
 \brief	table for file BITFELD
@@ -56,6 +80,7 @@ CREATE TABLE HRDF_BITFELD_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_BITFELD_TAB ADD CONSTRAINT PK_HRDF_BITFELD_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_bitfeld_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_BITFELD_TAB IS 'Verkehrstagesdefinitionen der Fahrten (BITFELD)';
 COMMENT ON COLUMN HRDF_BITFELD_TAB.bitfieldno is 'Eindeutige Nr der Verkehrstagesdefinition';
 COMMENT ON COLUMN HRDF_BITFELD_TAB.bitfield is 'Verkehrstagesdefinition als Bitfeld (hrdf-hexdezimalcodiert)';
@@ -81,6 +106,7 @@ CREATE TABLE HRDF_BAHNHOF_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_BAHNHOF_TAB ADD CONSTRAINT PK_HRDF_BAHNHOF_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_bahnhof_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_BAHNHOF_TAB IS 'Namen für Bahnhöfe/Haltestellen (BAHNHOF)';
 COMMENT ON COLUMN HRDF_BAHNHOF_TAB.stopno is 'Nummer der Haltestelle';
 COMMENT ON COLUMN HRDF_BAHNHOF_TAB.stopname is 'Name der Haltestelle';
@@ -88,6 +114,7 @@ COMMENT ON COLUMN HRDF_BAHNHOF_TAB.stopnamelong is 'Name lang der Haltestelle';
 COMMENT ON COLUMN HRDF_BAHNHOF_TAB.stopnameshort is 'Abkürzung der Haltestelle';
 COMMENT ON COLUMN HRDF_BAHNHOF_TAB.stopnamealias is 'Synonym / Alias der Haltestelle';
 CREATE INDEX IDX01_HRDF_BAHNHOF_TAB ON HRDF_BAHNHOF_TAB (fk_eckdatenid) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX02_HRDF_BAHNHOF_TAB ON HRDF_BAHNHOF_TAB (fk_eckdatenid, stopno) TABLESPACE :TBSINDEXNAME;
 
 
 /*
@@ -107,6 +134,7 @@ CREATE TABLE HRDF_GLEIS_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_GLEIS_TAB ADD CONSTRAINT PK_HRDF_GLEIS_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_gleis_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_GLEIS_TAB IS 'Verkehrstagesdefinitionen der Fahrten (BITFELD)';
 COMMENT ON COLUMN HRDF_GLEIS_TAB.stopno is 'Nummer der Haltestelle';
 COMMENT ON COLUMN HRDF_GLEIS_TAB.tripno is 'Fahrtnummer';
@@ -115,6 +143,7 @@ COMMENT ON COLUMN HRDF_GLEIS_TAB.stoppointtext is 'Haltepositionstext';
 COMMENT ON COLUMN HRDF_GLEIS_TAB.stoppointtime is 'Zeit zur Erkennung ob Gültig für Ankunft oder Abfahrt';
 COMMENT ON COLUMN HRDF_GLEIS_TAB.bitfieldno is 'Eindeutige Nr der Verkehrstagesdefinition';
 CREATE INDEX IDX01_HRDF_GLEIS_TAB ON HRDF_GLEIS_TAB (fk_eckdatenid, tripno, operationalno) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX02_HRDF_GLEIS_TAB ON HRDF_GLEIS_TAB (fk_eckdatenid, stopno) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief	table for file ZUGART
@@ -136,6 +165,7 @@ CREATE TABLE HRDF_ZUGART_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_ZUGART_TAB ADD CONSTRAINT PK_HRDF_ZUGART_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_zugart_tab_id_seq	CYCLE;
 COMMENT ON TABLE HRDF_ZUGART_TAB IS 'Verkehrsmittel bzw. Gattung';
 COMMENT ON COLUMN HRDF_ZUGART_TAB.categorycode IS 'Code der Gattung';
 COMMENT ON COLUMN HRDF_ZUGART_TAB.classno IS 'ProduktklassenNr der Gattung (0-13)';
@@ -163,6 +193,7 @@ CREATE TABLE HRDF_ZUGARTKlasse_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_ZUGARTKlasse_TAB ADD CONSTRAINT PK_HRDF_ZUGARTKlasse_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_zugartklasse_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_ZUGARTKlasse_TAB IS 'Produktklassen für Gattungen';
 COMMENT ON COLUMN HRDF_ZUGARTKlasse_TAB.classno IS 'Nr der Produktklasse (0-13)';
 COMMENT ON COLUMN HRDF_ZUGARTKlasse_TAB.languagecode IS '+ Sprache des Produktklasse (Kürzel entsprechend der Dateiendung)';
@@ -183,6 +214,7 @@ CREATE TABLE HRDF_ZUGARTKategorie_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_ZUGARTKategorie_TAB ADD CONSTRAINT PK_HRDF_ZUGARTKategorie_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_zugartkategorie_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_ZUGARTKategorie_TAB IS 'Bezeichnungen für Gattungen';
 COMMENT ON COLUMN HRDF_ZUGARTKategorie_TAB.categoryno IS 'Nr der Gattung/Kategorie';
 COMMENT ON COLUMN HRDF_ZUGARTKategorie_TAB.languagecode IS '+ Sprache der Gattungsbezeichnung (Kürzel entsprechend der Dateiendung)';
@@ -203,6 +235,7 @@ CREATE TABLE HRDF_ZUGARTOption_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_ZUGARTOption_TAB ADD CONSTRAINT PK_HRDF_ZUGARTOption_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_zugartoption_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_ZUGARTOption_TAB IS 'Optionen für die Suche';
 COMMENT ON COLUMN HRDF_ZUGARTOption_TAB.optionno IS 'Nr der Option (10-14)';
 COMMENT ON COLUMN HRDF_ZUGARTOption_TAB.languagecode IS '+ Sprache der Optionsbezeichnung (Kürzel entsprechend der Dateiendung)';
@@ -224,6 +257,7 @@ CREATE TABLE HRDF_RICHTUNG_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_RICHTUNG_TAB ADD CONSTRAINT PK_HRDF_RICHTUNG_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_richtung_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_RICHTUNG_TAB IS 'Verkehrsmittel bzw. Gattung';
 COMMENT ON COLUMN HRDF_RICHTUNG_TAB.directioncode IS 'Code der Richtung';
 COMMENT ON COLUMN HRDF_RICHTUNG_TAB.directiontext IS 'Ausgabetext der Richtung';
@@ -249,6 +283,7 @@ CREATE TABLE HRDF_ATTRIBUT_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_ATTRIBUT_TAB ADD CONSTRAINT PK_HRDF_ATTRIBUT_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_attribut_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_ATTRIBUT_TAB IS 'Spezielle Attribute einer Fahrt/Fahrtabschnitt';
 COMMENT ON COLUMN HRDF_ATTRIBUT_TAB.attributecode IS 'Code des Attributes';
 COMMENT ON COLUMN HRDF_ATTRIBUT_TAB.languagecode IS '+ Sprache des Attributs (Kürzel entsprechend der Dateiendung)';
@@ -275,6 +310,7 @@ CREATE TABLE HRDF_INFOTEXT_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_INFOTEXT_TAB ADD CONSTRAINT PK_HRDF_INFOTEXT_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_infotext_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_INFOTEXT_TAB IS 'Im Fahrplan verwendete Infotexte';
 COMMENT ON COLUMN HRDF_INFOTEXT_TAB.infotextno IS 'Nr. des Infotext';
 COMMENT ON COLUMN HRDF_INFOTEXT_TAB.languagecode IS '+ Sprache des Infotext (Kürzel entsprechend der Dateiendung)';
@@ -296,6 +332,7 @@ CREATE TABLE HRDF_BFKOORD_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_BFKOORD_TAB ADD CONSTRAINT PK_HRDF_BFKOORD_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_bfkoord_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_BFKOORD_TAB IS 'Geo-Koordinaten einer Haltestelle (BFKOORD)';
 COMMENT ON COLUMN HRDF_BFKOORD_TAB.stopno is 'Eindeutige Nr der Haltestelle';
 COMMENT ON COLUMN HRDF_BFKOORD_TAB.longitude_geo is 'Längengrad der Haltestelle (x-Koordinate)';
@@ -323,6 +360,7 @@ CREATE TABLE HRDF_DURCHBI_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_DURCHBI_TAB ADD CONSTRAINT PK_HRDF_DURCHBI_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_durchbi_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_DURCHBI_TAB IS 'Durchbindung einer Fahrt (DURCHBI)';
 COMMENT ON COLUMN HRDF_DURCHBI_TAB.tripno1 IS 'Fahrtnummer 1';
 COMMENT ON COLUMN HRDF_DURCHBI_TAB.operationalno1 IS 'Verwaltung für Fahrt 1';
@@ -350,6 +388,7 @@ CREATE TABLE HRDF_UMSTEIGB_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_UMSTEIGB_TAB ADD CONSTRAINT PK_HRDF_UMSTEIGB_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_umsteigb_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_UMSTEIGB_TAB IS 'Haltestellenbezogene Umsteigezeiten (UMSTEIGB)';
 COMMENT ON COLUMN HRDF_UMSTEIGB_TAB.stopno IS 'Eindeutige Nr der Haltestelle';
 COMMENT ON COLUMN HRDF_UMSTEIGB_TAB.transfertime1 IS 'Umsteigezeit in Minuten zwischen IC und IC max 60 Min';
@@ -369,6 +408,7 @@ CREATE TABLE HRDF_BFPRIOS_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_BFPRIOS_TAB ADD CONSTRAINT PK_HRDF_BFPRIOS_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_bfprios_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_BFPRIOS_TAB IS 'Bahnhofsumsteigeprioritäten (BFPRIOS)';
 COMMENT ON COLUMN HRDF_BFPRIOS_TAB.stopno IS 'Eindeutige Nr der Haltestelle';
 COMMENT ON COLUMN HRDF_BFPRIOS_TAB.transferprio IS 'Umsteigepriorität der Haltestelle (0-16 => 0 ist höchste Prio)';
@@ -391,6 +431,7 @@ CREATE TABLE HRDF_METABHF_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_METABHF_TAB ADD CONSTRAINT PK_HRDF_METABHF_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_metabhf_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_METABHF_TAB IS 'Übergangsbeziehung zwischen Haltestellen (METABHF)';
 COMMENT ON COLUMN HRDF_METABHF_TAB.stopnoFrom IS 'Eindeutige Nr der Haltestelle von';
 COMMENT ON COLUMN HRDF_METABHF_TAB.stopnoTo IS 'Eindeutige Nr der Haltestelle nach';
@@ -412,6 +453,7 @@ CREATE TABLE HRDF_METABHFGRUPPE_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_METABHFGRUPPE_TAB ADD CONSTRAINT PK_HRDF_METABHFGRUPPE_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_metabhfgruppe_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_METABHFGRUPPE_TAB IS 'Haltestellengruppen (METABHF Gruppen)';
 COMMENT ON COLUMN HRDF_METABHFGRUPPE_TAB.stopgroupno IS 'Eindeutige Nr der Haltestellengruppe';
 COMMENT ON COLUMN HRDF_METABHFGRUPPE_TAB.stopmember IS 'Liste der zugehörigen Haltestellen';
@@ -438,6 +480,7 @@ CREATE TABLE HRDF_FPLANFahrt_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_FPLANFahrt_TAB ADD CONSTRAINT PK_HRDF_FPLANFahrt_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_fplanfahrt_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_FPLANFahrt_TAB IS 'Einträge der FPLAN-Datei beginnend mit *Z / *KW / *T';
 COMMENT ON COLUMN HRDF_FPLANFahrt_TAB.triptype is 'Art der Fahrt (Z, KW, T)';
 COMMENT ON COLUMN HRDF_FPLANFahrt_TAB.tripno is 'Fahrtnummer';
@@ -468,6 +511,7 @@ CREATE TABLE HRDF_FPLANFahrtVE_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_FPLANFahrtVE_TAB ADD CONSTRAINT PK_HRDF_FPLANFahrtVE_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_fplanfahrtve_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_FPLANFahrtVE_TAB IS 'Einträge der FPLAN-Datei beginnend mit *A VE';
 COMMENT ON COLUMN HRDF_FPLANFahrtVE_TAB.fromStop is 'HaltestellenNr ab der die Verkehrstage gelten';
 COMMENT ON COLUMN HRDF_FPLANFahrtVE_TAB.toStop is 'HaltestellenNr bis zu der die Verkehrstage gelten';
@@ -495,6 +539,7 @@ CREATE TABLE HRDF_FPLANFahrtG_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_FPLANFahrtG_TAB ADD CONSTRAINT PK_HRDF_FPLANFahrtG_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_fplanfahrtg_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_FPLANFahrtG_TAB IS 'Einträge der FPLAN-Datei beginnend mit *G';
 COMMENT ON COLUMN HRDF_FPLANFahrtG_TAB.categorycode is 'Code der Gattung';
 COMMENT ON COLUMN HRDF_FPLANFahrtG_TAB.fromStop is 'HaltestellenNr ab der die Gattung gültig ist';
@@ -522,6 +567,7 @@ CREATE TABLE HRDF_FPLANFahrtA_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_FPLANFahrtA_TAB ADD CONSTRAINT PK_HRDF_FPLANFahrtA_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_fplanfahrta_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_FPLANFahrtA_TAB IS 'Einträge der FPLAN-Datei beginnend mit *A';
 COMMENT ON COLUMN HRDF_FPLANFahrtA_TAB.attributecode is 'Attributscode';
 COMMENT ON COLUMN HRDF_FPLANFahrtA_TAB.fromStop is 'HaltestellenNr ab der das Attribut gültig ist';
@@ -550,6 +596,7 @@ CREATE TABLE HRDF_FPLANFahrtR_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_FPLANFahrtR_TAB ADD CONSTRAINT PK_HRDF_FPLANFahrtR_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_fplanfahrtr_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_FPLANFahrtR_TAB IS 'Einträge der FPLAN-Datei beginnend mit *R';
 COMMENT ON COLUMN HRDF_FPLANFahrtR_TAB.directionShort is 'Kennung der Richtung (H,R)';
 COMMENT ON COLUMN HRDF_FPLANFahrtR_TAB.directionCode is 'Richtungscode';
@@ -579,6 +626,7 @@ CREATE TABLE HRDF_FPLANFahrtI_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_FPLANFahrtI_TAB ADD CONSTRAINT PK_HRDF_FPLANFahrtI_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_fplanfahrti_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_FPLANFahrtI_TAB IS 'Einträge der FPLAN-Datei beginnend mit *I';
 COMMENT ON COLUMN HRDF_FPLANFahrtI_TAB.infotextcode is 'Code des Infotext';
 COMMENT ON COLUMN HRDF_FPLANFahrtI_TAB.infotextno is 'Nr. des Infotext';
@@ -598,7 +646,8 @@ CREATE TABLE HRDF_FPLANFahrtL_TAB
   id				SERIAL		NOT NULL,
   fk_eckdatenid		integer		NOT NULL,
   fk_fplanfahrtid   integer		NOT NULL,
-  lineno			varchar(8)	NOT NULL,
+  lineno			varchar(8)	NULL,
+  lineindex varchar(8) NULL,
   fromStop			integer		NULL,
   toStop			integer		NULL,
   deptimeFrom		integer		NULL,
@@ -607,8 +656,10 @@ CREATE TABLE HRDF_FPLANFahrtL_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_FPLANFahrtL_TAB ADD CONSTRAINT PK_HRDF_FPLANFahrtL_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_fplanfahrtl_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_FPLANFahrtL_TAB IS 'Einträge der FPLAN-Datei beginnend mit *L';
 COMMENT ON COLUMN HRDF_FPLANFahrtL_TAB.lineno is 'Liniennummer';
+COMMENT ON COLUMN HRDF_FPLANFAHRTL_TAB.lineindex is 'Index der Linie im LINIE-File';
 COMMENT ON COLUMN HRDF_FPLANFahrtL_TAB.fromStop is 'HaltestellenNr ab der die Linie gültig ist';
 COMMENT ON COLUMN HRDF_FPLANFahrtL_TAB.toStop is 'HaltestellenNr bis zu der die Linie gültig ist';
 COMMENT ON COLUMN HRDF_FPLANFahrtL_TAB.deptimeFrom is 'Abfahrtszeitpunkt der Ab-Haltestelle';
@@ -631,6 +682,7 @@ CREATE TABLE HRDF_FPLANFahrtSH_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_FPLANFahrtSH_TAB ADD CONSTRAINT PK_HRDF_FPLANFahrtSH_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_fplanfahrtsh_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_FPLANFahrtSH_TAB IS 'Einträge der FPLAN-Datei beginnend mit *SH (saisonaler Halt)';
 COMMENT ON COLUMN HRDF_FPLANFahrtSH_TAB.stop is 'HaltestellenNr für den die saisonale Verkehrstage gelten. Sie werden nur an diesen Tagen angefahren';
 COMMENT ON COLUMN HRDF_FPLANFahrtSH_TAB.bitfieldno is 'Eindeutige Nr der Verkehrstagesdefinition';
@@ -655,6 +707,7 @@ CREATE TABLE HRDF_FPLANFahrtGR_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_FPLANFahrtGR_TAB ADD CONSTRAINT PK_HRDF_FPLANFahrtGR_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_fplanfahrtgr_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_FPLANFahrtGR_TAB IS 'Einträge der FPLAN-Datei beginnend mit *GR';
 COMMENT ON COLUMN HRDF_FPLANFahrtGR_TAB.borderStop is 'Virtuelle Grenzpunktnummer';
 COMMENT ON COLUMN HRDF_FPLANFahrtGR_TAB.prevStop is 'HaltestellenNr vor dem Grenzpunkt';
@@ -683,6 +736,7 @@ CREATE TABLE HRDF_FPLANFahrtC_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_FPLANFahrtC_TAB ADD CONSTRAINT PK_HRDF_FPLANFahrtC_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_fplanfahrtc_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_FPLANFahrtC_TAB IS 'Einträge der FPLAN-Datei beginnend mit *C (CI/CO)';
 COMMENT ON COLUMN HRDF_FPLANFahrtC_TAB.checkinTime is 'Eincheckzeit in Minuten';
 COMMENT ON COLUMN HRDF_FPLANFahrtC_TAB.checkoutTime is 'Auscheckzeit in Minuten';
@@ -714,6 +768,7 @@ CREATE TABLE HRDF_FPLANFahrtLaufweg_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_FPLANFahrtLaufweg_TAB ADD CONSTRAINT PK_HRDF_FPLANFahrtLaufweg_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_fplanfahrtlaufweg_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_FPLANFahrtLaufweg_TAB IS 'Laufweg einer Fahrt';
 COMMENT ON COLUMN HRDF_FPLANFahrtLaufweg_TAB.stopno IS 'HaltestelleNr';
 COMMENT ON COLUMN HRDF_FPLANFahrtLaufweg_TAB.stopname IS 'Haltestellenname';
@@ -725,6 +780,42 @@ COMMENT ON COLUMN HRDF_FPLANFahrtLaufweg_TAB.operationalno IS 'VerwaltungsNr. ab
 COMMENT ON COLUMN HRDF_FPLANFahrtLaufweg_TAB.ontripsign IS 'Anzeige der Haltestelle auf dem Laufschild';
 CREATE INDEX IDX01_HRDF_FPLANFahrtLaufweg_TAB ON HRDF_FPLANFahrtLaufweg_TAB (fk_fplanfahrtid, sequenceno) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX02_HRDF_FPLANFahrtLaufweg_TAB ON HRDF_FPLANFahrtLaufweg_TAB (fk_eckdatenid, fk_fplanfahrtid, sequenceno) TABLESPACE :TBSINDEXNAME;
+
+
+/*
+\brief	table for file LINIE
+*/
+CREATE TABLE HRDF_LINIE_TAB
+(
+  id 			SERIAL			NOT NULL,
+  fk_eckdatenid	integer	NOT NULL,
+  line_index varchar(8) NOT NULL,
+  line_key varchar(256) NOT NULL,
+  number_intern	varchar(256) NULL,
+  name_short		varchar(256) NULL,
+  name_short_index		varchar(128)	NULL,
+  name_long	varchar(256) NULL,
+  name_long_index varchar(256) NULL,
+  color_font varchar(20) NULL,
+  color_back varchar(20) NULL
+)
+WITH ( OIDS=FALSE )
+TABLESPACE :TBSDATANAME;
+ALTER TABLE HRDF_LINIE_TAB ADD CONSTRAINT PK_HRDF_LINIE_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_linie_tab_id_seq CYCLE;
+COMMENT ON TABLE HRDF_LINIE_TAB IS 'Erweiterte Liniendaten';
+COMMENT ON COLUMN HRDF_LINIE_TAB.line_index IS 'Linien-Index';
+COMMENT ON COLUMN HRDF_LINIE_TAB.line_key IS 'Linienschluessel';
+COMMENT ON COLUMN HRDF_LINIE_TAB.number_intern IS 'Interne Liniennummer';
+COMMENT ON COLUMN HRDF_LINIE_TAB.name_short IS 'Kurzname';
+COMMENT ON COLUMN HRDF_LINIE_TAB.name_short_index IS 'Index für Kurzname';
+COMMENT ON COLUMN HRDF_LINIE_TAB.name_long IS 'Langname';
+COMMENT ON COLUMN HRDF_LINIE_TAB.name_long_index IS 'Index für Langname';
+COMMENT ON COLUMN HRDF_LINIE_TAB.color_font IS 'Schriftfarbe';
+COMMENT ON COLUMN HRDF_LINIE_TAB.color_back IS 'Hintergrundfarbe';
+CREATE INDEX IDX01_HRDF_LINIE_TAB ON HRDF_LINIE_TAB (fk_eckdatenid, line_index) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX02_HRDF_LINIE_TAB ON HRDF_LINIE_TAB (fk_eckdatenid, line_key) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX03_HRDF_LINIE_TAB ON HRDF_LINIE_TAB (fk_eckdatenid, name_short) TABLESPACE :TBSINDEXNAME;
 
 
 /*
@@ -779,6 +870,7 @@ CREATE TABLE HRDF_DailyTimeTable_TAB
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 ALTER TABLE HRDF_DailyTimeTable_TAB ADD CONSTRAINT PK_HRDF_DailyTimeTable_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_dailytimetable_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_DailyTimeTable_TAB IS 'Der Tagesfahrplan mit Fahrten ';
 COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.tripident IS 'Eindeutige Kennung der Fahrt';
 COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.tripno is 'Fahrtnummer';
@@ -821,11 +913,13 @@ COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.transferprio IS 'Umsteigepriorität de
 COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.tripno_continued IS 'FahrtNr für Durchbindung; fährt weiter als';
 COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.operationalno_continued	IS 'Verwaltungsnummer für Durchbindung; fährt weiter als';
 COMMENT ON COLUMN HRDF_DailyTimeTable_TAB.stopno_continued	IS 'HaltestellenNr für Durchbindung; kann unterschiedlich zum Halt sein';
-CREATE INDEX IDX01_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, operatingday) TABLESPACE :TBSINDEXNAME;
-CREATE INDEX IDX02_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, operationalno) TABLESPACE :TBSINDEXNAME;
-CREATE INDEX IDX03_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, lineno varchar_pattern_ops) TABLESPACE :TBSINDEXNAME;
-CREATE INDEX IDX04_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, stopident) TABLESPACE :TBSINDEXNAME;
-CREATE INDEX IDX05_HRDF_HRDF_DailyTimeTable_TAB_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, directionshort) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX01_HRDF_DailyTimeTable_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, operatingday) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX02_HRDF_DailyTimeTable_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, operationalno) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX03_HRDF_DailyTimeTable_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, lineno varchar_pattern_ops) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX04_HRDF_DailyTimeTable_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, stopident) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX05_HRDF_DailyTimeTable_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, directionshort) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX06_HRDF_DailyTimeTable_TAB ON HRDF_DailyTimeTable_TAB (operatingday) TABLESPACE :TBSINDEXNAME;
+CREATE INDEX IDX07_HRDF_DailyTimeTable_TAB ON HRDF_DailyTimeTable_TAB (fk_eckdatenid, operatingday, stopident) TABLESPACE :TBSINDEXNAME;
 
 /*
 \brief  table for tripcount per operator
@@ -843,6 +937,7 @@ WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
 COMMENT ON TABLE HRDF_tripcount_operator_TAB IS 'Anzahl Fahrten pro Operator/Linie/Kategorie und EckdatenID';
 CREATE INDEX IDX01_HRDF_tripcount_operator_TAB ON HRDF_tripcount_operator_TAB (fk_eckdatenid,operationalno) TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_tripcount_operator_tab_id_seq CYCLE;
 
 /*
 \brief  table for tripcount per line
@@ -857,6 +952,7 @@ CREATE TABLE HRDF_tripcount_line_TAB
 )
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
+ALTER SEQUENCE IF EXISTS hrdf_tripcount_line_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_tripcount_line_TAB IS 'Anzahl Fahrten pro Linie und EckdatenID';
 CREATE INDEX IDX01_HRDF_tripcount_line_TAB ON HRDF_tripcount_line_TAB (fk_eckdatenid,operationalno) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX02_HRDF_tripcount_line_TAB ON HRDF_tripcount_line_TAB (fk_eckdatenid,lineno varchar_pattern_ops) TABLESPACE :TBSINDEXNAME;
@@ -875,8 +971,84 @@ CREATE TABLE HRDF_linesperstop_TAB
 )
 WITH ( OIDS=FALSE )
 TABLESPACE :TBSDATANAME;
+ALTER SEQUENCE IF EXISTS hrdf_linesperstop_tab_id_seq CYCLE;
 COMMENT ON TABLE HRDF_linesperstop_TAB IS 'Linien pro Haltestelle und EckdatenID';
 CREATE INDEX IDX01_HRDF_linesperstop_TAB ON HRDF_linesperstop_TAB (fk_eckdatenid,operationalno) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX02_HRDF_linesperstop_TAB ON HRDF_linesperstop_TAB (fk_eckdatenid,lineno) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX03_HRDF_linesperstop_TAB ON HRDF_linesperstop_TAB (fk_eckdatenid,stopno) TABLESPACE :TBSINDEXNAME;
 CREATE INDEX IDX04_HRDF_linesperstop_TAB ON HRDF_linesperstop_TAB (fk_eckdatenid,categorycode) TABLESPACE :TBSINDEXNAME;
+
+
+/*
+\brief  table for stop-trip count statistics
+*/
+CREATE TABLE HRDF_StopTripCountStats_TAB
+(
+  id 			SERIAL			NOT NULL,
+  operatingday	timestamp with time zone	NOT NULL,
+  stopgroupno	integer			NOT NULL,
+  stopident		varchar(100)	NOT NULL,
+  stopname		varchar(500)	NOT NULL,
+  departureCnt	integer			NOT NULL
+)
+WITH ( OIDS=FALSE )
+TABLESPACE :TBSDATANAME;
+ALTER TABLE HRDF_StopTripCountStats_TAB ADD CONSTRAINT PK_HRDF_StopTripCountStats_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_stoptripcountstats_tab_id_seq CYCLE;
+COMMENT ON TABLE HRDF_StopTripCountStats_TAB IS 'Statistikdaten zu Fahrten pro Haltestellen';
+COMMENT ON COLUMN HRDF_StopTripCountStats_TAB.operatingday IS 'Betriebsttag';
+COMMENT ON COLUMN HRDF_StopTripCountStats_TAB.stopgroupno IS 'Haltestellenngruppe (Metabhfgruppe)';
+COMMENT ON COLUMN HRDF_StopTripCountStats_TAB.stopident IS 'Haltestellenkennung';
+COMMENT ON COLUMN HRDF_StopTripCountStats_TAB.stopname IS 'Name der Haltestelle';
+COMMENT ON COLUMN HRDF_StopTripCountStats_TAB.departureCnt IS 'Anzahl der Abfahrten an der Haltestelle';
+
+
+/* ---------------------------------------------- Tabellen für den HRDF-VDVService -----------------------
+*/
+/*
+\brief  table for VDV Linien-Mapping
+*/
+CREATE TABLE HRDF_VDVLinienMapping_TAB
+(
+  id			SERIAL		NOT NULL,
+  operationalno	varchar(6)	NOT NULL,
+  lineno		varchar(8)	NOT NULL,
+  linienID		varchar(20)	NULL,
+  linienText	varchar(50) NULL,
+  creationdatetime timestamp with time zone NOT NULL DEFAULT(now())
+)
+WITH ( OIDS=FALSE )
+TABLESPACE :TBSDATANAME;
+ALTER TABLE HRDF_VDVLinienMapping_TAB ADD CONSTRAINT PK_HRDF_VDVLinienMapping_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_vdvlinienmapping_tab_id_seq CYCLE;
+COMMENT ON TABLE HRDF_VDVLinienMapping_TAB IS 'Mapping-Tabelle für Linien';
+COMMENT ON COLUMN HRDF_VDVLinienMapping_TAB.operationalno IS 'HRDF-Verwaltungsnummer';
+COMMENT ON COLUMN HRDF_VDVLinienMapping_TAB.lineno IS 'HRDF-Liniennummer';
+COMMENT ON COLUMN HRDF_VDVLinienMapping_TAB.linienID IS 'Zu verwendende LinienID (technischer Linienschlüssel) ohne Betreiberkennung im VDV';
+COMMENT ON COLUMN HRDF_VDVLinienMapping_TAB.linienText IS 'Zu verwendender LinienText im VDV';
+COMMENT ON COLUMN HRDF_VDVLinienMapping_TAB.creationdatetime IS 'Zeitpunkt der Erstellung des Eintrags';
+CREATE INDEX IDX01_HRDF_VDVLinienMapping_TAB ON HRDF_VDVLinienMapping_TAB (operationalno, lineno) TABLESPACE :TBSINDEXNAME;
+
+/*
+\brief  table for VDV Betreiber-Mapping
+*/
+CREATE TABLE HRDF_VDVBetreiberMapping_TAB
+(
+  id				SERIAL		NOT NULL,
+  operationalno		varchar(6)	NOT NULL,
+  UICLaendercode	varchar(5)	NOT NULL,
+  GONr				varchar(20)	NOT NULL,
+  GOAbk				varchar(20) NULL,
+  creationdatetime timestamp with time zone NOT NULL DEFAULT(now())
+)
+WITH ( OIDS=FALSE )
+TABLESPACE :TBSDATANAME;
+ALTER TABLE HRDF_VDVBetreiberMapping_TAB ADD CONSTRAINT PK_HRDF_VDVBetreiberMapping_TAB PRIMARY KEY (ID) USING INDEX TABLESPACE :TBSINDEXNAME;
+ALTER SEQUENCE IF EXISTS hrdf_vdvbetreibermapping_tab_id_seq CYCLE;
+COMMENT ON TABLE HRDF_VDVBetreiberMapping_TAB IS 'Mapping-Tabelle für Betreiber';
+COMMENT ON COLUMN HRDF_VDVBetreiberMapping_TAB.operationalno IS 'HRDF-Verwaltungsnummer';
+COMMENT ON COLUMN HRDF_VDVBetreiberMapping_TAB.UICLaendercode IS 'UIC Laendercode';
+COMMENT ON COLUMN HRDF_VDVBetreiberMapping_TAB.GONr IS 'Geschäftsorganisations NR';
+COMMENT ON COLUMN HRDF_VDVBetreiberMapping_TAB.GOAbk IS 'Geschäftsorganisations Abkürzung';
+COMMENT ON COLUMN HRDF_VDVBetreiberMapping_TAB.creationdatetime IS 'Zeitpunkt der Erstellung des Eintrags';
+CREATE INDEX IDX01_HRDF_VDVBetreiberMapping_TAB ON HRDF_VDVBetreiberMapping_TAB (operationalno) TABLESPACE :TBSINDEXNAME;

@@ -5,17 +5,19 @@ class HrdfDB:
 Die Klasse hält Verbindungsinformationen zur Datenbank.
 Zudem stellt sie Funktionen zum Handling mit der Datenbank zur Verfügung
 
-HrdfDB(dbname, host, user, password)
+HrdfDB(dbname, host, port, user, password)
 connect()
 	"""
-	def __init__(self, dbname, host, user, password):
+	def __init__(self, dbname, host, port, user, password):
 		"""dbname	-	Name der Datenbank
 			host		-	IP/Name des Datenbankrechners
+			port		-	Port des Datenbankrechners
 			user		-	Benutzer
 			password	-	Passwort
 		"""
 		self.dbname = dbname
 		self.host = host
+		self.port = port
 		self.user = user
 		self.password = password
 
@@ -31,7 +33,7 @@ Liefert true wenn eine Verbindung besteht/hergestellt werden konnte ansonsten fa
 			cur.execute('SELECT 1')
 			connected = True;
 		except:
-			connstring = 'host='+self.host+' dbname='+self.dbname+' user='+self.user+' password='+self.password
+			connstring = 'host='+self.host+' dbname='+self.dbname+' port='+str(self.port) +' user='+self.user+' password='+self.password+' connect_timeout=1200'
 			try:
 				self.connection = psycopg2.connect(connstring)
 				connected = True;

@@ -63,4 +63,17 @@ AS SELECT
      LEFT JOIN hrdf_bfkoord_tab koord ON bhf.fk_eckdatenid = koord.fk_eckdatenid AND bhf.stopno = koord.stopno
      LEFT JOIN hrdf_bfprios_tab prio ON bhf.fk_eckdatenid = prio.fk_eckdatenid AND bhf.stopno = prio.stopno
      LEFT JOIN hrdf_umsteigb_tab umst ON bhf.fk_eckdatenid = umst.fk_eckdatenid AND bhf.stopno = umst.stopno;
-     
+
+/*
+\brief  view for stop point information
+*/
+CREATE OR REPLACE VIEW hrdf.hrdf_bahnhofgleis_view
+AS SELECT
+   a.id,
+   a.fk_eckdatenid,
+   a.stopno,
+   a.stopname,
+   b.stoppoints,
+   coalesce(array_length(b.stoppoints,1),0) as stoppointcnt
+   FROM hrdf_bahnhof_tab a
+        LEFT OUTER JOIN (SELECT fk_eckdatenid, stopno, array_agg(distinct stoppointtext order by stoppointtext) stoppoints FROM hrdf_gleis_tab GROUP BY fk_eckdatenid, stopno) b ON a.stopno = b.stopno AND a.fk_eckdatenid = b.fk_eckdatenid;

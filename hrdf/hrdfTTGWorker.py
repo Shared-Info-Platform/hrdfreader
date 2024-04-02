@@ -22,7 +22,7 @@ class HrdfTTGWorker(Thread):
 		self.__commQueue = commqueue
 		self.__responseQueue = responsequeue
 
-		self.__hrdfdb = HrdfDB(db.dbname, db.host, db.user, db.password)
+		self.__hrdfdb = HrdfDB(db.dbname, db.host, db.port, db.user, db.password)
 		self.__ttgcache = HrdfTTGCache(self.__hrdfdb)
 		self.__ttgcache = ttgcache
 		self.__stopSequenceLookup = dict()
@@ -319,7 +319,7 @@ class HrdfTTGWorker(Thread):
 							arrstoppointtext = ""
 							depstoppointtext = ""
 							arrstoppointtext = self.__ttgcache.lookupGleisText(tripStop[8], generationDay)
-							if ( arrstoppointtext is not ""):
+							if ( arrstoppointtext != ""):
 								depstoppointtext = arrstoppointtext
 							else:
 								arrstoppointtext = self.__ttgcache.lookupGleisText(tripStop[9], generationDay)
@@ -406,14 +406,21 @@ class HrdfTTGWorker(Thread):
 		if (fromStop is None and toStop is None):
 			stopSequenceList = newTripStops.keys()
 		else:
+			# Erste sequenceNo in newTripStops ermitteln, um bei verkürzten Laufwegen den richtigen Start zu finden.
+			relevantFromStop = fromStop
+			firstSeq = next(iter(newTripStops))
+			fromSeq = self.getStopSequenceNo(fromStop)
+			relevantFromStop = fromStop
+			if fromSeq < firstSeq: relevantFromStop = newTripStops[firstSeq]["stop"][0]
+
 			bTakeStop = False
 			for sequenceNo in newTripStops:
 				# ist deptimefrom belegt muss auch die deptime des Stops passen
 				if (deptimeFrom is None):
-					if (newTripStops[sequenceNo]["stop"][0] == fromStop):
+					if (newTripStops[sequenceNo]["stop"][0] == relevantFromStop):
 						bTakeStop = True
 				else:
-					if (newTripStops[sequenceNo]["stop"][0] == fromStop and newTripStops[sequenceNo]["stop"][4] == deptimeFrom):
+					if (newTripStops[sequenceNo]["stop"][0] == relevantFromStop and newTripStops[sequenceNo]["stop"][4] == deptimeFrom):
 						bTakeStop = True
 				# ist arrtimeto belegt muss auch die arrtime des Stops passen
 				if (arrtimeTo is None):
