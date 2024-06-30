@@ -1,4 +1,5 @@
 import psycopg2
+import pytz
 from datetime import datetime, date, timedelta, time
 from io import StringIO
 from hrdf.hrdfdb import HrdfDB
@@ -57,7 +58,8 @@ class HrdfTTGWorker(Thread):
 		""" Die Funktion generiert den Tagesfahrplan für die übergebenen Trips am gewünschten Tag"""
 		if (len(trips) > 1):
 			logger.debug("{}: bearbeitet {} Fahrten".format(self.__name, len(trips)))
-			tripStops = dict()		
+			tripStops = dict()
+			zurichtz = pytz.timezone('Europe/Zurich')
 			dailytimetable_strIO = StringIO()							
 			numberOfGeneratedTrips = 0
 			iErrorCnt = 0
@@ -97,14 +99,14 @@ class HrdfTTGWorker(Thread):
 								if (arrival < 0): noexit = True
 								arrival = abs(arrival)
 								arrMins = (int(arrival/100)*60)+(arrival%100)+additionalCycletimeMin
-								arrdatetime = str(datetime.combine(generationDay, time(0,0)) + timedelta(minutes=arrMins))
+								arrdatetime = str(zurichtz.localize(datetime.combine(generationDay, time(0,0)) + timedelta(minutes=arrMins)))
 
 							depdatetime = ""
 							if (departure is not None):
 								if(departure < 0): noenty = True
 								departure = abs(departure)
 								depMins = (int(departure/100)*60)+(departure%100)+additionalCycletimeMin
-								depdatetime = str(datetime.combine(generationDay, time(0,0)) + timedelta(minutes=depMins))
+								depdatetime = str(zurichtz.localize(datetime.combine(generationDay, time(0,0)) + timedelta(minutes=depMins)))
 
 							# Attribute
 							strAttributecode = ""
