@@ -80,7 +80,7 @@ class HrdfReader:
 					self.read_fplan(filename)
 				elif filename == "BAHNHOF":
 					self.read_bahnhof(filename)
-				elif filename == "GLEIS":
+				elif filename == "GLEISE_WGS":
 					self.read_gleis(filename)
 				elif filename == "DURCHBI":
 					self.read_durchbi(filename)
