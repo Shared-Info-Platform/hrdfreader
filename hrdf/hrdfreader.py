@@ -287,8 +287,8 @@ class HrdfReader:
 		bahnhof_strIO.close()
 
 	def read_gleis(self, filename):
-		"""Lesen der Datei GLEIS"""
-		logger.info('lesen und verarbeiten der Datei GLEIS')
+		"""Lesen der Datei GLEISE_WGS"""
+		logger.info('lesen und verarbeiten der Datei GLEISE_WGS')
 		# Lesen der kompletten Datei, um Index-Tabelle mit Gleis-Bezeichnungen aufzubauen.
 		gleisTexte = dict();
 		gleisInfoList = list();
@@ -380,18 +380,21 @@ class HrdfReader:
 			if not bTextblock:
 				# solange das nicht der Fall ist, sollen die Daten als Zugarten weiter eingearbeitet werden
 				if line != '<text>':
-					# Der string setzt sich aus folgenden Elementen zusammen: code,produktklasse,tarifgruppe,ausgabesteuerung,gattungsbezeichnung,zuschlag,flag,gattungsbildernamen,kategorienummer
-					zugart_strIO.write(self.__fkdict['fk_eckdatenid']+';'
-											+line[:3].strip()+';'
-											+line[4:6].strip()+';'
-											+line[7:8]+';'
-											+line[9:10]+';'
-											+line[11:19].strip()+';'
-											+line[20:21].strip()+';'
-											+line[22:23]+';'
-											+line[24:28].strip()+';'
-											+line[30:33]+
-											'\n')
+					if line[:2] == '*I':
+						logger.debug('ignoriere *I-Zeile in ZUGART')
+					else:
+						# Der string setzt sich aus folgenden Elementen zusammen: code,produktklasse,tarifgruppe,ausgabesteuerung,gattungsbezeichnung,zuschlag,flag,gattungsbildernamen,kategorienummer
+						zugart_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+												+line[:3].strip()+';'
+												+line[4:6].strip()+';'
+												+line[7:8]+';'
+												+line[9:10]+';'
+												+line[11:19].strip()+';'
+												+line[20:21].strip()+';'
+												+line[22:23]+';'
+												+line[24:28].strip()+';'
+												+line[30:33]+
+												'\n')
 				# sobald die Textangaben beginnen, werden die Daten sprachspezifisch in das jeweilige dictionary geschrieben
 				else:
 					bTextblock = True
