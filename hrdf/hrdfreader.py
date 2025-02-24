@@ -508,7 +508,7 @@ class HrdfReader:
 		logger.info('lesen und verarbeiten der Datei '+filename)
 
 		# Erster Durchlauf um die Ausgabeattributcodes für Teil- und Vollstrecke zu ermitteln
-		logger.info('Attribute: erster Durchlauf für Teil- und Vollstrecke')
+		logger.debug('Attribute: erster Durchlauf für Teil- und Vollstrecke')
 		targetcodes = {}
 		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
 			line = line.decode(self.__charset).replace('\r\n', '')
@@ -516,19 +516,16 @@ class HrdfReader:
 				targetcodes[line[2:4].strip()] = [line[5:7].strip(), line[8:10].strip()]
 
 		# Zweiter Durchlauf um die sprachabhängigen Attributstexte zu ermitteln
-		logger.info('Attribute: zweiter Durchlauf für Spracheninformationen')
+		logger.debug('Attribute: zweiter Durchlauf für Spracheninformationen')
 		textBlockFound = False
 		sprache = 'de'
 		attrcode = ''
-		logger.info('Lookup anlegen')
 		attrLookup = {}
 		attrLookup['de'] = {}
-		logger.info('sprache de anlegen')
 		attrLookup['en'] = {}
 		attrLookup['fr'] = {}
 		attrLookup['it'] = {}
 
-		logger.info('zeilen durchackern')
 		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
 			line = line.decode(self.__charset).replace('\r\n', '')
 			if textBlockFound == False:
@@ -548,7 +545,7 @@ class HrdfReader:
 					attrLookup[sprache][attrcode] = line[5:].strip()
 
 		# Dritter Durchlauf um die Attributsinformationen zu schreiben
-		logger.info('Attribute: dritter Durchlauf zum Schreiben in DB')
+		logger.debug('Attribute: dritter Durchlauf zum Schreiben in DB')
 		textBlockFound = False
 		attribute_strIO = StringIO()
 		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
