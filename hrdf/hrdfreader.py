@@ -521,11 +521,12 @@ class HrdfReader:
 		sprache = 'de'
 		attrcode = ''
 		logger.info('Lookup anlegen')
-		attrLookup = []
-		attrLookup['de'] = []
-		attrLookup['en'] = []
-		attrLookup['fr'] = []
-		attrLookup['it'] = []
+		attrLookup = {}
+		attrLookup['de'] = {}
+		logger.info('sprache de anlegen')
+		attrLookup['en'] = {}
+		attrLookup['fr'] = {}
+		attrLookup['it'] = {}
 
 		logger.info('zeilen durchackern')
 		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
