@@ -520,12 +520,14 @@ class HrdfReader:
 		textBlockFound = False
 		sprache = 'de'
 		attrcode = ''
+		logger.info('Lookup anlegen')
 		attrLookup = []
 		attrLookup['de'] = []
 		attrLookup['en'] = []
 		attrLookup['fr'] = []
 		attrLookup['it'] = []
 
+		logger.info('zeilen durchackern')
 		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
 			line = line.decode(self.__charset).replace('\r\n', '')
 			if textBlockFound == False:
