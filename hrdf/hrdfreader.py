@@ -587,7 +587,6 @@ class HrdfReader:
 
 						attribute_strIO.write(self.__fkdict['fk_eckdatenid']+';'
 													+'fr;'
-													+sprache.lower()+';'
 													+line[3:4]+';'
 													+line[5:8]+';'
 													+line[9:11]+';'
