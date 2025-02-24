@@ -67,10 +67,7 @@ class HrdfReader:
 				elif filename == "LINIE":
 					self.read_linie(filename)
 				elif filename == "ATTRIBUT":
-					self.read_attribut(filename, "DE")
-					self.read_attribut(filename, "EN")
-					self.read_attribut(filename, "FR")
-					self.read_attribut(filename, "IT")
+					self.read_attribut(filename)
 				elif filename == "INFOTEXT":
 					self.read_infotext(filename, "DE")
 					self.read_infotext(filename, "EN")
@@ -504,14 +501,10 @@ class HrdfReader:
 		linie_strIO.close()
 
 
-	def read_attribut(self, filename, sprache):
+	def read_attribut(self, filename):
 		"""Lesen der Datei ATTRIBUT
-			ATTRIBUT aus INFO+ ist sprachabhängig in dem Format ATTRIBUT_XX
+			ATTRIBUT aus INFO+ ist sprachabhängig in dem Format ATTRIBUT
 		"""
-		if sprache.strip():	# wird keine Sprache übergeben, dann bleibt der Dateiname unverändert
-			filename = filename + '_' + sprache
-		else:
-			sprache = '--'
 		logger.info('lesen und verarbeiten der Datei '+filename)
 
 		# Erster Durchlauf um die Ausgabeattributcodes für Teil- und Vollstrecke zu ermitteln
@@ -521,6 +514,33 @@ class HrdfReader:
 			if line[:1] == '#':
 				targetcodes[line[2:4].strip()] = [line[5:7].strip(), line[8:10].strip()]
 
+		# Zweiter Durchlauf um die sprachabhängigne Attributstexte zu ermitteln
+		textBlockFound = False
+		sprache = 'de'
+		attrLookup = []
+		attrLookup['de'] = []
+		attrLookup['en'] = []
+		attrLookup['fr'] = []
+		attrLookup['it'] = []
+
+		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
+			line = line.decode(self.__charset).replace('\r\n', '')
+			if textBlockFound == False:
+				if line[:6] == '<text>':
+					textBlockFound = True
+			else:
+				if line[:5] == '<deu>':
+					sprache = 'de'
+				elif line[:5] == '<eng>':
+					sprache = 'en'
+				elif line[:5] == '<fra>':
+					sprache = 'fr'
+				elif line[:5] == '<ita>':
+					sprache = 'it'
+				else:
+					attrLookup[sprache][line[:2]] = line[5:].stip()
+
+		# Dritter Durchlauf um die Attributsinformationen zu schreiben
 		attribute_strIO = StringIO()
 		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
 			line = line.decode(self.__charset).replace('\r\n', '')
@@ -535,15 +555,48 @@ class HrdfReader:
 
 				attribute_strIO.write(self.__fkdict['fk_eckdatenid']+';'
 											+attrcode+';'
+											+'de;'
+											+line[3:4]+';'
+											+line[5:8]+';'
+											+line[9:11]+';'
+											+attrLookup['de'][attrcode].replace(';','\;')+';'
+											+attrcode_section+';'
+											+attrcode_complete
+											+'\n')
+
+				attribute_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+											+attrcode+';'
+											+'en;'
+											+line[3:4]+';'
+											+line[5:8]+';'
+											+line[9:11]+';'
+											+attrLookup['en'][attrcode].replace(';','\;')+';'
+											+attrcode_section+';'
+											+attrcode_complete
+											+'\n')
+
+				attribute_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+											+'fr;'
 											+sprache.lower()+';'
 											+line[3:4]+';'
 											+line[5:8]+';'
 											+line[9:11]+';'
-											+line[12:-1].replace(';','\;')+';'
+											+attrLookup['fr'][attrcode].replace(';','\;')+';'
 											+attrcode_section+';'
 											+attrcode_complete
 											+'\n')
-		
+
+				attribute_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+											+attrcode+';'
+											+'it;'
+											+line[3:4]+';'
+											+line[5:8]+';'
+											+line[9:11]+';'
+											+attrLookup['it'][attrcode].replace(';','\;')+';'
+											+attrcode_section+';'
+											+attrcode_complete
+											+'\n')
+
 		attribute_strIO.seek(0)
 		cur = self.__hrdfdb.connection.cursor()
 		try:
