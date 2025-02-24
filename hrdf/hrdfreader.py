@@ -388,12 +388,12 @@ class HrdfReader:
 												+line[:3].strip()+';'
 												+line[4:6].strip()+';'
 												+line[7:8]+';'
-												+line[9:10]+';'
-												+line[11:19].strip()+';'
-												+line[20:21].strip()+';'
-												+line[22:23]+';'
-												+line[24:28].strip()+';'
-												+line[30:33]+
+												+line[9:11]+';'
+												+line[12:20].strip()+';'
+												+line[21:22].strip()+';'
+												+line[23:24]+';'
+												+line[25:29].strip()+';'
+												+line[30:34]+
 												'\n')
 				# sobald die Textangaben beginnen, werden die Daten sprachspezifisch in das jeweilige dictionary geschrieben
 				else:
