@@ -519,6 +519,7 @@ class HrdfReader:
 		logger.info('Attribute: zweiter Durchlauf für Spracheninformationen')
 		textBlockFound = False
 		sprache = 'de'
+		attrcode = ''
 		attrLookup = []
 		attrLookup['de'] = []
 		attrLookup['en'] = []
@@ -528,19 +529,20 @@ class HrdfReader:
 		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
 			line = line.decode(self.__charset).replace('\r\n', '')
 			if textBlockFound == False:
-				if line[:6] == '<text>':
+				if line == '<text>':
 					textBlockFound = True
 			else:
-				if line[:5] == '<deu>':
+				if line == '<deu>':
 					sprache = 'de'
-				elif line[:5] == '<eng>':
+				elif line == '<eng>':
 					sprache = 'en'
-				elif line[:5] == '<fra>':
+				elif line == '<fra>':
 					sprache = 'fr'
-				elif line[:5] == '<ita>':
+				elif line == '<ita>':
 					sprache = 'it'
 				else:
-					attrLookup[sprache][line[:2]] = line[5:].stip()
+					attrcode = line[:2].strip()
+					attrLookup[sprache][attrcode] = line[5:].stip()
 
 		# Dritter Durchlauf um die Attributsinformationen zu schreiben
 		logger.info('Attribute: dritter Durchlauf zum Schreiben in DB')
