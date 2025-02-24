@@ -542,65 +542,70 @@ class HrdfReader:
 					sprache = 'it'
 				else:
 					attrcode = line[:2].strip()
-					attrLookup[sprache][attrcode] = line[5:].stip()
+					attrLookup[sprache][attrcode] = line[5:].strip()
 
 		# Dritter Durchlauf um die Attributsinformationen zu schreiben
 		logger.info('Attribute: dritter Durchlauf zum Schreiben in DB')
+		textBlockFound = False
 		attribute_strIO = StringIO()
-		for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
-			line = line.decode(self.__charset).replace('\r\n', '')
-			if line[:1] != '#':
-				attrcode = line[:2].strip()
-				if attrcode in targetcodes:
-					attrcode_section = targetcodes[attrcode][0]
-					attrcode_complete = targetcodes[attrcode][1]
+		while textBlockFound == False:
+			for line in fileinput.input(filename, openhook=self.__hrdfzip.open):
+				line = line.decode(self.__charset).replace('\r\n', '')
+				if line == '<text>':
+					textBlockFound = True
 				else:
-					attrcode_section = ""
-					attrcode_complete = ""
+					if line[:1] != '#':
+						attrcode = line[:2].strip()
+						if attrcode in targetcodes:
+							attrcode_section = targetcodes[attrcode][0]
+							attrcode_complete = targetcodes[attrcode][1]
+						else:
+							attrcode_section = ""
+							attrcode_complete = ""
 
-				attribute_strIO.write(self.__fkdict['fk_eckdatenid']+';'
-											+attrcode+';'
-											+'de;'
-											+line[3:4]+';'
-											+line[5:8]+';'
-											+line[9:11]+';'
-											+attrLookup['de'][attrcode].replace(';','\;')+';'
-											+attrcode_section+';'
-											+attrcode_complete
-											+'\n')
+						attribute_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+													+attrcode+';'
+													+'de;'
+													+line[3:4]+';'
+													+line[5:8]+';'
+													+line[9:11]+';'
+													+attrLookup['de'][attrcode].replace(';','\;')+';'
+													+attrcode_section+';'
+													+attrcode_complete
+													+'\n')
 
-				attribute_strIO.write(self.__fkdict['fk_eckdatenid']+';'
-											+attrcode+';'
-											+'en;'
-											+line[3:4]+';'
-											+line[5:8]+';'
-											+line[9:11]+';'
-											+attrLookup['en'][attrcode].replace(';','\;')+';'
-											+attrcode_section+';'
-											+attrcode_complete
-											+'\n')
+						attribute_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+													+attrcode+';'
+													+'en;'
+													+line[3:4]+';'
+													+line[5:8]+';'
+													+line[9:11]+';'
+													+attrLookup['en'][attrcode].replace(';','\;')+';'
+													+attrcode_section+';'
+													+attrcode_complete
+													+'\n')
 
-				attribute_strIO.write(self.__fkdict['fk_eckdatenid']+';'
-											+'fr;'
-											+sprache.lower()+';'
-											+line[3:4]+';'
-											+line[5:8]+';'
-											+line[9:11]+';'
-											+attrLookup['fr'][attrcode].replace(';','\;')+';'
-											+attrcode_section+';'
-											+attrcode_complete
-											+'\n')
+						attribute_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+													+'fr;'
+													+sprache.lower()+';'
+													+line[3:4]+';'
+													+line[5:8]+';'
+													+line[9:11]+';'
+													+attrLookup['fr'][attrcode].replace(';','\;')+';'
+													+attrcode_section+';'
+													+attrcode_complete
+													+'\n')
 
-				attribute_strIO.write(self.__fkdict['fk_eckdatenid']+';'
-											+attrcode+';'
-											+'it;'
-											+line[3:4]+';'
-											+line[5:8]+';'
-											+line[9:11]+';'
-											+attrLookup['it'][attrcode].replace(';','\;')+';'
-											+attrcode_section+';'
-											+attrcode_complete
-											+'\n')
+						attribute_strIO.write(self.__fkdict['fk_eckdatenid']+';'
+													+attrcode+';'
+													+'it;'
+													+line[3:4]+';'
+													+line[5:8]+';'
+													+line[9:11]+';'
+													+attrLookup['it'][attrcode].replace(';','\;')+';'
+													+attrcode_section+';'
+													+attrcode_complete
+													+'\n')
 
 		attribute_strIO.seek(0)
 		cur = self.__hrdfdb.connection.cursor()
